@@ -195,7 +195,7 @@ template <std::size_t MemSize = 128> struct Computer {
     write_byte(off + 1, offset<8u, 15u>(h));
   }
 
-  void write_word(std::size_t off, std::uint16_t w) {
+  void write_word(std::size_t off, std::uint32_t w) {
     write_half(off, offset<0u, 15u>(w));
     write_half(off + 2, offset<16u, 31u>(w));
   }
