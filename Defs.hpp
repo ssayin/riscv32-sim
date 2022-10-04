@@ -171,7 +171,7 @@ private:
 template <std::size_t MemSize = 128> struct Computer {
   static_assert(MemSize >= 0 &&
                 MemSize <= std::numeric_limits<std::uint32_t>::max());
-  std::uint32_t                     PC;
+  std::uint32_t                     PC{0};
   RegisterFile                      x{};
   std::array<std::uint8_t, MemSize> Mem{};
 
@@ -198,6 +198,11 @@ template <std::size_t MemSize = 128> struct Computer {
   void write_word(std::size_t off, std::uint32_t w) {
     write_half(off, offset<0u, 15u>(w));
     write_half(off + 2, offset<16u, 31u>(w));
+  }
+
+  void step() {
+    std::uint32_t w = read_word(PC);
+    exec(w);
   }
 
   void exec(std::uint32_t inst) {
@@ -244,6 +249,8 @@ template <std::size_t MemSize = 128> struct Computer {
     default:
       break;
     }
+
+    PC = PC + 4;
   }
 
   void exec(ALUInst inst) {
