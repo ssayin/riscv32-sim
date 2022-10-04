@@ -172,6 +172,7 @@ template <std::size_t MemSize = 128> struct Computer {
   static_assert(MemSize >= 0 &&
                 MemSize <= std::numeric_limits<std::uint32_t>::max());
   std::uint32_t                     PC{0};
+  std::uint32_t                     PC_Next{0};
   RegisterFile                      x{};
   std::array<std::uint8_t, MemSize> Mem{};
 
@@ -206,6 +207,7 @@ template <std::size_t MemSize = 128> struct Computer {
   }
 
   void exec(std::uint32_t inst) {
+    PC_Next = PC + 4;
     switch (static_cast<OpCode>(offset<0u, 6u>(inst))) {
 
     case OpCode::ALU:
@@ -250,7 +252,7 @@ template <std::size_t MemSize = 128> struct Computer {
       break;
     }
 
-    PC = PC + 4;
+    PC = PC_Next;
   }
 
   void exec(ALUInst inst) {
@@ -351,10 +353,10 @@ template <std::size_t MemSize = 128> struct Computer {
   void exec(UJumpInst inst) {
     if (inst.opc() == OpCode::JAL) {
       x[inst.rd()] = PC + 4;
-      PC           = PC + inst.imm_j();
+      PC_Next      = PC + inst.imm_j();
     } else if (inst.opc() == OpCode::JALR) {
       x[inst.rd()] = PC + 4;
-      PC           = (x[inst.rs1()] + inst.imm_i()) & 0xFFFFFFFE;
+      PC_Next      = (x[inst.rs1()] + inst.imm_i()) & 0xFFFFFFFE;
     }
   }
 
@@ -385,7 +387,7 @@ template <std::size_t MemSize = 128> struct Computer {
     }
 
     if (take_jump)
-      PC = PC + inst.imm_b();
+      PC_Next = PC + inst.imm_b();
   }
 
   void exec(LoadInst inst) {
