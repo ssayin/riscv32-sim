@@ -164,13 +164,6 @@ public:
     return x[index];
   }
 
-  constexpr const std::uint32_t &operator[](std::size_t index) const {
-    if (index >= 32u)
-      throw std::runtime_error("reg addr must be less than 32");
-
-    return x[index];
-  }
-
 private:
   std::array<std::uint32_t, 32> x{};
 };
@@ -190,9 +183,22 @@ template <std::size_t MemSize = 128> struct Computer {
     return read_half(off) | (read_half(off + 2) << 16);
   }
 
-  std::uint8_t  write_byte() {}
-  std::uint16_t write_half() {}
-  std::uint32_t write_word() {}
+  void write_byte(std::size_t off, std::uint8_t b) {
+    if (off < Mem.size()) {
+      Mem[off] = b;
+    } else
+      throw std::runtime_error("write_byte offset boundary check failed");
+  }
+
+  void write_half(std::size_t off, std::uint16_t h) {
+    write_byte(off, offset<0u, 7u>(h));
+    write_byte(off + 1, offset<8u, 15u>(h));
+  }
+
+  void write_word(std::size_t off, std::uint16_t w) {
+    write_half(off, offset<0u, 15u>(w));
+    write_half(off + 2, offset<16u, 31u>(w));
+  }
 
   void exec(std::uint32_t inst) {
     switch (static_cast<OpCode>(offset<0u, 6u>(inst))) {
