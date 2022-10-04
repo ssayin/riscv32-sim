@@ -381,8 +381,45 @@ template <std::size_t MemSize = 128> struct Computer {
       PC = PC + inst.imm_b();
   }
 
-  void exec(LoadInst inst) {}
-  void exec(StoreInst inst) {}
+  void exec(LoadInst inst) {
+    using enum Load;
+    std::uint32_t addr = inst.rs1() + inst.imm_i();
+    switch (inst.funct3()) {
+    case LB:
+      x[inst.rd()] = static_cast<std::uint32_t>(
+          static_cast<std::int32_t>(read_byte(addr) << 24) >> 24);
+      break;
+    case LH:
+      x[inst.rd()] = static_cast<std::uint32_t>(
+          static_cast<std::int32_t>(read_half(addr) << 16) >> 16);
+      break;
+    case LW:
+      x[inst.rd()] = read_word(addr);
+      break;
+    case LBU:
+      x[inst.rd()] = (read_byte(addr) << 24);
+      break;
+    case LHU:
+      x[inst.rd()] = (read_half(addr) << 16);
+      break;
+    }
+  }
+
+  void exec(StoreInst inst) {
+    std::uint32_t addr = inst.rs1() + inst.imm_s();
+    switch (inst.funct3()) {
+      using enum Store;
+    case SB:
+      write_byte(addr, x[inst.rs2()]);
+      break;
+    case SH:
+      write_half(addr, x[inst.rs2()]);
+      break;
+    case SW:
+      write_word(addr, x[inst.rs2()]);
+      break;
+    }
+  }
 
   void exec(FenceInst inst) {}
   void exec(CSREnvInst inst) {}
