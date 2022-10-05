@@ -2,6 +2,7 @@
 
 #include <array>
 #include <bitset>
+#include <cassert>
 #include <cstdint>
 #include <exception>
 #include <utility>
@@ -102,9 +103,9 @@ auto sign_extend(std::integral auto x, Unsigned auto shamt) {
 }
 
 template <typename CRTP, Enum Funct3 = Dummy> class InstType {
-  std::uint32_t inst;
+  uint32_t inst;
 
-  InstType(std::uint32_t x) : inst{x} {}
+  InstType(uint32_t x) : inst{x} {}
   auto funct7() const { return offset<25u, 31u>(inst); }
   auto funct3() const { return static_cast<Funct3>(offset<12u, 14u>(inst)); }
 
@@ -157,38 +158,39 @@ class UJumpInst : public InstType<UJumpInst> {};
 
 class RegisterFile {
 public:
-  constexpr std::uint32_t &operator[](std::size_t index) {
-    x[0] = 0u;
-    if (index >= 32u)
-      throw std::runtime_error("reg addr must be less than 32");
-    return x[index];
-  }
+  uint32_t &operator[](size_t index);
 
 private:
-  std::array<std::uint32_t, 32> x{};
+  std::array<uint32_t, 32> x{};
 };
 
+uint32_t &RegisterFile::operator[](size_t index) {
+  x[0] = 0u;
+  assert(index < 32u);
+  return x[index];
+}
+
 struct Computer {
-  std::uint32_t PC{0};
-  std::uint32_t PC_Next{0};
-  RegisterFile  x{};
-  std::uint8_t *Mem;
+  int32_t      PC{0};
+  uint32_t     PC_Next{0};
+  RegisterFile x{};
+  uint8_t     *Mem;
 
   static constexpr uint32_t MemSize = 0x30000;
 
-  Computer() { Mem = std::allocator<std::uint8_t>().allocate(MemSize); }
-  ~Computer() { std::allocator<std::uint8_t>().deallocate(Mem, MemSize); }
+  Computer() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
+  ~Computer() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
 
-  std::uint8_t  read_byte(std::size_t off);
-  std::uint16_t read_half(std::size_t off);
-  std::uint32_t read_word(std::size_t off);
+  int8_t  read_byte(size_t off);
+  int16_t read_half(size_t off);
+  int32_t read_word(size_t off);
 
-  void write_byte(std::size_t off, std::uint8_t b);
-  void write_half(std::size_t off, std::uint16_t h);
-  void write_word(std::size_t off, std::uint32_t w);
+  void write_byte(size_t off, uint8_t b);
+  void write_half(size_t off, uint16_t h);
+  void write_word(size_t off, uint32_t w);
   void step() { exec(read_word(PC)); }
 
-  void exec(std::uint32_t inst);
+  void exec(uint32_t inst);
   void exec(ALUInst inst);
   void exec(ImmediateInst inst);
   void exec(UImmediateInst inst);
