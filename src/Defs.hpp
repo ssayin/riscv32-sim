@@ -97,12 +97,15 @@ enum class Dummy : uint32_t {};
 template <typename T>
 concept Enum = std::is_enum<T>::value;
 
-auto sign_extend(std::integral auto x, Unsigned auto shamt) {
+template <typename T>
+concept Integral = std::is_integral<T>::value;
+
+auto sign_extend(Integral /* std::integral */ auto x, Unsigned auto shamt) {
   return static_cast<decltype(x)>(
       static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
 }
 
-template <typename CRTP, Enum Funct3 = Dummy> class InstType {
+template <Enum Funct3 = Dummy> class InstType {
   uint32_t inst;
 
   InstType(uint32_t x) : inst{x} {}
@@ -146,44 +149,23 @@ template <typename CRTP, Enum Funct3 = Dummy> class InstType {
   friend class Computer;
 };
 
-class ALUInst : public InstType<ALUInst, ALU> {};
-class BranchInst : public InstType<BranchInst, Branch> {};
-class LoadInst : public InstType<LoadInst, Load> {};
-class StoreInst : public InstType<StoreInst, Store> {};
-class ImmediateInst : public InstType<ImmediateInst, Immediate> {};
-class CSREnvInst : public InstType<CSREnvInst, Csr_Env> {};
-class FenceInst : public InstType<FenceInst, Fence> {};
-class UImmediateInst : public InstType<UImmediateInst> {};
-class UJumpInst : public InstType<UJumpInst> {};
+class ALUInst : public InstType<ALU> {};
+class BranchInst : public InstType<Branch> {};
+class LoadInst : public InstType<Load> {};
+class StoreInst : public InstType<Store> {};
+class ImmediateInst : public InstType<Immediate> {};
+class CSREnvInst : public InstType<Csr_Env> {};
+class FenceInst : public InstType<Fence> {};
+class UImmediateInst : public InstType<> {};
+class UJumpInst : public InstType<> {};
 
-class RegFile {
+class Memory {
 public:
-  uint32_t read(uint32_t index) {
-    assert(index < 32u);
-    return x[index];
-  }
-
-  void write(uint32_t index, uint32_t data) {
-    assert(index < 32u);
-    if (index == 0)
-      return;
-    x[index] = data;
-  }
-
-private:
-  std::array<uint32_t, 32> x{};
-};
-
-struct Computer {
-  int32_t  PC{0};
-  uint32_t PC_Next{0};
-  RegFile  regfile{};
-  uint8_t *Mem;
-
   static constexpr uint32_t MemSize = 0x30000;
+  Memory() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
+  ~Memory() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
 
-  Computer() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
-  ~Computer() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
+  void load(uint32_t dst, void *ptr);
 
   uint8_t read_byte(uint32_t off) {
     assert(off < MemSize);
@@ -213,7 +195,35 @@ struct Computer {
     write_half(off + 2, offset<16u, 31u>(w));
   }
 
-  void step() { exec(read_word(PC)); }
+private:
+  uint8_t *Mem;
+};
+
+class RegFile {
+public:
+  uint32_t read(uint32_t index) {
+    assert(index < 32u);
+    return x[index];
+  }
+
+  void write(uint32_t index, uint32_t data) {
+    assert(index < 32u);
+    if (index == 0)
+      return;
+    x[index] = data;
+  }
+
+private:
+  std::array<uint32_t, 32> x{};
+};
+
+struct Computer {
+  int32_t  PC{0};
+  uint32_t PC_Next{0};
+  RegFile  regfile{};
+  Memory   mem;
+
+  void step() { exec(mem.read_word(PC)); }
 
   void exec(uint32_t inst);
   void exec(ALUInst inst);

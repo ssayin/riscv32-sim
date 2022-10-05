@@ -195,21 +195,23 @@ void Computer::exec(LoadInst inst) {
   uint32_t addr = regfile.read(inst.rs1()) + inst.imm_i();
   switch (inst.funct3()) {
   case LB:
-    regfile.write(rd, static_cast<uint32_t>(
-                          static_cast<int32_t>(read_byte(addr) << 24) >> 24));
+    regfile.write(rd,
+                  static_cast<uint32_t>(
+                      static_cast<int32_t>(mem.read_byte(addr) << 24) >> 24));
     break;
   case LH:
-    regfile.write(rd, static_cast<uint32_t>(
-                          static_cast<int32_t>(read_half(addr) << 16) >> 16));
+    regfile.write(rd,
+                  static_cast<uint32_t>(
+                      static_cast<int32_t>(mem.read_half(addr) << 16) >> 16));
     break;
   case LW:
-    regfile.write(rd, read_word(addr));
+    regfile.write(rd, mem.read_word(addr));
     break;
   case LBU:
-    regfile.write(rd, read_byte(addr) << 24);
+    regfile.write(rd, mem.read_byte(addr) << 24);
     break;
   case LHU:
-    regfile.write(rd, read_half(addr) << 16);
+    regfile.write(rd, mem.read_half(addr) << 16);
     break;
   }
 }
@@ -220,13 +222,13 @@ void Computer::exec(StoreInst inst) {
   switch (inst.funct3()) {
     using enum Store;
   case SB:
-    write_byte(addr, rs_v);
+    mem.write_byte(addr, rs_v);
     break;
   case SH:
-    write_half(addr, rs_v);
+    mem.write_half(addr, rs_v);
     break;
   case SW:
-    write_word(addr, rs_v);
+    mem.write_word(addr, rs_v);
     break;
   }
 }

@@ -7,7 +7,6 @@
 #include "Defs.hpp"
 
 #include <algorithm>
-#include <ranges>
 
 int main(int argc, char **argv) {
 
@@ -42,28 +41,26 @@ int main(int argc, char **argv) {
   ELFIO::dump::dynamic_tags(std::cout, reader);
   ELFIO::dump::section_datas(std::cout, reader);
   ELFIO::dump::segment_datas(std::cout, reader);
+  /*
+    Computer c;
 
-  Computer c;
+    std::ranges::for_each(
+        reader.segments, [&](std::unique_ptr<ELFIO::segment> &s) {
+          if (s->get_type() == ELFIO::PT_LOAD) {
+            std::uint64_t addr = s->get_virtual_address();
+            std::uint64_t size = s->get_file_size();
+            if ((addr + size) < c.mem.MemSize)
+              std::memcpy((void *)(c.Mem + addr), s->get_data(), size);
+          }
+        });
 
-  std::ranges::for_each(
-      reader.segments, [&](std::unique_ptr<ELFIO::segment> &s) {
-        // if (s->get_type() == ELFIO::PT_LOAD) {
-        std::uint64_t addr = s->get_virtual_address();
-        std::uint64_t size = s->get_file_size();
-        if ((addr + size) < c.MemSize)
-          std::memcpy((void *)(c.Mem + addr), s->get_data(), size);
-        // }
-      });
+    c.PC = reader.get_entry();
 
-  c.PC = reader.get_entry();
+    printf("Starting Simulation:\n");
 
-  printf("Starting Simulation:\n");
-
-  for (int i = 0; i < 100; ++i) {
-    std::cout << std::hex << "PC " << c.PC << " WORD " << c.read_word(c.PC)
-              << std::endl;
-    c.step();
-  }
-
+    for (int i = 0; i < 100; ++i) {
+      c.step();
+    }
+  */
   return 0;
 }
