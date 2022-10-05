@@ -32,16 +32,26 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  ELFIO::dump::header(std::cout, reader);
+  ELFIO::dump::section_headers(std::cout, reader);
+  ELFIO::dump::segment_headers(std::cout, reader);
+  ELFIO::dump::symbol_tables(std::cout, reader);
+  ELFIO::dump::notes(std::cout, reader);
+  ELFIO::dump::modinfo(std::cout, reader);
+  ELFIO::dump::dynamic_tags(std::cout, reader);
+  ELFIO::dump::section_datas(std::cout, reader);
+  ELFIO::dump::segment_datas(std::cout, reader);
+
   Computer c;
 
   std::ranges::for_each(
       reader.segments, [&](std::unique_ptr<ELFIO::segment> &s) {
-        if (s->get_type() == ELFIO::PT_LOAD) {
-          std::uint64_t addr = s->get_virtual_address();
-          std::uint64_t size = s->get_file_size();
-          if ((addr + size) < c.MemSize)
-            std::memcpy((void *)(c.Mem + addr), s->get_data(), size);
-        }
+        // if (s->get_type() == ELFIO::PT_LOAD) {
+        std::uint64_t addr = s->get_virtual_address();
+        std::uint64_t size = s->get_file_size();
+        if ((addr + size) < c.MemSize)
+          std::memcpy((void *)(c.Mem + addr), s->get_data(), size);
+        // }
       });
 
   c.PC = reader.get_entry();
@@ -49,6 +59,8 @@ int main(int argc, char **argv) {
   printf("Starting Simulation:\n");
 
   for (int i = 0; i < 100; ++i) {
+    std::cout << std::hex << "PC " << c.PC << " WORD " << c.read_word(c.PC)
+              << std::endl;
     c.step();
   }
 
