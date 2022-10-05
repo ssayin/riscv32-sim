@@ -142,7 +142,7 @@ template <typename CRTP, Enum Funct3 = Dummy> class InstType {
            sign_extend(inst & fillbits<0u>(32u), 20u);
   }
 
-  template <std::size_t MemSize> friend class Computer;
+  friend class Computer;
 };
 
 class ALUInst : public InstType<ALUInst, ALU> {};
@@ -168,15 +168,23 @@ private:
   std::array<std::uint32_t, 32> x{};
 };
 
-template <std::size_t MemSize = 128> struct Computer {
-  static_assert(MemSize >= 0 &&
-                MemSize <= std::numeric_limits<std::uint32_t>::max());
-  std::uint32_t                     PC{0};
-  std::uint32_t                     PC_Next{0};
-  RegisterFile                      x{};
-  std::array<std::uint8_t, MemSize> Mem{};
+struct Computer {
+  std::uint32_t PC{0};
+  std::uint32_t PC_Next{0};
+  RegisterFile  x{};
+  std::uint8_t *Mem;
 
-  std::uint8_t  read_byte(std::size_t off) { return Mem.at(off); }
+  static constexpr uint32_t MemSize = 0x30000;
+
+  Computer() { Mem = std::allocator<std::uint8_t>().allocate(MemSize); }
+  ~Computer() { std::allocator<std::uint8_t>().deallocate(Mem, MemSize); }
+
+  std::uint8_t read_byte(std::size_t off) {
+    if (off < MemSize)
+      return Mem[off];
+    else
+      throw std::runtime_error("read_byte failed");
+  }
   std::uint16_t read_half(std::size_t off) {
     return read_byte(off) | (read_byte(off + 1) << 8);
   }
@@ -185,7 +193,7 @@ template <std::size_t MemSize = 128> struct Computer {
   }
 
   void write_byte(std::size_t off, std::uint8_t b) {
-    if (off < Mem.size()) {
+    if (off < MemSize) {
       Mem[off] = b;
     } else
       throw std::runtime_error("write_byte offset boundary check failed");
@@ -201,10 +209,7 @@ template <std::size_t MemSize = 128> struct Computer {
     write_half(off + 2, offset<16u, 31u>(w));
   }
 
-  void step() {
-    std::uint32_t w = read_word(PC);
-    exec(w);
-  }
+  void step() { exec(read_word(PC)); }
 
   void exec(std::uint32_t inst) {
     PC_Next = PC + 4;
@@ -249,6 +254,7 @@ template <std::size_t MemSize = 128> struct Computer {
       break;
 
     default:
+      throw std::runtime_error("unknown opcode");
       break;
     }
 
@@ -392,7 +398,7 @@ template <std::size_t MemSize = 128> struct Computer {
 
   void exec(LoadInst inst) {
     using enum Load;
-    std::uint32_t addr = inst.rs1() + inst.imm_i();
+    std::uint32_t addr = x[inst.rs1()] + inst.imm_i();
     switch (inst.funct3()) {
     case LB:
       x[inst.rd()] = static_cast<std::uint32_t>(
@@ -415,7 +421,7 @@ template <std::size_t MemSize = 128> struct Computer {
   }
 
   void exec(StoreInst inst) {
-    std::uint32_t addr = inst.rs1() + inst.imm_s();
+    std::uint32_t addr = x[inst.rs1()] + inst.imm_s();
     switch (inst.funct3()) {
       using enum Store;
     case SB:
