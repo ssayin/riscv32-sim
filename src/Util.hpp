@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <numeric>
+#include <type_traits>
 
 template <class T>
 concept Unsigned = std::is_unsigned<T>::value;

@@ -7,6 +7,7 @@
 #include "Defs.hpp"
 
 #include <algorithm>
+#include <ranges>
 
 int main(int argc, char **argv) {
 

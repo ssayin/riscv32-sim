@@ -1,36 +1,6 @@
 #include "Defs.hpp"
 
-std::uint8_t Computer::read_byte(std::size_t off) {
-  if (off < MemSize)
-    return Mem[off];
-  else
-    throw std::runtime_error("read_byte failed");
-}
-std::uint16_t Computer::read_half(std::size_t off) {
-  return read_byte(off) | (read_byte(off + 1) << 8);
-}
-std::uint32_t Computer::read_word(std::size_t off) {
-  return read_half(off) | (read_half(off + 2) << 16);
-}
-
-void Computer::write_byte(std::size_t off, std::uint8_t b) {
-  if (off < MemSize) {
-    Mem[off] = b;
-  } else
-    throw std::runtime_error("write_byte offset boundary check failed");
-}
-
-void Computer::write_half(std::size_t off, std::uint16_t h) {
-  write_byte(off, offset<0u, 7u>(h));
-  write_byte(off + 1, offset<8u, 15u>(h));
-}
-
-void Computer::write_word(std::size_t off, std::uint32_t w) {
-  write_half(off, offset<0u, 15u>(w));
-  write_half(off + 2, offset<16u, 31u>(w));
-}
-
-void Computer::exec(std::uint32_t inst) {
+void Computer::exec(uint32_t inst) {
   PC_Next = PC + 4;
   switch (static_cast<OpCode>(offset<0u, 6u>(inst))) {
 
@@ -120,8 +90,8 @@ void Computer::exec(ALUInst inst) {
     break;
 
   case SLT:
-    x[inst.rd()] = static_cast<std::int32_t>(x[inst.rs1()]) <
-                   static_cast<std::int32_t>(x[inst.rs2()]);
+    x[inst.rd()] = static_cast<int32_t>(x[inst.rs1()]) <
+                   static_cast<int32_t>(x[inst.rs2()]);
     break;
 
   case SLTU:
@@ -137,8 +107,8 @@ void Computer::exec(ImmediateInst inst) {
     x[inst.rd()] = x[inst.rs1()] + inst.imm_i();
     break;
   case SLTI:
-    x[inst.rd()] = static_cast<std::int32_t>(x[inst.rs1()]) <
-                   static_cast<std::int32_t>(inst.imm_i());
+    x[inst.rd()] = static_cast<int32_t>(x[inst.rs1()]) <
+                   static_cast<int32_t>(inst.imm_i());
     break;
   case SLTIU:
     x[inst.rd()] = x[inst.rs1()] < inst.imm_i();
@@ -196,15 +166,15 @@ void Computer::exec(BranchInst inst) {
     take_jump = (x[inst.rs1()] != x[inst.rs2()]);
     break;
   case BLT:
-    take_jump = (static_cast<std::int32_t>(x[inst.rs1()]) <
-                 static_cast<std::int32_t>(x[inst.rs2()]));
+    take_jump = (static_cast<int32_t>(x[inst.rs1()]) <
+                 static_cast<int32_t>(x[inst.rs2()]));
     break;
   case BLTU:
     take_jump = (x[inst.rs1()] < x[inst.rs2()]);
     break;
   case BGE:
-    take_jump = (static_cast<std::int32_t>(x[inst.rs1()]) >=
-                 static_cast<std::int32_t>(x[inst.rs2()]));
+    take_jump = (static_cast<int32_t>(x[inst.rs1()]) >=
+                 static_cast<int32_t>(x[inst.rs2()]));
     break;
   case BGEU:
     take_jump = (x[inst.rs1()] >= x[inst.rs2()]);
@@ -217,15 +187,15 @@ void Computer::exec(BranchInst inst) {
 
 void Computer::exec(LoadInst inst) {
   using enum Load;
-  std::uint32_t addr = x[inst.rs1()] + inst.imm_i();
+  uint32_t addr = x[inst.rs1()] + inst.imm_i();
   switch (inst.funct3()) {
   case LB:
-    x[inst.rd()] = static_cast<std::uint32_t>(
-        static_cast<std::int32_t>(read_byte(addr) << 24) >> 24);
+    x[inst.rd()] = static_cast<uint32_t>(
+        static_cast<int32_t>(read_byte(addr) << 24) >> 24);
     break;
   case LH:
-    x[inst.rd()] = static_cast<std::uint32_t>(
-        static_cast<std::int32_t>(read_half(addr) << 16) >> 16);
+    x[inst.rd()] = static_cast<uint32_t>(
+        static_cast<int32_t>(read_half(addr) << 16) >> 16);
     break;
   case LW:
     x[inst.rd()] = read_word(addr);
@@ -240,7 +210,7 @@ void Computer::exec(LoadInst inst) {
 }
 
 void Computer::exec(StoreInst inst) {
-  std::uint32_t addr = x[inst.rs1()] + inst.imm_s();
+  uint32_t addr = x[inst.rs1()] + inst.imm_s();
   switch (inst.funct3()) {
     using enum Store;
   case SB:

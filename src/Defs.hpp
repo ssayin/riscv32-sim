@@ -11,7 +11,7 @@
 
 #include "Util.hpp"
 
-enum class OpCode : std::uint32_t {
+enum class OpCode : uint32_t {
   Branch    = 0b1100011,
   Load      = 0b0000011,
   Store     = 0b0100011,
@@ -26,7 +26,7 @@ enum class OpCode : std::uint32_t {
 };
 
 // B-Type
-enum class Branch : std::uint32_t {
+enum class Branch : uint32_t {
   BEQ  = 0b000,
   BNE  = 0b001,
   BLT  = 0b100,
@@ -36,7 +36,7 @@ enum class Branch : std::uint32_t {
 };
 
 // I-type
-enum class Load : std::uint32_t {
+enum class Load : uint32_t {
   LB  = 0b000,
   LH  = 0b001,
   LW  = 0b010,
@@ -45,14 +45,14 @@ enum class Load : std::uint32_t {
 };
 
 // S-type
-enum class Store : std::uint32_t {
+enum class Store : uint32_t {
   SB = 0b000,
   SH = 0b001,
   SW = 0b010,
 };
 
 // I-type
-enum class Immediate : std::uint32_t {
+enum class Immediate : uint32_t {
   ADDI      = 0b000,
   SLTI      = 0b010,
   SLTIU     = 0b011,
@@ -64,7 +64,7 @@ enum class Immediate : std::uint32_t {
 };
 
 // R-type
-enum class ALU : std::uint32_t {
+enum class ALU : uint32_t {
   SLL     = 0b001,
   SRL_SRA = 0b101,
   ADD_SUB = 0b000,
@@ -76,13 +76,13 @@ enum class ALU : std::uint32_t {
 };
 
 // I-type
-enum class Fence : std::uint32_t {
+enum class Fence : uint32_t {
   FENCE  = 0b000,
   FENCEI = 0b001,
 };
 
 // I-type
-enum class Csr_Env : std::uint32_t {
+enum class Csr_Env : uint32_t {
   ECALL_EBREAK = 0b000,
   CSRRW        = 0b001,
   CSRRS        = 0b010,
@@ -92,7 +92,7 @@ enum class Csr_Env : std::uint32_t {
   CSRRCI       = 0b111,
 };
 
-enum class Dummy : std::uint32_t {};
+enum class Dummy : uint32_t {};
 
 template <typename T>
 concept Enum = std::is_enum<T>::value;
@@ -158,17 +158,15 @@ class UJumpInst : public InstType<UJumpInst> {};
 
 class RegisterFile {
 public:
-  uint32_t &operator[](size_t index);
+  uint32_t &operator[](size_t index) {
+    x[0] = 0u;
+    assert(index < 32u);
+    return x[index];
+  }
 
 private:
   std::array<uint32_t, 32> x{};
 };
-
-uint32_t &RegisterFile::operator[](size_t index) {
-  x[0] = 0u;
-  assert(index < 32u);
-  return x[index];
-}
 
 struct Computer {
   int32_t      PC{0};
@@ -181,13 +179,36 @@ struct Computer {
   Computer() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
   ~Computer() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
 
-  int8_t  read_byte(size_t off);
-  int16_t read_half(size_t off);
-  int32_t read_word(size_t off);
+  uint8_t read_byte(size_t off) {
+    assert(off < MemSize);
+    return Mem[off];
+  }
 
-  void write_byte(size_t off, uint8_t b);
-  void write_half(size_t off, uint16_t h);
-  void write_word(size_t off, uint32_t w);
+  uint16_t read_half(size_t off) {
+    return read_byte(off) | (read_byte(off + 1) << 8);
+  }
+
+  uint32_t read_word(size_t off) {
+    return read_half(off) | (read_half(off + 2) << 16);
+  }
+
+  void write_byte(size_t off, uint8_t b) {
+    if (off < MemSize) {
+      Mem[off] = b;
+    } else
+      throw std::runtime_error("write_byte offset boundary check failed");
+  }
+
+  void write_half(size_t off, uint16_t h) {
+    write_byte(off, offset<0u, 7u>(h));
+    write_byte(off + 1, offset<8u, 15u>(h));
+  }
+
+  void write_word(size_t off, uint32_t w) {
+    write_half(off, offset<0u, 15u>(w));
+    write_half(off + 2, offset<16u, 31u>(w));
+  }
+
   void step() { exec(read_word(PC)); }
 
   void exec(uint32_t inst);
