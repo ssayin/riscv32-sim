@@ -156,12 +156,18 @@ class FenceInst : public InstType<FenceInst, Fence> {};
 class UImmediateInst : public InstType<UImmediateInst> {};
 class UJumpInst : public InstType<UJumpInst> {};
 
-class RegisterFile {
+class RegFile {
 public:
-  uint32_t &operator[](size_t index) {
-    x[0] = 0u;
+  uint32_t read(uint32_t index) {
     assert(index < 32u);
     return x[index];
+  }
+
+  void write(uint32_t index, uint32_t data) {
+    assert(index < 32u);
+    if (index == 0)
+      return;
+    x[index] = data;
   }
 
 private:
@@ -169,42 +175,40 @@ private:
 };
 
 struct Computer {
-  int32_t      PC{0};
-  uint32_t     PC_Next{0};
-  RegisterFile x{};
-  uint8_t     *Mem;
+  int32_t  PC{0};
+  uint32_t PC_Next{0};
+  RegFile  regfile{};
+  uint8_t *Mem;
 
   static constexpr uint32_t MemSize = 0x30000;
 
   Computer() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
   ~Computer() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
 
-  uint8_t read_byte(size_t off) {
+  uint8_t read_byte(uint32_t off) {
     assert(off < MemSize);
     return Mem[off];
   }
 
-  uint16_t read_half(size_t off) {
+  uint16_t read_half(uint32_t off) {
     return read_byte(off) | (read_byte(off + 1) << 8);
   }
 
-  uint32_t read_word(size_t off) {
+  uint32_t read_word(uint32_t off) {
     return read_half(off) | (read_half(off + 2) << 16);
   }
 
-  void write_byte(size_t off, uint8_t b) {
-    if (off < MemSize) {
-      Mem[off] = b;
-    } else
-      throw std::runtime_error("write_byte offset boundary check failed");
+  void write_byte(uint32_t off, uint8_t b) {
+    assert(off < MemSize);
+    Mem[off] = b;
   }
 
-  void write_half(size_t off, uint16_t h) {
+  void write_half(uint32_t off, uint16_t h) {
     write_byte(off, offset<0u, 7u>(h));
     write_byte(off + 1, offset<8u, 15u>(h));
   }
 
-  void write_word(size_t off, uint32_t w) {
+  void write_word(uint32_t off, uint32_t w) {
     write_half(off, offset<0u, 15u>(w));
     write_half(off + 2, offset<16u, 31u>(w));
   }

@@ -51,87 +51,92 @@ void Computer::exec(uint32_t inst) {
 }
 
 void Computer::exec(ALUInst inst) {
+  uint32_t rd    = inst.rd();
+  uint32_t rs1_v = regfile.read(inst.rs1());
+  uint32_t rs2_v = regfile.read(inst.rs2());
   switch (inst.funct3()) {
     using enum ALU;
   case AND:
-    x[inst.rd()] = x[inst.rs1()] & x[inst.rs2()];
+    regfile.write(rd, rs1_v & rs2_v);
     break;
   case OR:
-    x[inst.rd()] = x[inst.rs1()] | x[inst.rs2()];
+    regfile.write(rd, rs1_v | rs2_v);
     break;
   case XOR:
-    x[inst.rd()] = x[inst.rs1()] ^ x[inst.rs2()];
+    regfile.write(rd, rs1_v ^ rs2_v);
     break;
 
   case ADD_SUB:
     switch (inst.bit30()) {
     case 0:
-      x[inst.rd()] = x[inst.rs1()] + x[inst.rs2()];
+      regfile.write(rd, rs1_v + rs2_v);
       break;
     case 1:
-      x[inst.rd()] = x[inst.rs1()] - x[inst.rs2()];
+      regfile.write(rd, rs1_v - rs2_v);
       break;
     }
     break;
 
   case SLL:
-    x[inst.rd()] = x[inst.rs1()] << x[inst.rs2()];
+    regfile.write(rd, rs1_v << rs2_v);
     break;
 
   case SRL_SRA:
     switch (inst.bit30()) {
     case 0:
-      x[inst.rd()] = x[inst.rs1()] >> x[inst.rs2()];
+      regfile.write(rd, rs1_v >> rs2_v);
       break;
     case 1:
-      x[inst.rd()] = sign_extend(x[inst.rs1()], x[inst.rs2()]);
+      regfile.write(rd, sign_extend(rs1_v, rs2_v));
       break;
     }
     break;
 
   case SLT:
-    x[inst.rd()] = static_cast<int32_t>(x[inst.rs1()]) <
-                   static_cast<int32_t>(x[inst.rs2()]);
+    regfile.write(rd,
+                  static_cast<int32_t>(rs1_v) < static_cast<int32_t>(rs2_v));
     break;
 
   case SLTU:
-    x[inst.rd()] = x[inst.rs1()] < x[inst.rs2()];
+    regfile.write(rd, rs1_v < rs2_v);
     break;
   }
 }
 
 void Computer::exec(ImmediateInst inst) {
-  using enum Immediate;
+  uint32_t rd   = inst.rd();
+  uint32_t rs_v = regfile.read(inst.rs1());
+  uint32_t imm  = inst.imm_i();
   switch (inst.funct3()) {
+    using enum Immediate;
   case ADDI:
-    x[inst.rd()] = x[inst.rs1()] + inst.imm_i();
+    regfile.write(rd, rs_v + imm);
     break;
   case SLTI:
-    x[inst.rd()] = static_cast<int32_t>(x[inst.rs1()]) <
-                   static_cast<int32_t>(inst.imm_i());
+    regfile.write(rd, static_cast<int32_t>(rs_v) < static_cast<int32_t>(imm));
     break;
   case SLTIU:
-    x[inst.rd()] = x[inst.rs1()] < inst.imm_i();
+    regfile.write(rd, rs_v < imm);
     break;
   case XORI:
-    x[inst.rd()] = x[inst.rs1()] ^ inst.imm_i();
+    regfile.write(rd, rs_v ^ imm);
     break;
   case ORI:
-    x[inst.rd()] = x[inst.rs1()] | inst.imm_i();
+    regfile.write(rd, rs_v | imm);
     break;
   case ANDI:
-    x[inst.rd()] = x[inst.rs1()] & inst.imm_i();
+    regfile.write(rd, rs_v & imm);
     break;
   case SLLI:
-    x[inst.rd()] = x[inst.rs1()] << offset<0u, 4u>(inst.imm_i());
+    regfile.write(rd, rs_v << offset<0u, 4u>(inst.imm_i()));
     break;
   case SRLI_SRAI:
     switch (inst.bit30()) {
     case 0:
-      x[inst.rd()] = x[inst.rs1()] >> offset<0u, 4u>(inst.imm_i());
+      regfile.write(rd, rs_v >> offset<0u, 4u>(inst.imm_i()));
       break;
     case 1:
-      x[inst.rd()] = sign_extend(x[inst.rs1()], offset<0u, 4u>(inst.imm_i()));
+      regfile.write(rd, sign_extend(rs_v, offset<0u, 4u>(inst.imm_i())));
       break;
     }
     break;
@@ -139,89 +144,89 @@ void Computer::exec(ImmediateInst inst) {
 }
 void Computer::exec(UImmediateInst inst) {
   if (inst.opc() == OpCode::LUI) {
-    x[inst.rd()] = inst.imm_u();
+    regfile.write(inst.rd(), inst.imm_u());
   } else if (inst.opc() == OpCode::AUIPC) {
-    x[inst.rd()] = inst.imm_u() + PC;
+    regfile.write(inst.rd(), inst.imm_u() + PC);
   }
 }
 
 void Computer::exec(UJumpInst inst) {
   if (inst.opc() == OpCode::JAL) {
-    x[inst.rd()] = PC + 4;
-    PC_Next      = PC + inst.imm_j();
+    regfile.write(inst.rd(), PC + 4);
+    PC_Next = PC + inst.imm_j();
   } else if (inst.opc() == OpCode::JALR) {
-    x[inst.rd()] = PC + 4;
-    PC_Next      = (x[inst.rs1()] + inst.imm_i()) & 0xFFFFFFFE;
+    regfile.write(inst.rd(), PC + 4);
+    PC_Next = (regfile.read(inst.rs1()) + inst.imm_i()) & 0xFFFFFFFE;
   }
 }
 
 void Computer::exec(BranchInst inst) {
-  bool take_jump = false;
+  bool     take_jump = false;
+  uint32_t rs2_v     = regfile.read(inst.rs2());
+  uint32_t rs1_v     = regfile.read(inst.rs1());
   switch (inst.funct3()) {
     using enum Branch;
   case BEQ:
-    take_jump = (x[inst.rs1()] == x[inst.rs2()]);
+    take_jump = (rs1_v == rs2_v);
     break;
   case BNE:
-    take_jump = (x[inst.rs1()] != x[inst.rs2()]);
+    take_jump = (rs1_v != rs2_v);
     break;
   case BLT:
-    take_jump = (static_cast<int32_t>(x[inst.rs1()]) <
-                 static_cast<int32_t>(x[inst.rs2()]));
+    take_jump = (static_cast<int32_t>(rs1_v) < static_cast<int32_t>(rs2_v));
     break;
   case BLTU:
-    take_jump = (x[inst.rs1()] < x[inst.rs2()]);
+    take_jump = (rs1_v < rs2_v);
     break;
   case BGE:
-    take_jump = (static_cast<int32_t>(x[inst.rs1()]) >=
-                 static_cast<int32_t>(x[inst.rs2()]));
+    take_jump = (static_cast<int32_t>(rs1_v) >= static_cast<int32_t>(rs2_v));
     break;
   case BGEU:
-    take_jump = (x[inst.rs1()] >= x[inst.rs2()]);
+    take_jump = (rs1_v >= rs2_v);
     break;
   }
-
   if (take_jump)
     PC_Next = PC + inst.imm_b();
 }
 
 void Computer::exec(LoadInst inst) {
   using enum Load;
-  uint32_t addr = x[inst.rs1()] + inst.imm_i();
+  uint32_t rd   = inst.rd();
+  uint32_t addr = regfile.read(inst.rs1()) + inst.imm_i();
   switch (inst.funct3()) {
   case LB:
-    x[inst.rd()] = static_cast<uint32_t>(
-        static_cast<int32_t>(read_byte(addr) << 24) >> 24);
+    regfile.write(rd, static_cast<uint32_t>(
+                          static_cast<int32_t>(read_byte(addr) << 24) >> 24));
     break;
   case LH:
-    x[inst.rd()] = static_cast<uint32_t>(
-        static_cast<int32_t>(read_half(addr) << 16) >> 16);
+    regfile.write(rd, static_cast<uint32_t>(
+                          static_cast<int32_t>(read_half(addr) << 16) >> 16));
     break;
   case LW:
-    x[inst.rd()] = read_word(addr);
+    regfile.write(rd, read_word(addr));
     break;
   case LBU:
-    x[inst.rd()] = (read_byte(addr) << 24);
+    regfile.write(rd, read_byte(addr) << 24);
     break;
   case LHU:
-    x[inst.rd()] = (read_half(addr) << 16);
+    regfile.write(rd, read_half(addr) << 16);
     break;
   }
 }
 
 void Computer::exec(StoreInst inst) {
-  uint32_t addr = x[inst.rs1()] + inst.imm_s();
+  uint32_t addr = regfile.read(inst.rs1()) + inst.imm_s();
+  uint32_t rs_v = regfile.read(inst.rs2());
   switch (inst.funct3()) {
     using enum Store;
   case SB:
-    write_byte(addr, x[inst.rs2()]);
+    write_byte(addr, rs_v);
     break;
   case SH:
-    write_half(addr, x[inst.rs2()]);
+    write_half(addr, rs_v);
     break;
   case SW:
-    std::cout << std::hex << addr << " rs2 " << inst.rs1() << std::endl;
-    write_word(addr, x[inst.rs2()]);
+    write_word(addr, rs_v);
     break;
   }
 }
