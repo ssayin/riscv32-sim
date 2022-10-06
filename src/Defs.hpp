@@ -8,6 +8,8 @@
 #include <utility>
 
 #include <iostream>
+#include <memory>
+#include <unordered_map>
 
 #include "Util.hpp"
 
@@ -160,18 +162,14 @@ class UImmediateInst : public InstType<> {};
 class UJumpInst : public InstType<> {};
 
 class Memory {
+  std::unordered_map<uint32_t, std::unique_ptr<uint8_t>> page;
+
 public:
-  static constexpr uint32_t MemSize = 0x30000;
-  Memory() { Mem = std::allocator<uint8_t>().allocate(MemSize); }
-  ~Memory() { std::allocator<uint8_t>().deallocate(Mem, MemSize); }
-
-  void load(uint32_t dst, void *ptr);
-
   uint8_t read_byte(uint32_t off) {
-    assert(off < MemSize);
-    return Mem[off];
+    return page[off & 0xFFFFF000].get()[offset<0u, 11u>(off)];
   }
 
+  // FIXME: reading at page boundary is A PROBLEM
   uint16_t read_half(uint32_t off) {
     return read_byte(off) | (read_byte(off + 1) << 8);
   }
@@ -181,8 +179,10 @@ public:
   }
 
   void write_byte(uint32_t off, uint8_t b) {
-    assert(off < MemSize);
-    Mem[off] = b;
+    uint32_t maskd = off & 0xFFFFF000;
+    if (!page.contains(maskd))
+      page.emplace(maskd, std::make_unique<uint8_t[]>(4096));
+    page[maskd].get()[offset<0u, 11u>(off)] = b;
   }
 
   void write_half(uint32_t off, uint16_t h) {
@@ -217,12 +217,13 @@ private:
   std::array<uint32_t, 32> x{};
 };
 
-struct Computer {
+class Computer {
   int32_t  PC{0};
   uint32_t PC_Next{0};
   RegFile  regfile{};
-  Memory   mem;
+  Memory   mem{};
 
+public:
   void step() { exec(mem.read_word(PC)); }
 
   void exec(uint32_t inst);

@@ -152,12 +152,13 @@ void Computer::exec(UImmediateInst inst) {
 
 void Computer::exec(UJumpInst inst) {
   if (inst.opc() == OpCode::JAL) {
-    regfile.write(inst.rd(), PC + 4);
     PC_Next = PC + inst.imm_j();
   } else if (inst.opc() == OpCode::JALR) {
-    regfile.write(inst.rd(), PC + 4);
     PC_Next = (regfile.read(inst.rs1()) + inst.imm_i()) & 0xFFFFFFFE;
-  }
+  } else
+    return;
+
+  regfile.write(inst.rd(), PC + 4);
 }
 
 void Computer::exec(BranchInst inst) {
