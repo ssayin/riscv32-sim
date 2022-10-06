@@ -162,7 +162,7 @@ class UImmediateInst : public InstType<> {};
 class UJumpInst : public InstType<> {};
 
 class Memory {
-  std::unordered_map<uint32_t, std::unique_ptr<uint8_t>> page;
+  std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;
 
 public:
   uint8_t read_byte(uint32_t off) {
@@ -194,9 +194,6 @@ public:
     write_half(off, offset<0u, 15u>(w));
     write_half(off + 2, offset<16u, 31u>(w));
   }
-
-private:
-  uint8_t *Mem;
 };
 
 class RegFile {
