@@ -15,6 +15,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_subdirectory(external)
 
-add_executable(riscv32i-sim src/main.cpp src/Computer.cpp)
+add_executable(riscv32i-sim src/main.cpp src/computer.cpp)
 
 target_link_libraries(riscv32i-sim elfio)

@@ -1,3 +1,4 @@
+#include "computer.hpp"
 #include "Defs.hpp"
 
 void Computer::exec(uint32_t inst) {
