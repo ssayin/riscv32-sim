@@ -94,6 +94,208 @@ enum class Csr_Env : uint32_t {
   CSRRCI       = 0b111,
 };
 
+struct rv32_addi {};
+struct rv32_slti {};
+struct rv32_sltiu {};
+struct rv32_xori {};
+struct rv32_ori {};
+struct rv32_andi {};
+struct rv32_slli {};
+struct rv32_srli {};
+struct rv32_srai {};
+
+struct rv32_lui {};
+struct rv32_auipc {};
+
+struct rv32_jal {};
+struct rv32_jalr {};
+
+struct rv32_sb {};
+struct rv32_sh {};
+struct rv32_sw {};
+
+struct rv32_beq {};
+struct rv32_bne {};
+struct rv32_blt {};
+struct rv32_bge {};
+struct rv32_bltu {};
+struct rv32_bgeu {};
+
+struct rv32_lb {};
+struct rv32_lh {};
+struct rv32_lw {};
+struct rv32_lbu {};
+struct rv32_lhu {};
+/*
+ * ### OPTION 1 ###
+ */
+constexpr uint8_t unpack_rd(uint32_t word) { return offset<7u, 11u>(word); }
+constexpr uint8_t unpack_rs1(uint32_t word) { return offset<15u, 19u>(word); }
+constexpr uint8_t unpack_rs2(uint32_t word) { return offset<20u, 24u>(word); }
+
+constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
+                            uint8_t rs1, uint8_t rs2) {
+  return static_cast<uint32_t>(rd) << 7 | static_cast<uint32_t>(funct3) << 12 |
+         static_cast<uint32_t>(rs1) << 15 | static_cast<uint32_t>(rs2) << 20 |
+         static_cast<uint32_t>(funct7) << 25 | 0b0110011;
+}
+
+struct rv32_sll {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_sll(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::SLL), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_srl {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_srl(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_sra {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_sra(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x20, rd, rs1, rs2);
+  }
+
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_add {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_add(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_sub {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_sub(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x20, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_slt {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_slt(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::SLT), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_sltu {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_sltu(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::SLTU), 0x0, rd, rs1, rs2);
+  }
+
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_xor {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_xor(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::XOR), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_or {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_or(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::OR), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+struct rv32_and {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr rv32_and(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(ALU::AND), 0x0, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+/*
+ * ### OPTION 2 ###
+ *
+ * PLEASE CHOOSE ONE
+ */
+
+template <ALU funct3, uint8_t funct7 = 0x0> struct alu_op {
+  uint8_t rd;
+  uint8_t rs1;
+  uint8_t rs2;
+  constexpr alu_op(uint32_t word)
+      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
+
+  constexpr uint32_t pack() const {
+    return pack_alu(static_cast<uint8_t>(funct3), funct7, rd, rs1, rs2);
+  }
+  constexpr uint32_t operator()() const { return pack(); }
+};
+
+typedef alu_op<ALU::ADD_SUB>       rv32_alu_add;
+typedef alu_op<ALU::ADD_SUB, 0x20> rv32_alu_sub;
+typedef alu_op<ALU::XOR>           rv32_alu_xor;
+typedef alu_op<ALU::SLL>           rv32_alu_sll;
+typedef alu_op<ALU::SLT>           rv32_alu_slt;
+typedef alu_op<ALU::SLTU>          rv32_alu_sltu;
+typedef alu_op<ALU::OR>            rv32_alu_or;
+typedef alu_op<ALU::AND>           rv32_alu_and;
+typedef alu_op<ALU::SRL_SRA>       rv32_alu_srl;
+typedef alu_op<ALU::SRL_SRA, 0x20> rv32_alu_sra;
+
+/*
+ * OPTION END
+ */
+
 enum class Dummy : uint32_t {};
 
 template <typename T>
