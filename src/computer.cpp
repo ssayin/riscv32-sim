@@ -1,6 +1,18 @@
 #include "computer.hpp"
 #include "Defs.hpp"
 
+uint32_t RegFile::read(uint32_t index) {
+  assert(index < 32u);
+  return x[index];
+}
+
+void RegFile::write(uint32_t index, uint32_t data) {
+  assert(index < 32u);
+  if (index == 0)
+    return;
+  x[index] = data;
+}
+
 void Computer::exec(uint32_t inst) {
   PC_Next = PC + 4;
   switch (static_cast<OpCode>(offset<0u, 6u>(inst))) {

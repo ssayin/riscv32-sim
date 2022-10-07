@@ -5,17 +5,8 @@
 
 class RegFile {
 public:
-  uint32_t read(uint32_t index) {
-    assert(index < 32u);
-    return x[index];
-  }
-
-  void write(uint32_t index, uint32_t data) {
-    assert(index < 32u);
-    if (index == 0)
-      return;
-    x[index] = data;
-  }
+  uint32_t read(uint32_t index);
+  void     write(uint32_t index, uint32_t data);
 
 private:
   std::array<uint32_t, 32> x{};
