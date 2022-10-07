@@ -22,7 +22,7 @@ template <Unsigned auto l, Unsigned auto h>
 using diff = std::integral_constant<decltype(h - l + 1u), h - l + 1u>;
 
 template <Unsigned auto l, Unsigned auto h>
-decltype(auto) offset(Unsigned auto inst) {
+constexpr decltype(auto) offset(Unsigned auto inst) {
   return (inst >> l) & fillbits(diff<l, h>::value);
 }
 

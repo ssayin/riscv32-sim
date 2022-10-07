@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Util.hpp"
+#include <cassert>
+#include <cstring>
 #include <memory>
 #include <unordered_map>
 
