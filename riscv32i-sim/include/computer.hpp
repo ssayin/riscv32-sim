@@ -19,16 +19,7 @@ class Computer {
   Memory   mem{};
 
 public:
-  void step() { exec(mem.read_word(PC)); }
+  // void step() { exec(mem.read_word(PC)); }
 
-  void exec(uint32_t inst);
-  void exec(ALUInst inst);
-  void exec(ImmediateInst inst);
-  void exec(UImmediateInst inst);
-  void exec(UJumpInst inst);
-  void exec(BranchInst inst);
-  void exec(LoadInst inst);
-  void exec(StoreInst inst);
-  void exec(FenceInst inst);
-  void exec(CSREnvInst inst);
+  // void exec(uint32_t inst);
 };

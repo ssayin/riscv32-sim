@@ -143,61 +143,21 @@ constexpr uint32_t pack_imm_u(uint8_t rd, uint32_t imm, uint8_t opc) {
   return (static_cast<uint32_t>(opc) | static_cast<uint32_t>(rd) << 7 | imm);
 }
 
-enum class Dummy : uint32_t {};
+constexpr uint32_t pack_jump_op() { return 0; }
+constexpr uint32_t unpack_imm_j(uint32_t word) {
+  return (offset<21u, 30u>(word) << 1) | (offset<20u, 20u>(word) << 11) |
+         (offset<12u, 19u>(word) << 12) |
+         sign_extend(word & sign_bit_mask, 11u);
+}
 
-template <typename T>
-concept Enum = std::is_enum<T>::value;
+constexpr uint32_t pack_branch_op() { return 0; }
+constexpr uint32_t unpack_imm_b(uint32_t word) {
+  return (offset<8u, 11u>(word) << 1) | (offset<25u, 30u>(word) << 5) |
+         (offset<7u, 7u>(word) << 11) | sign_extend(word & sign_bit_mask, 19u);
+}
 
-template <Enum Funct3 = Dummy> class InstType {
-  uint32_t inst;
-
-  InstType(uint32_t x) : inst{x} {}
-  auto funct7() const { return offset<25u, 31u>(inst); }
-  auto funct3() const { return static_cast<Funct3>(offset<12u, 14u>(inst)); }
-
-  auto rs2() const { return offset<20u, 24u>(inst); }
-  auto rs1() const { return offset<15u, 19u>(inst); }
-  auto rd() const { return offset<7u, 11u>(inst); }
-
-  auto bit30() const { return offset<30u, 30u>(inst); }
-
-  OpCode opc() const { return static_cast<OpCode>(offset<0u, 6u>(inst)); }
-
-  auto imm_j() const {
-    return (offset<21u, 30u>(inst) << 1) | (offset<20u, 20u>(inst) << 11) |
-           (offset<12u, 19u>(inst) << 12) |
-           sign_extend(inst & sign_bit_mask, 11u);
-  }
-
-  auto imm_u() const {
-    return (offset<12u, 30u>(inst) << 12) | (inst & sign_bit_mask);
-  }
-
-  auto imm_b() const {
-    return (offset<8u, 11u>(inst) << 1) | (offset<25u, 30u>(inst) << 5) |
-           (offset<7u, 7u>(inst) << 11) |
-           sign_extend(inst & sign_bit_mask, 19u);
-  }
-
-  auto imm_s() const {
-    return offset<7u, 11u>(inst) | (offset<25u, 30u>(inst) << 5) |
-           sign_extend(inst & sign_bit_mask, 20u);
-  }
-
-  auto imm_i() const {
-    return offset<20u, 20u>(inst) | (offset<21u, 30u>(inst) << 1) |
-           sign_extend(inst & sign_bit_mask, 20u);
-  }
-
-  friend class Computer;
-};
-
-class ALUInst : public InstType<ALU> {};
-class BranchInst : public InstType<Branch> {};
-class LoadInst : public InstType<Load> {};
-class StoreInst : public InstType<Store> {};
-class ImmediateInst : public InstType<Immediate> {};
-class CSREnvInst : public InstType<Csr_Env> {};
-class FenceInst : public InstType<Fence> {};
-class UImmediateInst : public InstType<> {};
-class UJumpInst : public InstType<> {};
+constexpr uint32_t pack_store_op() { return 0; };
+constexpr uint32_t unpack_imm_s(uint32_t word) {
+  return offset<7u, 11u>(word) | (offset<25u, 30u>(word) << 5) |
+         sign_extend(word & sign_bit_mask, 20u);
+}

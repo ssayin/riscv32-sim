@@ -12,7 +12,7 @@ void RegFile::write(uint32_t index, uint32_t data) {
     return;
   x[index] = data;
 }
-
+/*
 void Computer::exec(uint32_t inst) {
   PC_Next = PC + 4;
   switch (static_cast<OpCode>(offset<0u, 6u>(inst))) {
@@ -249,3 +249,4 @@ void Computer::exec(StoreInst inst) {
 
 void Computer::exec(FenceInst inst) {}
 void Computer::exec(CSREnvInst inst) {}
+*/
