@@ -2,8 +2,6 @@
 
 #include "Defs.hpp"
 
-namespace runtime_dispatch {
-
 struct rv32_isn {
   virtual void     unpack(uint32_t word) = 0;
   virtual uint32_t pack() const          = 0;
@@ -449,4 +447,3 @@ struct rv32_blt : public rv32_isn {};
 struct rv32_bge : public rv32_isn {};
 struct rv32_bltu : public rv32_isn {};
 struct rv32_bgeu : public rv32_isn {};
-}; // namespace runtime_dispatch
