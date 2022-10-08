@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Util.hpp"
 #include <cassert>
 #include <cstring>
 #include <memory>
 #include <unordered_map>
+
+#include "Defs.hpp"
 
 class Memory {
   std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;

@@ -1,17 +1,10 @@
 #pragma once
 
-#include <array>
 #include <bitset>
-#include <cassert>
 #include <cstdint>
-#include <exception>
+#include <numeric>
+#include <type_traits>
 #include <utility>
-
-#include <iostream>
-#include <memory>
-#include <unordered_map>
-
-#include "Util.hpp"
 
 enum class OpCode : uint32_t {
   Branch    = 0b1100011,
@@ -96,7 +89,30 @@ enum class Csr_Env : uint32_t {
 
 template <typename T>
 concept Integral = std::is_integral<T>::value;
+template <class T>
+concept Unsigned = std::is_unsigned<T>::value;
 
+template <auto x = 1u> consteval auto fillbits(Unsigned auto bitcount) {
+  static_assert(x == 0u || x == 1u);
+  if (bitcount == 0u)
+    static_assert("fillbits: number of bits cannot be 0");
+  auto sum = 1u;
+  while (--bitcount) {
+    sum = (sum << 1u) | x;
+  }
+  return sum;
+}
+
+template <Unsigned auto l, Unsigned auto h>
+using diff = std::integral_constant<decltype(h - l + 1u), h - l + 1u>;
+
+template <Unsigned auto l, Unsigned auto h>
+constexpr decltype(auto) offset(Unsigned auto inst) {
+  return (inst >> l) & fillbits(diff<l, h>::value);
+}
+
+template <Unsigned auto l, Unsigned auto h>
+using BitSet                            = std::bitset<diff<l, h>::value>;
 constexpr static uint32_t sign_bit_mask = 0x80000000;
 
 constexpr auto sign_extend(Integral /* std::integral */ auto x,
