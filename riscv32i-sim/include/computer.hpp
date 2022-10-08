@@ -1,6 +1,9 @@
 #pragma once
+
 #include "Defs.hpp"
 #include "sparse_memory.hpp"
+
+#include <array>
 #include <cstdint>
 
 class RegFile {
