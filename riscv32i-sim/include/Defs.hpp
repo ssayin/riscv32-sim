@@ -94,41 +94,17 @@ enum class Csr_Env : uint32_t {
   CSRRCI       = 0b111,
 };
 
-struct rv32_addi {};
-struct rv32_slti {};
-struct rv32_sltiu {};
-struct rv32_xori {};
-struct rv32_ori {};
-struct rv32_andi {};
-struct rv32_slli {};
-struct rv32_srli {};
-struct rv32_srai {};
+template <typename T>
+concept Integral = std::is_integral<T>::value;
 
-struct rv32_lui {};
-struct rv32_auipc {};
+constexpr static uint32_t sign_bit_mask = 0x80000000;
 
-struct rv32_jal {};
-struct rv32_jalr {};
+constexpr auto sign_extend(Integral /* std::integral */ auto x,
+                           Unsigned auto                     shamt) {
+  return static_cast<decltype(x)>(
+      static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
+}
 
-struct rv32_sb {};
-struct rv32_sh {};
-struct rv32_sw {};
-
-struct rv32_beq {};
-struct rv32_bne {};
-struct rv32_blt {};
-struct rv32_bge {};
-struct rv32_bltu {};
-struct rv32_bgeu {};
-
-struct rv32_lb {};
-struct rv32_lh {};
-struct rv32_lw {};
-struct rv32_lbu {};
-struct rv32_lhu {};
-/*
- * ### OPTION 1 ###
- */
 constexpr uint8_t unpack_rd(uint32_t word) { return offset<7u, 11u>(word); }
 constexpr uint8_t unpack_rs1(uint32_t word) { return offset<15u, 19u>(word); }
 constexpr uint8_t unpack_rs2(uint32_t word) { return offset<20u, 24u>(word); }
@@ -137,177 +113,40 @@ constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
                             uint8_t rs1, uint8_t rs2) {
   return static_cast<uint32_t>(rd) << 7 | static_cast<uint32_t>(funct3) << 12 |
          static_cast<uint32_t>(rs1) << 15 | static_cast<uint32_t>(rs2) << 20 |
-         static_cast<uint32_t>(funct7) << 25 | 0b0110011;
+         static_cast<uint32_t>(funct7) << 25 |
+         static_cast<uint32_t>(OpCode::ALU);
+}
+constexpr uint32_t unpack_imm_i(uint32_t word) {
+  return offset<20u, 20u>(word) | (offset<21u, 30u>(word) << 1) |
+         static_cast<int32_t>(word & sign_bit_mask) >> 20;
 }
 
-struct rv32_sll {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_sll(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::SLL), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
+constexpr uint32_t pack_imm_op(uint8_t funct3, uint8_t rd, uint8_t rs,
+                               uint32_t imm) {
+  return static_cast<uint32_t>(rd) << 7 | static_cast<uint32_t>(funct3) << 12 |
+         static_cast<uint32_t>(rs) << 15 | (imm << 20) |
+         static_cast<uint32_t>(OpCode::Immediate);
+}
 
-struct rv32_srl {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_srl(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
+constexpr uint32_t pack_load_op(uint8_t funct3, uint8_t rd, uint8_t rs,
+                                uint32_t imm) {
+  return static_cast<uint32_t>(rd) << 7 | static_cast<uint32_t>(funct3) << 12 |
+         static_cast<uint32_t>(rs) << 15 | (imm << 20) |
+         static_cast<uint32_t>(OpCode::Load);
+}
 
-struct rv32_sra {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_sra(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x20, rd, rs1, rs2);
-  }
+constexpr uint32_t unpack_imm_u(uint32_t word) {
+  return (offset<12u, 30u>(word) << 12);
+}
 
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_add {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_add(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_sub {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_sub(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x20, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_slt {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_slt(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::SLT), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_sltu {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_sltu(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::SLTU), 0x0, rd, rs1, rs2);
-  }
-
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_xor {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_xor(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::XOR), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_or {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_or(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::OR), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-struct rv32_and {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr rv32_and(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(ALU::AND), 0x0, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-/*
- * ### OPTION 2 ###
- *
- * PLEASE CHOOSE ONE
- */
-
-template <ALU funct3, uint8_t funct7 = 0x0> struct alu_op {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  constexpr alu_op(uint32_t word)
-      : rd(unpack_rd(word)), rs1(unpack_rs1(word)), rs2(unpack_rs2(word)) {}
-
-  constexpr uint32_t pack() const {
-    return pack_alu(static_cast<uint8_t>(funct3), funct7, rd, rs1, rs2);
-  }
-  constexpr uint32_t operator()() const { return pack(); }
-};
-
-typedef alu_op<ALU::ADD_SUB>       rv32_alu_add;
-typedef alu_op<ALU::ADD_SUB, 0x20> rv32_alu_sub;
-typedef alu_op<ALU::XOR>           rv32_alu_xor;
-typedef alu_op<ALU::SLL>           rv32_alu_sll;
-typedef alu_op<ALU::SLT>           rv32_alu_slt;
-typedef alu_op<ALU::SLTU>          rv32_alu_sltu;
-typedef alu_op<ALU::OR>            rv32_alu_or;
-typedef alu_op<ALU::AND>           rv32_alu_and;
-typedef alu_op<ALU::SRL_SRA>       rv32_alu_srl;
-typedef alu_op<ALU::SRL_SRA, 0x20> rv32_alu_sra;
-
-/*
- * OPTION END
- */
+constexpr uint32_t pack_imm_u(uint8_t rd, uint32_t imm, uint8_t opc) {
+  return (static_cast<uint32_t>(opc) | static_cast<uint32_t>(rd) << 7 | imm);
+}
 
 enum class Dummy : uint32_t {};
 
 template <typename T>
 concept Enum = std::is_enum<T>::value;
-
-template <typename T>
-concept Integral = std::is_integral<T>::value;
-
-auto sign_extend(Integral /* std::integral */ auto x, Unsigned auto shamt) {
-  return static_cast<decltype(x)>(
-      static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
-}
 
 template <Enum Funct3 = Dummy> class InstType {
   uint32_t inst;
@@ -327,27 +166,27 @@ template <Enum Funct3 = Dummy> class InstType {
   auto imm_j() const {
     return (offset<21u, 30u>(inst) << 1) | (offset<20u, 20u>(inst) << 11) |
            (offset<12u, 19u>(inst) << 12) |
-           sign_extend(inst & fillbits<0u>(32u), 11u);
+           sign_extend(inst & sign_bit_mask, 11u);
   }
 
   auto imm_u() const {
-    return (offset<12u, 30u>(inst) << 12) | (inst & fillbits<0u>(32u));
+    return (offset<12u, 30u>(inst) << 12) | (inst & sign_bit_mask);
   }
 
   auto imm_b() const {
     return (offset<8u, 11u>(inst) << 1) | (offset<25u, 30u>(inst) << 5) |
            (offset<7u, 7u>(inst) << 11) |
-           sign_extend(inst & fillbits<0u>(32u), 19u);
+           sign_extend(inst & sign_bit_mask, 19u);
   }
 
   auto imm_s() const {
     return offset<7u, 11u>(inst) | (offset<25u, 30u>(inst) << 5) |
-           sign_extend(inst & fillbits<0u>(32u), 20u);
+           sign_extend(inst & sign_bit_mask, 20u);
   }
 
   auto imm_i() const {
     return offset<20u, 20u>(inst) | (offset<21u, 30u>(inst) << 1) |
-           sign_extend(inst & fillbits<0u>(32u), 20u);
+           sign_extend(inst & sign_bit_mask, 20u);
   }
 
   friend class Computer;
