@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+#include "rv32_decode.hpp"
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage: riscv32i-sim <file_name>\n");
@@ -40,6 +42,9 @@ int main(int argc, char **argv) {
   ELFIO::dump::dynamic_tags(std::cout, reader);
   ELFIO::dump::section_datas(std::cout, reader);
   ELFIO::dump::segment_datas(std::cout, reader);
+
+  decoder_out o = decode(0x30);
+  std::cout << std::boolalpha << o.has_imm << std::endl;
   /*
     Computer c;
 

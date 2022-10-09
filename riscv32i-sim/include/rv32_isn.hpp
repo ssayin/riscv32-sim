@@ -4,9 +4,8 @@
 #include "computer.hpp"
 
 struct rv32_isn {
-  virtual void     unpack(uint32_t word)   = 0;
-  virtual uint32_t pack() const            = 0;
-  virtual void     exec(Computer &c) const = 0;
+  virtual void     unpack(uint32_t word) = 0;
+  virtual uint32_t pack() const          = 0;
 };
 
 struct rv32_sll : public rv32_isn {
@@ -23,10 +22,6 @@ struct rv32_sll : public rv32_isn {
     return pack_alu(static_cast<uint8_t>(ALU::SLL), 0x0, rd, rs1, rs2);
   }
   operator uint32_t() const { return pack(); }
-
-  void exec(Computer &c) const {
-    c.issue_wb(rd, c.read_reg(rs1) << c.read_reg(rs2));
-  }
 };
 
 struct rv32_srl : public rv32_isn {
@@ -347,11 +342,27 @@ struct rv32_slli : public rv32_isn {
   operator uint32_t() const { return pack(); }
 };
 
-struct rv32_srli_srai : public rv32_isn {
+struct rv32_srli : public rv32_isn {
   uint8_t  rd;
   uint8_t  rs;
   uint32_t imm;
-  rv32_srli_srai(uint32_t word) { unpack(word); }
+  rv32_srli(uint32_t word) { unpack(word); }
+  void unpack(uint32_t word) {
+    rd  = unpack_rd(word);
+    rs  = unpack_rs1(word);
+    imm = unpack_imm_i(word);
+  }
+  uint32_t pack() const {
+    return pack_imm_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs, imm);
+  }
+  operator uint32_t() const { return pack(); }
+};
+
+struct rv32_srai : public rv32_isn {
+  uint8_t  rd;
+  uint8_t  rs;
+  uint32_t imm;
+  rv32_srai(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
     rd  = unpack_rd(word);
     rs  = unpack_rs1(word);
