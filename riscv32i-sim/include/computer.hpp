@@ -6,7 +6,7 @@
 #include <array>
 #include <cstdint>
 
-class RegFile {
+class reg_file {
 public:
   uint32_t read(uint8_t index);
   void     write(uint8_t index, uint32_t data);
@@ -16,10 +16,10 @@ private:
 };
 
 class Computer {
-  int32_t  PC{0};
-  uint32_t PC_Next{0};
-  RegFile  regfile{};
-  Memory   mem{};
+  int32_t       PC{0};
+  uint32_t      PC_Next{0};
+  reg_file      regfile{};
+  sparse_memory mem{};
 
 public:
   void     issue_wb(uint8_t reg, uint32_t v) {}
