@@ -450,14 +450,18 @@ struct rv32_jal : public rv32_isn {
 
 struct rv32_jalr : public rv32_isn {
   uint8_t  rd;
+  uint8_t  rs;
   uint32_t imm;
   rv32_jalr(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
-    imm = unpack_imm_j(word);
     rd  = unpack_rd(word);
+    rs  = unpack_rs1(word);
+    imm = unpack_imm_i(word);
   }
-  uint32_t pack() const { return pack_jump_op(rd, imm, to_int(OpCode::JALR)); }
-           operator uint32_t() const { return pack(); }
+  uint32_t pack() const {
+    return pack_imm_op(to_int(OpCode::JALR), rd, rs, imm);
+  }
+  operator uint32_t() const { return pack(); }
 };
 
 struct rv32_sb : public rv32_isn {
