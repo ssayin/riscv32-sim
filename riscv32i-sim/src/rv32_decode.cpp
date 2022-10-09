@@ -29,8 +29,8 @@ decoder_out decode(uint32_t word) {
   }
   case JALR: {
     rv32_jalr isn{word};
-    return decoder_out(true, isn.rd, 0, 0, alu_type::JALR, pipeline_type::ALU,
-                       isn.imm);
+    return decoder_out(true, isn.rd, isn.rs, 0, alu_type::JALR,
+                       pipeline_type::ALU, isn.imm);
   }
   case Load: return decode_load(word);
   case Store: return decode_store(word);
