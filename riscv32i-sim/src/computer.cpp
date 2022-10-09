@@ -1,12 +1,12 @@
 #include "computer.hpp"
 #include "Defs.hpp"
 
-uint32_t RegFile::read(uint32_t index) {
+uint32_t RegFile::read(uint8_t index) {
   assert(index < 32u);
   return x[index];
 }
 
-void RegFile::write(uint32_t index, uint32_t data) {
+void RegFile::write(uint8_t index, uint32_t data) {
   assert(index < 32u);
   if (index == 0)
     return;
