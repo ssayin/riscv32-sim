@@ -334,7 +334,7 @@ struct rv32_slli : public rv32_isn {
   void unpack(uint32_t word) {
     rd  = unpack_rd(word);
     rs  = unpack_rs1(word);
-    imm = unpack_imm_i(word);
+    imm = unpack_rs2(word);
   }
   uint32_t pack() const {
     return pack_imm_op(static_cast<uint8_t>(Immediate::SLLI), rd, rs, imm);
@@ -350,7 +350,7 @@ struct rv32_srli : public rv32_isn {
   void unpack(uint32_t word) {
     rd  = unpack_rd(word);
     rs  = unpack_rs1(word);
-    imm = unpack_imm_i(word);
+    imm = unpack_rs2(word);
   }
   uint32_t pack() const {
     return pack_imm_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs, imm);
@@ -366,10 +366,12 @@ struct rv32_srai : public rv32_isn {
   void unpack(uint32_t word) {
     rd  = unpack_rd(word);
     rs  = unpack_rs1(word);
-    imm = unpack_imm_i(word);
+    imm = unpack_rs2(word);
   }
   uint32_t pack() const {
-    return pack_imm_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs, imm);
+    return pack_imm_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs,
+                       imm) |
+           (0b0100000 << 25);
   }
   operator uint32_t() const { return pack(); }
 };
