@@ -6,7 +6,6 @@
 enum class pipeline_type : uint8_t {
   LS,
   ALU,
-  JUMP,
   BRANCH,
 };
 

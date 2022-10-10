@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defs.hpp"
+#include "rv32_decode.hpp"
 #include "sparse_memory.hpp"
 
 #include <array>
@@ -21,7 +22,7 @@ class Computer {
   reg_file      regfile{};
   sparse_memory mem{};
 
-public:
-  void     issue_wb(uint8_t reg, uint32_t v) {}
-  uint32_t read_reg(uint8_t index) { return regfile.read(index); }
+  uint32_t alu_out;
+
+  void exec(decoder_out &dec);
 };
