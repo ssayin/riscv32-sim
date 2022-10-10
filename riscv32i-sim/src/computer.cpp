@@ -15,49 +15,113 @@ void reg_file::write(uint8_t index, uint32_t data) {
 }
 
 void Computer::exec(decoder_out &dec) {
-  uint32_t opd1 = regfile.read(dec.rs1);
-  uint32_t opd2 = (dec.has_imm & (dec.target != pipeline_type::BRANCH))
-                      ? dec.imm
-                      : regfile.read(dec.rs2);
   switch (dec.target) {
     using enum pipeline_type;
-  case ALU:
-    switch (std::get<alu_type>(dec.op)) {
-      using enum alu_type;
-    case OR: alu_out = opd1 | opd2; break;
-    case AND: alu_out = opd1 & opd2; break;
-    case XOR: alu_out = opd1 ^ opd2; break;
-    case ADD: alu_out = opd1 + opd2; break;
-    case SUB: alu_out = opd1 - opd2; break;
-    case SLL: alu_out = opd1 << opd2; break;
-    case SRL: alu_out = opd1 >> opd2; break;
-    case SRA: alu_out = sign_extend(opd1, opd2); break;
-    case SLT:
-      alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
-      break;
-    case SLTU: alu_out = opd1 < opd2; break;
-    case AUIPC:
-    case JAL: alu_out = PC + opd2; break;
-    case JALR: alu_out = (opd1 + opd2) & 0xFFFFFFFE; break;
-    }
+  case ALU: exec_alu(dec); break;
+  case LS:
+    alu_out = regfile.read(dec.rs1) + dec.imm; /* mem addr for load/store */
     break;
+  case BRANCH: exec_alu_branch(dec); break;
+  }
+}
 
-  case LS: alu_out = opd1 + opd2; break;
+void Computer::exec_alu(decoder_out &dec) {
+  uint32_t opd1 = regfile.read(dec.rs1);
+  uint32_t opd2 = dec.has_imm ? dec.imm : regfile.read(dec.rs2);
 
+  switch (std::get<alu_type>(dec.op)) {
+    using enum alu_type;
+  case OR: alu_out = opd1 | opd2; break;
+  case AND: alu_out = opd1 & opd2; break;
+  case XOR: alu_out = opd1 ^ opd2; break;
+  case ADD: alu_out = opd1 + opd2; break;
+  case SUB: alu_out = opd1 - opd2; break;
+  case SLL: alu_out = opd1 << opd2; break;
+  case SRL: alu_out = opd1 >> opd2; break;
+  case SRA: alu_out = sign_extend(opd1, opd2); break;
+  case SLT:
+    alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
+    break;
+  case SLTU: alu_out = opd1 < opd2; break;
+  case AUIPC:
+  case JAL: alu_out = PC + opd2; break;
+  case JALR: alu_out = (opd1 + opd2) & 0xFFFFFFFE; break;
+  }
+}
+
+void Computer::exec_alu_branch(decoder_out &dec) {
+  uint32_t opd1 = regfile.read(dec.rs1);
+  uint32_t opd2 = regfile.read(dec.rs2);
+
+  switch (std::get<branch_type>(dec.op)) {
+    using enum branch_type;
+  case BEQ: alu_out = opd1 == opd2; break;
+  case BNE: alu_out = opd1 != opd2; break;
+  case BLT:
+    alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
+    break;
+  case BLTU: alu_out = opd1 < opd2; break;
+  case BGE:
+    alu_out = static_cast<int32_t>(opd1) >= static_cast<int32_t>(opd2);
+    break;
+  case BGEU: alu_out = opd1 >= opd2; break;
+  }
+}
+
+uint32_t sign_extend(uint32_t in, uint8_t shamt) {
+  return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
+}
+
+void Computer::mem_phase(decoder_out &dec) {
+  if (dec.target != pipeline_type::LS)
+    return;
+  switch (std::get<ls_type>(dec.op)) {
+    using enum ls_type;
+  case LB: mem_out = sign_extend(mem.read_byte(alu_out), 24); break;
+  case LH: mem_out = sign_extend(mem.read_half(alu_out), 16); break;
+  case LW: mem_out = mem.read_word(alu_out); break;
+  case LBU: mem_out = mem.read_byte(alu_out) << 24; break;
+  case LHU: mem_out = mem.read_half(alu_out) << 16; break;
+  case SB: mem.write_byte(alu_out, regfile.read(dec.rs2)); break;
+  case SH: mem.write_half(alu_out, regfile.read(dec.rs2)); break;
+  case SW: mem.write_word(alu_out, regfile.read(dec.rs2)); break;
+  }
+}
+
+void Computer::wb_retire_phase(decoder_out &dec) {
+  switch (dec.target) {
+    using enum pipeline_type;
+  case LS:
+    wb_retire_ls(dec);
+    break;
+    /* should skip mem_phase for branch and alu, so that alu_out will not be
+     * overwritten */
+  case ALU: wb_retire_alu(dec); break;
   case BRANCH:
-    switch (std::get<branch_type>(dec.op)) {
-      using enum branch_type;
-    case BEQ: alu_out = opd1 == opd2; break;
-    case BNE: alu_out = opd1 != opd2; break;
-    case BLT:
-      alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
-      break;
-    case BLTU: alu_out = opd1 < opd2; break;
-    case BGE:
-      alu_out = static_cast<int32_t>(opd1) >= static_cast<int32_t>(opd2);
-      break;
-    case BGEU: alu_out = opd1 >= opd2; break;
+    if (alu_out) {
+      PC = PC + dec.imm;
     }
     break;
+  }
+}
+
+void Computer::wb_retire_ls(decoder_out &dec) {
+  switch (std::get<ls_type>(dec.op)) {
+    using enum ls_type;
+  case LB:
+  case LH:
+  case LW:
+  case LBU:
+  case LHU: regfile.write(dec.rd, mem_out); break;
+  default: break;
+  }
+}
+
+void Computer::wb_retire_alu(decoder_out &dec) {
+  alu_type alut = std::get<alu_type>(dec.op);
+  if (alut == alu_type::JAL || alut == alu_type::JALR) {
+    PC = alu_out;
+  } else {
+    regfile.write(dec.rd, alu_out);
   }
 }
