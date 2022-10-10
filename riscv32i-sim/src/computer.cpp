@@ -42,7 +42,7 @@ void Computer::exec(decoder_out &dec) {
     }
     break;
 
-  case LS: break;
+  case LS: alu_out = opd1 + opd2; break;
 
   case BRANCH:
     switch (std::get<branch_type>(dec.op)) {
