@@ -7,7 +7,7 @@ decoder_out decode_store(uint32_t word);
 decoder_out decode_branch(uint32_t word);
 decoder_out decode_immediate(uint32_t word);
 decoder_out decode_alu(uint32_t word);
-decoder_out decode_csvenv(uint32_t word);
+decoder_out decode_csrenv(uint32_t word);
 decoder_out decode_fence(uint32_t word);
 
 decoder_out decode(uint32_t word) {
@@ -38,7 +38,7 @@ decoder_out decode(uint32_t word) {
   case Branch: return decode_branch(word);
   case Immediate: return decode_immediate(word);
   case ALU: return decode_alu(word);
-  case Csr_Env: return decode_csvenv(word);
+  case Csr_Env: return decode_csrenv(word);
   case Fence: return decode_fence(word);
   default: throw std::runtime_error("unknown instruction type");
   }
@@ -257,8 +257,8 @@ decoder_out decode_fence(uint32_t word) {
   return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }
 
-decoder_out decode_csvenv(uint32_t word) {
-  std::cout << "fence ops are not implemented" << std::endl;
+decoder_out decode_csrenv(uint32_t word) {
+  std::cout << "csr and env ops are not implemented" << std::endl;
   // insert NOP
   return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }
