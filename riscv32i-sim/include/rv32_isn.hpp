@@ -6,6 +6,7 @@
 struct rv32_isn {
   virtual void     unpack(uint32_t word) = 0;
   virtual uint32_t pack() const          = 0;
+  virtual ~rv32_isn()                    = default;
 };
 
 struct rv32_sll : public rv32_isn {
