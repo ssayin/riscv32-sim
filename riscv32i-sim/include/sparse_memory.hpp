@@ -7,13 +7,11 @@
 
 #include "Defs.hpp"
 
-constexpr static uint32_t rom_size = 0x20000;
-
 class sparse_memory {
   std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;
   std::unique_ptr<uint8_t[]>                               rom;
-
-  uint32_t program_end = 0;
+  uint32_t                                                 program_end = 0;
+  constexpr static uint32_t                                rom_size = 0x20000;
 
 public:
   sparse_memory() { rom = std::make_unique<uint8_t[]>(rom_size); }

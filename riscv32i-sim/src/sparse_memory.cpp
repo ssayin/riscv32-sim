@@ -3,6 +3,8 @@
 
 void sparse_memory::load_program(uint32_t virt_addr, void *ptr,
                                  uint32_t size_in_bytes) {
+  if (virt_addr + size_in_bytes >= rom_size)
+    throw std::runtime_error("computer rom is not big enough");
   std::memcpy(rom.get() + virt_addr, ptr, size_in_bytes);
   program_end = virt_addr + size_in_bytes;
 }

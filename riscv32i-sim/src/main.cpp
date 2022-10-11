@@ -45,19 +45,11 @@ int main(int argc, char **argv) {
   ELFIO::dump::segment_datas(std::cout, reader);
 
   Computer c;
-
-  auto load_or_panic = [](Computer &c, uint32_t start, void *ptr,
-                          uint32_t size) {
-    if (start + size >= rom_size)
-      throw std::runtime_error("computer rom is not big enough");
-    c.load_program(start, ptr, size);
-  };
-
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&](std::unique_ptr<ELFIO::segment> &s) {
                   if (s->get_type() == ELFIO::PT_LOAD) {
-                    load_or_panic(c, s->get_virtual_address(),
-                                  (void *)s->get_data(), s->get_file_size());
+                    c.load_program(s->get_virtual_address(),
+                                   (void *)s->get_data(), s->get_file_size());
                   }
                 });
   c.PC = reader.get_entry();
