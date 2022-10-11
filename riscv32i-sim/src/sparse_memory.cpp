@@ -1,7 +1,17 @@
 #include "sparse_memory.hpp"
+#include <iostream>
+
+void sparse_memory::load_program(uint32_t virt_addr, void *ptr,
+                                 uint32_t size_in_bytes) {
+  std::memcpy(rom.get() + virt_addr, ptr, size_in_bytes);
+  program_end = virt_addr + size_in_bytes;
+}
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
-  return page[off & 0xFFFFF000].get()[offset<0u, 11u>(off)];
+  if (off < program_end)
+    return rom[off];
+  else
+    return page[off & 0xFFFFF000].get()[offset<0u, 11u>(off)];
 }
 
 // FIXME: reading at page boundary is A PROBLEM
@@ -14,6 +24,10 @@ uint32_t sparse_memory::read_word(uint32_t off) {
 }
 
 void sparse_memory::write_byte(uint32_t off, uint8_t b) {
+  if (off < program_end) {
+    std::cout << "writing byte to rom? at: " << std::hex << off << std::endl;
+    rom[off] = b;
+  }
   uint32_t maskd = off & 0xFFFFF000;
   if (!page.contains(maskd))
     page.emplace(maskd, std::make_unique<uint8_t[]>(4096));

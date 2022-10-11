@@ -1,6 +1,7 @@
 #include "computer.hpp"
 #include "Defs.hpp"
 #include "rv32_decode.hpp"
+#include <iostream>
 
 uint32_t reg_file::read(uint8_t index) {
   assert(index < 32u);
@@ -12,6 +13,20 @@ void reg_file::write(uint8_t index, uint32_t data) {
   if (index == 0)
     return;
   x[index] = data;
+}
+
+void Computer::step() {
+  uint32_t isn = mem.read_word(PC);
+  std::cout << "PC " << std::hex << PC << " decode: " << std::hex << isn
+            << std::endl;
+  decoder_out dec = decode(isn);
+
+  exec(dec);
+  if (dec.target == pipeline_type::LS) {
+    mem_phase(dec);
+  }
+
+  wb_retire_phase(dec);
 }
 
 void Computer::exec(decoder_out &dec) {
@@ -93,6 +108,7 @@ void Computer::wb_retire_phase(decoder_out &dec) {
     using enum pipeline_type;
   case LS:
     wb_retire_ls(dec);
+    PC += 4;
     break;
     /* should skip mem_phase for branch and alu, so that alu_out will not be
      * overwritten */
@@ -100,7 +116,8 @@ void Computer::wb_retire_phase(decoder_out &dec) {
   case BRANCH:
     if (alu_out) {
       PC = PC + dec.imm;
-    }
+    } else
+      PC = PC + 4;
     break;
   }
 }
@@ -120,8 +137,17 @@ void Computer::wb_retire_ls(decoder_out &dec) {
 void Computer::wb_retire_alu(decoder_out &dec) {
   alu_type alut = std::get<alu_type>(dec.op);
   if (alut == alu_type::JAL || alut == alu_type::JALR) {
+    regfile.write(dec.rd, PC + 4);
     PC = alu_out;
+    if (dec.rd != 0) {
+      std::cout << "writing to " << std::hex << std::to_string(dec.rd)
+                << " value(return address): " << alu_out << std::endl;
+    } else
+      std::cout << "return address is discarded" << std::endl;
   } else {
     regfile.write(dec.rd, alu_out);
+    PC = PC + 4;
+    std::cout << "writing to " << std::hex << std::to_string(dec.rd)
+              << " value: " << alu_out << std::endl;
   }
 }

@@ -1,5 +1,6 @@
 #include "rv32_decode.hpp"
 #include "rv32_isn.hpp"
+#include <iostream>
 
 decoder_out decode_load(uint32_t word);
 decoder_out decode_store(uint32_t word);
@@ -251,9 +252,13 @@ decoder_out decode_branch(uint32_t word) {
 }
 
 decoder_out decode_fence(uint32_t word) {
-  throw std::runtime_error("now implemented");
+  std::cout << "fence ops are not implemented" << std::endl;
+  // insert NOP
+  return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }
 
 decoder_out decode_csvenv(uint32_t word) {
-  throw std::runtime_error("now implemented");
+  std::cout << "fence ops are not implemented" << std::endl;
+  // insert NOP
+  return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }

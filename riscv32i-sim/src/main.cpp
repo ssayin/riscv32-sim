@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+#include "computer.hpp"
 #include "rv32_decode.hpp"
 
 int main(int argc, char **argv) {
@@ -43,28 +44,27 @@ int main(int argc, char **argv) {
   ELFIO::dump::section_datas(std::cout, reader);
   ELFIO::dump::segment_datas(std::cout, reader);
 
-  decoder_out o = decode(0x30);
-  std::cout << std::boolalpha << o.has_imm << std::endl;
-  /*
-    Computer c;
+  Computer c;
 
-    std::ranges::for_each(
-        reader.segments, [&](std::unique_ptr<ELFIO::segment> &s) {
-          if (s->get_type() == ELFIO::PT_LOAD) {
-            std::uint64_t addr = s->get_virtual_address();
-            std::uint64_t size = s->get_file_size();
-            if ((addr + size) < c.mem.MemSize)
-              std::memcpy((void *)(c.Mem + addr), s->get_data(), size);
-          }
-        });
+  auto load_or_panic = [](Computer &c, uint32_t start, void *ptr,
+                          uint32_t size) {
+    if (start + size >= rom_size)
+      throw std::runtime_error("computer rom is not big enough");
+    c.load_program(start, ptr, size);
+  };
 
-    c.PC = reader.get_entry();
+  std::for_each(reader.segments.begin(), reader.segments.end(),
+                [&](std::unique_ptr<ELFIO::segment> &s) {
+                  if (s->get_type() == ELFIO::PT_LOAD) {
+                    load_or_panic(c, s->get_virtual_address(),
+                                  (void *)s->get_data(), s->get_file_size());
+                  }
+                });
+  c.PC = reader.get_entry();
 
-    printf("Starting Simulation:\n");
+  for (int i = 0; i < 400; ++i) {
+    c.step();
+  }
 
-    for (int i = 0; i < 100; ++i) {
-      c.step();
-    }
-  */
   return 0;
 }

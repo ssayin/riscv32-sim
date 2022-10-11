@@ -136,7 +136,7 @@ constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
 
 constexpr uint32_t unpack_imm_i(uint32_t word) {
   return offset<20u, 20u>(word) | (offset<21u, 30u>(word) << 1) |
-         (word & sign_bit_mask) >> 20;
+         sign_extend(word & sign_bit_mask, 20u);
 }
 
 constexpr uint32_t pack_imm_op(uint8_t funct3, uint8_t rd, uint8_t rs,

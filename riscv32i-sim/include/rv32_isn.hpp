@@ -415,7 +415,7 @@ struct rv32_lui : public rv32_isn {
   explicit(false) rv32_lui(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) final {
     rd  = unpack_rd(word);
-    imm = unpack_imm_i(word);
+    imm = unpack_imm_u(word);
   }
   uint32_t pack() const final {
     return pack_imm_u(rd, imm, static_cast<uint8_t>(OpCode::LUI));
@@ -429,7 +429,7 @@ struct rv32_auipc : public rv32_isn {
   explicit(false) rv32_auipc(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) final {
     rd  = unpack_rd(word);
-    imm = unpack_imm_i(word);
+    imm = unpack_imm_u(word);
   }
   uint32_t pack() const final {
     return pack_imm_u(rd, imm, static_cast<uint8_t>(OpCode::AUIPC));
@@ -462,7 +462,7 @@ struct rv32_jalr : public rv32_isn {
     imm = unpack_imm_i(word);
   }
   uint32_t pack() const final {
-    return pack_imm_op(to_int(OpCode::JALR), rd, rs, imm);
+    return pack_imm_op(0b000, rd, rs, imm) | to_int(OpCode::JALR);
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
