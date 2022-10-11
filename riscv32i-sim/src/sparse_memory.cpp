@@ -1,4 +1,5 @@
 #include "sparse_memory.hpp"
+#include "rv32_isn.hpp"
 #include <iostream>
 
 void sparse_memory::load_program(uint32_t virt_addr, void *ptr,
@@ -9,6 +10,7 @@ void sparse_memory::load_program(uint32_t virt_addr, void *ptr,
   program_end = virt_addr + size_in_bytes;
 }
 
+// TODO: add memory address decoder as a separate class.
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (off < program_end)
     return rom[off];
@@ -17,6 +19,7 @@ uint8_t sparse_memory::read_byte(uint32_t off) {
 }
 
 // FIXME: reading at page boundary is A PROBLEM
+// TODO: impl. unaligned read later
 uint16_t sparse_memory::read_half(uint32_t off) {
   return read_byte(off) | (read_byte(off + 1) << 8);
 }

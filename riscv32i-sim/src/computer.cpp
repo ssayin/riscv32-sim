@@ -1,6 +1,7 @@
 #include "computer.hpp"
-#include "Defs.hpp"
 #include "rv32_decode.hpp"
+#include "rv32_isn.hpp"
+
 #include <iostream>
 
 uint32_t reg_file::read(uint8_t index) {

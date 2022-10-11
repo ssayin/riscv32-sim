@@ -4,8 +4,6 @@
 #include <elfio/elfio_dump.hpp>
 #include <elfio/elfio_segment.hpp>
 
-#include "Defs.hpp"
-
 #include <algorithm>
 
 #include "computer.hpp"

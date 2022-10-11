@@ -5,8 +5,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include "Defs.hpp"
-
 class sparse_memory {
   std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;
   std::unique_ptr<uint8_t[]>                               rom;

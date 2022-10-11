@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Defs.hpp"
 #include "rv32_decode.hpp"
 #include "sparse_memory.hpp"
 
