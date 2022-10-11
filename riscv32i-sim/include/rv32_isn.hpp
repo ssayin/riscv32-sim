@@ -9,175 +9,35 @@ struct rv32_isn {
   virtual ~rv32_isn()                    = default;
 };
 
-struct rv32_sll : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_sll(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::SLL), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
+#define RV32_ALU_INST(name, funct3, funct7)                                    \
+  struct rv32_##name : public rv32_isn {                                       \
+    uint8_t rd;                                                                \
+    uint8_t rs1;                                                               \
+    uint8_t rs2;                                                               \
+    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
+    void unpack(uint32_t word) final {                                         \
+      rd  = unpack_rd(word);                                                   \
+      rs1 = unpack_rs1(word);                                                  \
+      rs2 = unpack_rs2(word);                                                  \
+    }                                                                          \
+    uint32_t pack() const final {                                              \
+      return pack_alu(static_cast<uint8_t>(funct3), funct7, rd, rs1, rs2);     \
+    }                                                                          \
+    explicit(false) operator uint32_t() const { return pack(); }               \
+  };
 
-struct rv32_srl : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_srl(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
+RV32_ALU_INST(sll, ALU::SLL, 0x0)
+RV32_ALU_INST(srl, ALU::SRL_SRA, 0x0)
+RV32_ALU_INST(sra, ALU::SRL_SRA, 0x20)
+RV32_ALU_INST(add, ALU::ADD_SUB, 0x0)
+RV32_ALU_INST(sub, ALU::ADD_SUB, 0x20)
+RV32_ALU_INST(slt, ALU::SLT, 0x0)
+RV32_ALU_INST(sltu, ALU::SLTU, 0x0)
+RV32_ALU_INST(xor, ALU::XOR, 0x0)
+RV32_ALU_INST(or, ALU::OR, 0x0)
+RV32_ALU_INST(and, ALU::AND, 0x0)
 
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_sra : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_sra(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::SRL_SRA), 0x20, rd, rs1, rs2);
-  }
-
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_add : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_add(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_sub : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_sub(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::ADD_SUB), 0x20, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_slt : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_slt(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::SLT), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_sltu : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_sltu(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::SLTU), 0x0, rd, rs1, rs2);
-  }
-
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_xor : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_xor(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::XOR), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_or : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-  explicit(false) rv32_or(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::OR), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
-
-struct rv32_and : public rv32_isn {
-  uint8_t rd;
-  uint8_t rs1;
-  uint8_t rs2;
-
-  explicit(false) rv32_and(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
-    rd  = unpack_rd(word);
-    rs1 = unpack_rs1(word);
-    rs2 = unpack_rs2(word);
-  }
-
-  uint32_t pack() const final {
-    return pack_alu(static_cast<uint8_t>(ALU::AND), 0x0, rd, rs1, rs2);
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
-};
+#undef RV32_ALU_INST
 
 struct rv32_addi : public rv32_isn {
   uint8_t  rd;
