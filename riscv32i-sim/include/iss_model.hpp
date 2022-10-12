@@ -1,21 +1,21 @@
 #pragma once
 
-#include "rv32_decode.hpp"
+#include "decoder.hpp"
 #include "sparse_memory.hpp"
 
 #include <array>
 #include <cstdint>
 
-class reg_file {
-public:
-  uint32_t read(uint8_t index);
-  void     write(uint8_t index, uint32_t data);
-
-private:
-  std::array<uint32_t, 32> x{};
-};
-
 class iss_model {
+  class reg_file {
+  public:
+    uint32_t read(uint8_t index);
+    void     write(uint8_t index, uint32_t data);
+
+  private:
+    std::array<uint32_t, 32> x{};
+  };
+
   reg_file      regfile{};
   sparse_memory mem{};
 

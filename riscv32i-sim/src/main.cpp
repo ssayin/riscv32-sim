@@ -7,8 +7,8 @@
 
 #include <algorithm>
 
+#include "decoder.hpp"
 #include "iss_model.hpp"
-#include "rv32_decode.hpp"
 
 void load_tohost_addr(ELFIO::elfio &reader, iss_model &model) {
   const ELFIO::section                *sec = reader.sections[".symtab"];

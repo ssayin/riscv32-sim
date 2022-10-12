@@ -2,7 +2,7 @@ set(
   SRC_FILES
   src/main.cpp
   src/iss_model.cpp
-  src/rv32_decode.cpp
+  src/decoder.cpp
   src/sparse_memory.cpp
 )
 

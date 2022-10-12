@@ -1,4 +1,4 @@
-#include "rv32_decode.hpp"
+#include "decoder.hpp"
 #include "rv32_isn.hpp"
 #include <iostream>
 
