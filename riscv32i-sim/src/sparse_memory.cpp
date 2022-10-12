@@ -15,10 +15,9 @@ void sparse_memory::write_blocks(uint32_t virt_addr, void *ptr,
     uint32_t key      = ensure_page_exists(virt_addr);
     uint32_t off      = offset<0u, 11u>(virt_addr);
     uint32_t page_end = page_size - off;
+    ptr               = write_block(&page[key].get()[off], ptr, page_end);
     size_in_bytes -= page_end;
-    write_block(&page[key].get()[offset<0u, 11u>(virt_addr)], ptr, page_end);
     virt_addr += page_end;
-    ptr = (uint8_t *)ptr + page_end;
   }
 }
 
