@@ -40,7 +40,7 @@ class iss_model {
   }
 
 public:
-  bool done() { return terminate; }
+  bool done() const { return terminate; }
   void step();
 
   friend class loader;
