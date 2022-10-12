@@ -2,20 +2,35 @@
 #include "rv32_isn.hpp"
 #include <iostream>
 
-void sparse_memory::load_program(uint32_t virt_addr, void *ptr,
+uint32_t sparse_memory::ensure_page_exists(uint32_t addr) {
+  uint32_t key = addr & 0xFFFFF000;
+  if (!page.contains(key))
+    page.emplace(key, std::make_unique<uint8_t[]>(4096));
+  return key;
+}
+
+void sparse_memory::write_blocks(uint32_t virt_addr, void *ptr,
+                                 int64_t size_in_bytes) {
+  while (size_in_bytes > 0) {
+    uint32_t key      = ensure_page_exists(virt_addr);
+    uint32_t off      = offset<0u, 11u>(virt_addr);
+    uint32_t page_end = 4096 - off;
+    size_in_bytes -= page_end;
+    write_block(&page[key].get()[offset<0u, 11u>(virt_addr)], ptr, page_end);
+    virt_addr += page_end;
+    ptr = (uint8_t *)ptr + page_end;
+  }
+}
+
+void *sparse_memory::write_block(uint8_t *page_offset, void *ptr,
                                  uint32_t size_in_bytes) {
-  if (virt_addr + size_in_bytes >= rom_size)
-    throw std::runtime_error("computer rom is not big enough");
-  std::memcpy(rom.get() + virt_addr, ptr, size_in_bytes);
-  program_end = virt_addr + size_in_bytes;
+  std::memcpy(page_offset, ptr, size_in_bytes);
+  return (uint8_t *)ptr + size_in_bytes;
 }
 
 // TODO: add memory address decoder as a separate class.
 uint8_t sparse_memory::read_byte(uint32_t off) {
-  if (off < program_end)
-    return rom[off];
-  else
-    return page[off & 0xFFFFF000].get()[offset<0u, 11u>(off)];
+  return page[off & 0xFFFFF000].get()[offset<0u, 11u>(off)];
 }
 
 // FIXME: reading at page boundary is A PROBLEM
@@ -29,10 +44,6 @@ uint32_t sparse_memory::read_word(uint32_t off) {
 }
 
 void sparse_memory::write_byte(uint32_t off, uint8_t b) {
-  if (off < program_end) {
-    std::cout << "writing byte to rom? at: " << std::hex << off << std::endl;
-    rom[off] = b;
-  }
   uint32_t maskd = off & 0xFFFFF000;
   if (!page.contains(maskd))
     page.emplace(maskd, std::make_unique<uint8_t[]>(4096));

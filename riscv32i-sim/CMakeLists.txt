@@ -4,6 +4,7 @@ set(
   src/iss_model.cpp
   src/decoder.cpp
   src/sparse_memory.cpp
+  src/loader.cpp
 )
 
 add_executable(riscv32i-sim ${SRC_FILES})

@@ -32,12 +32,16 @@ class iss_model {
 
   bool terminate = false;
 
-public:
-  bool     done() { return terminate; }
   uint32_t tohost_addr;
-  int32_t  PC{0};
-  void     step();
-  void     load_program(uint32_t virt_addr, void *ptr, uint32_t size_in_bytes) {
-        mem.load_program(virt_addr, ptr, size_in_bytes);
+  uint32_t PC{0};
+
+  void load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
+    mem.write_blocks(virt_addr, ptr, size_in_bytes);
   }
+
+public:
+  bool done() { return terminate; }
+  void step();
+
+  friend class loader;
 };
