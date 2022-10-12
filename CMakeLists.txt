@@ -15,3 +15,4 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_subdirectory(external)
 add_subdirectory(riscv32i-sim)
+add_subdirectory(spike)
