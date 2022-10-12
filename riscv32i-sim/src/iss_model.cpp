@@ -1,5 +1,6 @@
 #include "iss_model.hpp"
 #include "rv32_isn.hpp"
+#include <fmt/format.h>
 
 #include <iostream>
 
@@ -12,13 +13,13 @@ void iss_model::reg_file::write(uint8_t index, uint32_t data) {
   assert(index < 32u);
   if (index == 0)
     return;
+  fmt::print("Writing to x{}, value: {:#x}\n", index, data);
   x[index] = data;
 }
 
 void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
-  std::cout << "PC " << std::hex << PC << " decode: " << std::hex << isn
-            << std::endl;
+  fmt::print("PC: {:#x}, Inst: {:#x}\n", PC, isn);
   decoder_out dec = decode(isn);
 
   exec(dec);
@@ -142,14 +143,11 @@ void iss_model::wb_retire_alu(decoder_out &dec) {
     regfile.write(dec.rd, PC + 4);
     PC = alu_out;
     if (dec.rd != 0) {
-      std::cout << "writing to " << std::hex << std::to_string(dec.rd)
-                << " value(return address): " << alu_out << std::endl;
+      fmt::print("JUMP to {:#x}: Return Addr: {:#x}\n", PC, alu_out);
     } else
-      std::cout << "return address is discarded" << std::endl;
+      fmt::print("JUMP to {:#x}: Return Addr is discarded\n", PC);
   } else {
     regfile.write(dec.rd, alu_out);
     PC = PC + 4;
-    std::cout << "writing to " << std::hex << std::to_string(dec.rd)
-              << " value: " << alu_out << std::endl;
   }
 }

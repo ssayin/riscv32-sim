@@ -9,5 +9,5 @@ set(
 
 add_executable(riscv32i-sim ${SRC_FILES})
 
-target_link_libraries(riscv32i-sim elfio)
+target_link_libraries(riscv32i-sim elfio fmt::fmt)
 target_include_directories(riscv32i-sim PRIVATE include)

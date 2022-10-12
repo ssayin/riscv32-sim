@@ -1,5 +1,6 @@
 #include "decoder.hpp"
 #include "rv32_isn.hpp"
+#include <fmt/format.h>
 #include <iostream>
 
 decoder_out decode_load(uint32_t word);
@@ -255,13 +256,14 @@ decoder_out decode_branch(uint32_t word) {
 }
 
 decoder_out decode_fence(uint32_t word) {
-  std::cout << "fence ops are not implemented" << std::endl;
+
+  fmt::print("Fence opcodes are not implemented\n");
   // insert NOP
   return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }
 
 decoder_out decode_csrenv(uint32_t word) {
-  std::cout << "csr and env ops are not implemented" << std::endl;
+  fmt::print("CSR and ENV opcodes are not implemented\n");
   // insert NOP
   return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
 }

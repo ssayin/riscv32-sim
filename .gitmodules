@@ -1,3 +1,6 @@
 [submodule "external/ELFIO"]
 	path = external/ELFIO
 	url = https://github.com/serge1/ELFIO.git
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt.git
