@@ -128,6 +128,9 @@ decoder_out decode_alu(uint32_t word) {
     }
     }
   case SLL: {
+    rv32_sll isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SLL,
+                       pipeline_type::ALU, 0);
   }
   case SRL_SRA:
     switch (offset<30u, 30u>(word)) {
