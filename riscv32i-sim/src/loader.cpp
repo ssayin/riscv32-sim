@@ -36,6 +36,10 @@ void loader::load(std::string file_name, iss_model &model) {
     throw std::runtime_error("Only 32-bit binaries are supported");
   }
 
+  if (reader.get_machine() != ELFIO::EM_RISCV) {
+    throw std::runtime_error("Loaded ELF does not target RISC-V");
+  }
+
   if (reader.segments.size() == 0) {
     throw std::runtime_error("Loaded ELF has no segments");
   }
