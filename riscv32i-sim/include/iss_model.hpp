@@ -15,7 +15,7 @@ private:
   std::array<uint32_t, 32> x{};
 };
 
-class Computer {
+class iss_model {
   reg_file      regfile{};
   sparse_memory mem{};
 
@@ -30,10 +30,14 @@ class Computer {
   void wb_retire_ls(decoder_out &dec);
   void wb_retire_alu(decoder_out &dec);
 
+  bool terminate = false;
+
 public:
-  int32_t PC{0};
-  void    step();
-  void    load_program(uint32_t virt_addr, void *ptr, uint32_t size_in_bytes) {
-       mem.load_program(virt_addr, ptr, size_in_bytes);
+  bool     done() { return terminate; }
+  uint32_t tohost_addr;
+  int32_t  PC{0};
+  void     step();
+  void     load_program(uint32_t virt_addr, void *ptr, uint32_t size_in_bytes) {
+        mem.load_program(virt_addr, ptr, size_in_bytes);
   }
 };

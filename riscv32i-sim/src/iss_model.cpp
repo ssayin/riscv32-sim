@@ -1,4 +1,4 @@
-#include "computer.hpp"
+#include "iss_model.hpp"
 #include "rv32_decode.hpp"
 #include "rv32_isn.hpp"
 
@@ -16,7 +16,7 @@ void reg_file::write(uint8_t index, uint32_t data) {
   x[index] = data;
 }
 
-void Computer::step() {
+void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
   std::cout << "PC " << std::hex << PC << " decode: " << std::hex << isn
             << std::endl;
@@ -30,7 +30,7 @@ void Computer::step() {
   wb_retire_phase(dec);
 }
 
-void Computer::exec(decoder_out &dec) {
+void iss_model::exec(decoder_out &dec) {
   switch (dec.target) {
     using enum pipeline_type;
   case ALU: exec_alu(dec); break;
@@ -41,7 +41,7 @@ void Computer::exec(decoder_out &dec) {
   }
 }
 
-void Computer::exec_alu(decoder_out &dec) {
+void iss_model::exec_alu(decoder_out &dec) {
   uint32_t opd1 = regfile.read(dec.rs1);
   uint32_t opd2 = dec.has_imm ? dec.imm : regfile.read(dec.rs2);
 
@@ -65,7 +65,7 @@ void Computer::exec_alu(decoder_out &dec) {
   }
 }
 
-void Computer::exec_alu_branch(decoder_out &dec) {
+void iss_model::exec_alu_branch(decoder_out &dec) {
   uint32_t opd1 = regfile.read(dec.rs1);
   uint32_t opd2 = regfile.read(dec.rs2);
 
@@ -88,9 +88,11 @@ uint32_t sign_extend(uint32_t in, uint8_t shamt) {
   return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
 }
 
-void Computer::mem_phase(decoder_out &dec) {
+void iss_model::mem_phase(decoder_out &dec) {
   if (dec.target != pipeline_type::LS)
     return;
+  terminate = (alu_out == tohost_addr);
+
   switch (std::get<ls_type>(dec.op)) {
     using enum ls_type;
   case LB: mem_out = sign_extend(mem.read_byte(alu_out), 24); break;
@@ -104,7 +106,7 @@ void Computer::mem_phase(decoder_out &dec) {
   }
 }
 
-void Computer::wb_retire_phase(decoder_out &dec) {
+void iss_model::wb_retire_phase(decoder_out &dec) {
   switch (dec.target) {
     using enum pipeline_type;
   case LS:
@@ -123,7 +125,7 @@ void Computer::wb_retire_phase(decoder_out &dec) {
   }
 }
 
-void Computer::wb_retire_ls(decoder_out &dec) {
+void iss_model::wb_retire_ls(decoder_out &dec) {
   switch (std::get<ls_type>(dec.op)) {
     using enum ls_type;
   case LB:
@@ -135,7 +137,7 @@ void Computer::wb_retire_ls(decoder_out &dec) {
   }
 }
 
-void Computer::wb_retire_alu(decoder_out &dec) {
+void iss_model::wb_retire_alu(decoder_out &dec) {
   alu_type alut = std::get<alu_type>(dec.op);
   if (alut == alu_type::JAL || alut == alu_type::JALR) {
     regfile.write(dec.rd, PC + 4);
