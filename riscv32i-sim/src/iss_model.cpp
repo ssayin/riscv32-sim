@@ -57,15 +57,15 @@ void iss_model::exec_alu(decoder_out &dec) {
   case SRA: alu_out = sign_extend(opd1, opd2); break;
   case MUL:
     alu_out = offset<0u, 31u>(static_cast<uint64_t>(
-        static_cast<int32_t>(opd1) * static_cast<int32_t>(opd2)));
+        static_cast<int64_t>(opd1) * static_cast<int64_t>(opd2)));
     break;
   case MULH:
     alu_out = offset<32u, 61u>(static_cast<uint64_t>(
-        static_cast<int32_t>(opd1) * static_cast<int32_t>(opd2)));
+        static_cast<int64_t>(opd1) * static_cast<int64_t>(opd2)));
     break;
   case MULHSU:
     alu_out = offset<32u, 61u>(
-        static_cast<uint64_t>(static_cast<int32_t>(opd1) * opd2));
+        static_cast<uint64_t>(static_cast<int64_t>(opd1) * opd2));
     break;
   case MULHU: alu_out = offset<32u, 61u>(opd1 * opd2); break;
   case DIV:
