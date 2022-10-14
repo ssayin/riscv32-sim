@@ -60,14 +60,14 @@ enum class Immediate : uint32_t {
 
 // R-type
 enum class ALU : uint32_t {
-  SLL     = 0b001,
-  SRL_SRA = 0b101,
-  ADD_SUB = 0b000,
-  SLT     = 0b010,
-  SLTU    = 0b011,
-  XOR     = 0b100,
-  OR      = 0b110,
-  AND     = 0b111,
+  ADD_SUB_MUL  = 0b000,
+  SLL_MULH     = 0b001,
+  SLT_MULHSU   = 0b010,
+  SLTU_MULHU   = 0b011,
+  XOR_DIV      = 0b100,
+  SRL_SRA_DIVU = 0b101,
+  OR_REM       = 0b110,
+  AND_REMU     = 0b111,
 };
 
 // I-type
@@ -208,16 +208,25 @@ struct rv32_isn {
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_ALU_INST(sll, ALU::SLL, 0x0)
-RV32_ALU_INST(srl, ALU::SRL_SRA, 0x0)
-RV32_ALU_INST(sra, ALU::SRL_SRA, 0x20)
-RV32_ALU_INST(add, ALU::ADD_SUB, 0x0)
-RV32_ALU_INST(sub, ALU::ADD_SUB, 0x20)
-RV32_ALU_INST(slt, ALU::SLT, 0x0)
-RV32_ALU_INST(sltu, ALU::SLTU, 0x0)
-RV32_ALU_INST(xor, ALU::XOR, 0x0)
-RV32_ALU_INST(or, ALU::OR, 0x0)
-RV32_ALU_INST(and, ALU::AND, 0x0)
+RV32_ALU_INST(sll, ALU::SLL_MULH, 0x0)
+RV32_ALU_INST(srl, ALU::SRL_SRA_DIVU, 0x0)
+RV32_ALU_INST(sra, ALU::SRL_SRA_DIVU, 0x20)
+RV32_ALU_INST(add, ALU::ADD_SUB_MUL, 0x0)
+RV32_ALU_INST(sub, ALU::ADD_SUB_MUL, 0x20)
+RV32_ALU_INST(slt, ALU::SLT_MULHSU, 0x0)
+RV32_ALU_INST(sltu, ALU::SLTU_MULHU, 0x0)
+RV32_ALU_INST(xor, ALU::XOR_DIV, 0x0)
+RV32_ALU_INST(or, ALU::OR_REM, 0x0)
+RV32_ALU_INST(and, ALU::AND_REMU, 0x0)
+
+RV32_ALU_INST(mulh, ALU::SLL_MULH, 0x1)
+RV32_ALU_INST(divu, ALU::SRL_SRA_DIVU, 0x1)
+RV32_ALU_INST(mul, ALU::ADD_SUB_MUL, 0x1)
+RV32_ALU_INST(mulhsu, ALU::SLT_MULHSU, 0x1)
+RV32_ALU_INST(mulhu, ALU::SLTU_MULHU, 0x1)
+RV32_ALU_INST(div, ALU::XOR_DIV, 0x1)
+RV32_ALU_INST(rem, ALU::OR_REM, 0x1)
+RV32_ALU_INST(remu, ALU::AND_REMU, 0x1)
 
 #undef RV32_ALU_INST
 

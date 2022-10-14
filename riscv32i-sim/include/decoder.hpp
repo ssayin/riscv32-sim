@@ -23,6 +23,14 @@ enum class alu_type : uint8_t {
   AUIPC,
   JAL,
   JALR,
+  MUL,
+  MULH,
+  MULHSU,
+  MULHU,
+  DIV,
+  DIVU,
+  REM,
+  REMU
 };
 
 enum class ls_type : uint8_t {

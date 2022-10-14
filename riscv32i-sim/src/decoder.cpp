@@ -1,7 +1,6 @@
 #include "decoder.hpp"
 #include "rv32_isn.hpp"
 #include <fmt/format.h>
-#include <iostream>
 
 decoder_out decode_load(uint32_t word);
 decoder_out decode_store(uint32_t word);
@@ -97,65 +96,148 @@ decoder_out decode_store(uint32_t word) {
   }
 }
 
-decoder_out decode_alu(uint32_t word) {
-  switch (static_cast<ALU>(offset<12u, 14u>(word))) {
-    using enum ALU;
-  case AND: {
+decoder_out decode_alu_and_remu(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_and isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::AND,
                        pipeline_type::ALU, 0);
   }
-  case OR: {
+  case 0x1: {
+    rv32_remu isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::REMU,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_or_rem(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_or isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::OR,
                        pipeline_type::ALU, 0);
   }
-  case XOR: {
+  case 0x1: {
+    rv32_rem isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::REM,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_xor_div(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_xor isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::XOR,
                        pipeline_type::ALU, 0);
   }
-  case ADD_SUB:
-    switch (offset<30u, 30u>(word)) {
-    case 0: {
-      rv32_add isn{word};
-      return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::ADD,
-                         pipeline_type::ALU, 0);
-    }
-    case 1: {
-      rv32_sub isn{word};
-      return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SUB,
-                         pipeline_type::ALU, 0);
-    }
-    }
-  case SLL: {
+  case 0x1: {
+    rv32_div isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::DIV,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_add_sub_mul(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
+    rv32_add isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::ADD,
+                       pipeline_type::ALU, 0);
+  }
+  case 0x1: {
+    rv32_mul isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::MUL,
+                       pipeline_type::ALU, 0);
+  }
+
+  case 0x20: {
+    rv32_sub isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SUB,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_sll_mulh(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_sll isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SLL,
                        pipeline_type::ALU, 0);
   }
-  case SRL_SRA:
-    switch (offset<30u, 30u>(word)) {
-    case 0: {
-      rv32_srl isn{word};
-      return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SRL,
-                         pipeline_type::ALU, 0);
-    }
-    case 1: {
-      rv32_sra isn{word};
-      return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SRA,
-                         pipeline_type::ALU, 0);
-    }
-    }
-  case SLT: {
+  case 0x1: {
+    rv32_mulh isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::MULH,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_srl_sra_divu(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
+    rv32_srl isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SRL,
+                       pipeline_type::ALU, 0);
+  }
+  case 0x1: {
+    rv32_divu isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::DIVU,
+                       pipeline_type::ALU, 0);
+  }
+  case 0x20: {
+    rv32_sra isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SRA,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_slt_mulhsu(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_slt isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SLT,
                        pipeline_type::ALU, 0);
   }
-  case SLTU: {
+  case 0x1: {
+    rv32_mulhsu isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::MULHSU,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu_sltu_mulhu(uint32_t word) {
+  switch (offset<25u, 31u>(word)) {
+  case 0x0: {
     rv32_sltu isn{word};
     return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::SLTU,
                        pipeline_type::ALU, 0);
   }
+  case 0x1: {
+    rv32_mulhu isn{word};
+    return decoder_out(false, isn.rd, isn.rs1, isn.rs2, alu_type::MULHU,
+                       pipeline_type::ALU, 0);
+  }
+  }
+}
+
+decoder_out decode_alu(uint32_t word) {
+  switch (static_cast<ALU>(offset<12u, 14u>(word))) {
+    using enum ALU;
+  case AND_REMU: return decode_alu_and_remu(word);
+  case OR_REM: return decode_alu_or_rem(word);
+  case XOR_DIV: return decode_alu_xor_div(word);
+  case ADD_SUB_MUL: return decode_alu_add_sub_mul(word);
+  case SLL_MULH: return decode_alu_sll_mulh(word);
+  case SRL_SRA_DIVU: return decode_alu_srl_sra_divu(word);
+  case SLT_MULHSU: return decode_alu_slt_mulhsu(word);
+  case SLTU_MULHU: return decode_alu_sltu_mulhu(word);
   }
 }
 
@@ -198,13 +280,13 @@ decoder_out decode_immediate(uint32_t word) {
   }
 
   case SRLI_SRAI:
-    switch (offset<30u, 30u>(word)) {
-    case 0: {
+    switch (offset<25u, 31u>(word)) {
+    case 0x0: {
       rv32_srli isn{word};
       return decoder_out(true, isn.rd, isn.rs, 0, alu_type::SRL,
                          pipeline_type::ALU, isn.imm);
     }
-    case 1: {
+    case 0x20: {
       rv32_srai isn{word};
       return decoder_out(true, isn.rd, isn.rs, 0, alu_type::SRA,
                          pipeline_type::ALU, isn.imm);
