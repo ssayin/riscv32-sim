@@ -22,6 +22,8 @@ class iss_model {
   uint32_t alu_out;
   uint32_t mem_out;
 
+  uint32_t csrs[4096];
+
   void exec(decoder_out &dec);
   void exec_alu(decoder_out &dec);
   void exec_alu_branch(decoder_out &dec);
@@ -29,6 +31,7 @@ class iss_model {
   void wb_retire_phase(decoder_out &dec);
   void wb_retire_ls(decoder_out &dec);
   void wb_retire_alu(decoder_out &dec);
+  void csr(decoder_out &dec);
 
   bool terminate = false;
 

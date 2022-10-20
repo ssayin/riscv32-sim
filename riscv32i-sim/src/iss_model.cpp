@@ -33,11 +33,15 @@ void iss_model::step() {
 void iss_model::exec(decoder_out &dec) {
   switch (dec.target) {
     using enum pipeline_type;
-  case ALU: exec_alu(dec); break;
+  case ALU:
+    exec_alu(dec);
+    break;
   case LS:
     alu_out = regfile.read(dec.rs1) + dec.imm; /* mem addr for load/store */
     break;
-  case BRANCH: exec_alu_branch(dec); break;
+  case BRANCH:
+    exec_alu_branch(dec);
+    break;
   }
 }
 
@@ -47,14 +51,30 @@ void iss_model::exec_alu(decoder_out &dec) {
 
   switch (std::get<alu_type>(dec.op)) {
     using enum alu_type;
-  case OR: alu_out = opd1 | opd2; break;
-  case AND: alu_out = opd1 & opd2; break;
-  case XOR: alu_out = opd1 ^ opd2; break;
-  case ADD: alu_out = opd1 + opd2; break;
-  case SUB: alu_out = opd1 - opd2; break;
-  case SLL: alu_out = opd1 << opd2; break;
-  case SRL: alu_out = opd1 >> opd2; break;
-  case SRA: alu_out = sign_extend(opd1, opd2); break;
+  case OR:
+    alu_out = opd1 | opd2;
+    break;
+  case AND:
+    alu_out = opd1 & opd2;
+    break;
+  case XOR:
+    alu_out = opd1 ^ opd2;
+    break;
+  case ADD:
+    alu_out = opd1 + opd2;
+    break;
+  case SUB:
+    alu_out = opd1 - opd2;
+    break;
+  case SLL:
+    alu_out = opd1 << opd2;
+    break;
+  case SRL:
+    alu_out = opd1 >> opd2;
+    break;
+  case SRA:
+    alu_out = sign_extend(opd1, opd2);
+    break;
   case MUL:
     alu_out = offset<0u, 31u>(static_cast<uint64_t>(
         static_cast<int64_t>(opd1) * static_cast<int64_t>(opd2)));
@@ -67,24 +87,36 @@ void iss_model::exec_alu(decoder_out &dec) {
     alu_out = offset<32u, 61u>(
         static_cast<uint64_t>(static_cast<int64_t>(opd1) * opd2));
     break;
-  case MULHU: alu_out = offset<32u, 61u>(opd1 * opd2); break;
+  case MULHU:
+    alu_out = offset<32u, 61u>(opd1 * opd2);
+    break;
   case DIV:
     alu_out = static_cast<uint32_t>(static_cast<int32_t>(opd1) /
                                     static_cast<int32_t>(opd2));
     break;
-  case DIVU: alu_out = opd1 / opd2; break;
+  case DIVU:
+    alu_out = opd1 / opd2;
+    break;
   case REM:
     alu_out = static_cast<uint32_t>(static_cast<int32_t>(opd1) %
                                     static_cast<int32_t>(opd2));
     break;
-  case REMU: alu_out = opd1 % opd2; break;
+  case REMU:
+    alu_out = opd1 % opd2;
+    break;
   case SLT:
     alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
     break;
-  case SLTU: alu_out = opd1 < opd2; break;
+  case SLTU:
+    alu_out = opd1 < opd2;
+    break;
   case AUIPC:
-  case JAL: alu_out = PC + opd2; break;
-  case JALR: alu_out = (opd1 + opd2) & 0xFFFFFFFE; break;
+  case JAL:
+    alu_out = PC + opd2;
+    break;
+  case JALR:
+    alu_out = (opd1 + opd2) & 0xFFFFFFFE;
+    break;
   }
 }
 
@@ -94,16 +126,24 @@ void iss_model::exec_alu_branch(decoder_out &dec) {
 
   switch (std::get<branch_type>(dec.op)) {
     using enum branch_type;
-  case BEQ: alu_out = opd1 == opd2; break;
-  case BNE: alu_out = opd1 != opd2; break;
+  case BEQ:
+    alu_out = opd1 == opd2;
+    break;
+  case BNE:
+    alu_out = opd1 != opd2;
+    break;
   case BLT:
     alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
     break;
-  case BLTU: alu_out = opd1 < opd2; break;
+  case BLTU:
+    alu_out = opd1 < opd2;
+    break;
   case BGE:
     alu_out = static_cast<int32_t>(opd1) >= static_cast<int32_t>(opd2);
     break;
-  case BGEU: alu_out = opd1 >= opd2; break;
+  case BGEU:
+    alu_out = opd1 >= opd2;
+    break;
   }
 }
 
@@ -118,14 +158,30 @@ void iss_model::mem_phase(decoder_out &dec) {
 
   switch (std::get<ls_type>(dec.op)) {
     using enum ls_type;
-  case LB: mem_out = sign_extend(mem.read_byte(alu_out), 24); break;
-  case LH: mem_out = sign_extend(mem.read_half(alu_out), 16); break;
-  case LW: mem_out = mem.read_word(alu_out); break;
-  case LBU: mem_out = mem.read_byte(alu_out) << 24; break;
-  case LHU: mem_out = mem.read_half(alu_out) << 16; break;
-  case SB: mem.write_byte(alu_out, regfile.read(dec.rs2)); break;
-  case SH: mem.write_half(alu_out, regfile.read(dec.rs2)); break;
-  case SW: mem.write_word(alu_out, regfile.read(dec.rs2)); break;
+  case LB:
+    mem_out = sign_extend(mem.read_byte(alu_out), 24);
+    break;
+  case LH:
+    mem_out = sign_extend(mem.read_half(alu_out), 16);
+    break;
+  case LW:
+    mem_out = mem.read_word(alu_out);
+    break;
+  case LBU:
+    mem_out = mem.read_byte(alu_out) << 24;
+    break;
+  case LHU:
+    mem_out = mem.read_half(alu_out) << 16;
+    break;
+  case SB:
+    mem.write_byte(alu_out, regfile.read(dec.rs2));
+    break;
+  case SH:
+    mem.write_half(alu_out, regfile.read(dec.rs2));
+    break;
+  case SW:
+    mem.write_word(alu_out, regfile.read(dec.rs2));
+    break;
   }
 }
 
@@ -138,13 +194,19 @@ void iss_model::wb_retire_phase(decoder_out &dec) {
     break;
     /* should skip mem_phase for branch and alu, so that alu_out will not be
      * overwritten */
-  case ALU: wb_retire_alu(dec); break;
+  case ALU:
+    wb_retire_alu(dec);
+    break;
   case BRANCH:
     if (alu_out) {
       PC = PC + dec.imm;
     } else
       PC = PC + 4;
     break;
+  case CSR: {
+    csr(dec);
+    break;
+  }
   }
 }
 
@@ -155,8 +217,11 @@ void iss_model::wb_retire_ls(decoder_out &dec) {
   case LH:
   case LW:
   case LBU:
-  case LHU: regfile.write(dec.rd, mem_out); break;
-  default: break;
+  case LHU:
+    regfile.write(dec.rd, mem_out);
+    break;
+  default:
+    break;
   }
 }
 
@@ -174,3 +239,5 @@ void iss_model::wb_retire_alu(decoder_out &dec) {
     PC = PC + 4;
   }
 }
+
+void iss_model::csr(decoder_out &dec) {}

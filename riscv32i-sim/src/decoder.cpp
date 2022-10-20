@@ -33,14 +33,22 @@ decoder_out decode(uint32_t word) {
     return decoder_out(true, isn.rd, isn.rs, 0, alu_type::JALR,
                        pipeline_type::ALU, isn.imm);
   }
-  case Load: return decode_load(word);
-  case Store: return decode_store(word);
-  case Branch: return decode_branch(word);
-  case Immediate: return decode_immediate(word);
-  case ALU: return decode_alu(word);
-  case Csr_Env: return decode_csrenv(word);
-  case Fence: return decode_fence(word);
-  default: throw std::runtime_error("unknown instruction type");
+  case Load:
+    return decode_load(word);
+  case Store:
+    return decode_store(word);
+  case Branch:
+    return decode_branch(word);
+  case Immediate:
+    return decode_immediate(word);
+  case ALU:
+    return decode_alu(word);
+  case Csr_Env:
+    return decode_csrenv(word);
+  case Fence:
+    return decode_fence(word);
+  default:
+    throw std::runtime_error("unknown instruction type");
   }
 }
 
@@ -230,14 +238,22 @@ decoder_out decode_alu_sltu_mulhu(uint32_t word) {
 decoder_out decode_alu(uint32_t word) {
   switch (static_cast<ALU>(offset<12u, 14u>(word))) {
     using enum ALU;
-  case AND_REMU: return decode_alu_and_remu(word);
-  case OR_REM: return decode_alu_or_rem(word);
-  case XOR_DIV: return decode_alu_xor_div(word);
-  case ADD_SUB_MUL: return decode_alu_add_sub_mul(word);
-  case SLL_MULH: return decode_alu_sll_mulh(word);
-  case SRL_SRA_DIVU: return decode_alu_srl_sra_divu(word);
-  case SLT_MULHSU: return decode_alu_slt_mulhsu(word);
-  case SLTU_MULHU: return decode_alu_sltu_mulhu(word);
+  case AND_REMU:
+    return decode_alu_and_remu(word);
+  case OR_REM:
+    return decode_alu_or_rem(word);
+  case XOR_DIV:
+    return decode_alu_xor_div(word);
+  case ADD_SUB_MUL:
+    return decode_alu_add_sub_mul(word);
+  case SLL_MULH:
+    return decode_alu_sll_mulh(word);
+  case SRL_SRA_DIVU:
+    return decode_alu_srl_sra_divu(word);
+  case SLT_MULHSU:
+    return decode_alu_slt_mulhsu(word);
+  case SLTU_MULHU:
+    return decode_alu_sltu_mulhu(word);
   }
 }
 
