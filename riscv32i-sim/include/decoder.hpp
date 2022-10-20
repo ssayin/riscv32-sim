@@ -7,6 +7,7 @@ enum class pipeline_type : uint8_t {
   LS,
   ALU,
   BRANCH,
+  CSR,
 };
 
 enum class alu_type : uint8_t {
@@ -53,7 +54,16 @@ enum class branch_type : uint8_t {
   BGEU,
 };
 
-using op_type = std::variant<alu_type, ls_type, branch_type>;
+enum class csr_type : uint8_t {
+  RW,
+  RS,
+  RC,
+  RWI,
+  RSI,
+  RCI,
+};
+
+using op_type = std::variant<alu_type, ls_type, branch_type, csr_type>;
 
 struct decoder_out {
   bool          has_imm;

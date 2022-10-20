@@ -185,6 +185,8 @@ constexpr uint32_t unpack_imm_s(uint32_t word) {
   return offset<7u, 11u>(word) | (offset<25u, 30u>(word) << 5) |
          sign_extend(word & sign_bit_mask, 20u);
 }
+constexpr uint32_t unpack_csr(uint32_t word) { return offset<20u, 31u>(word); }
+
 struct rv32_isn {
   virtual void     unpack(uint32_t word) = 0;
   virtual uint32_t pack() const          = 0;
@@ -406,3 +408,30 @@ RV32_BRANCH_INST(bltu, Branch::BLTU)
 RV32_BRANCH_INST(bgeu, Branch::BGEU)
 
 #undef RV32_BRANCH_INST
+
+#define RV32_CSR_INST(name, funct3)                                            \
+  struct rv32_##name : public rv32_isn {                                       \
+    uint8_t  rd;                                                               \
+    uint8_t  rs;                                                               \
+    uint32_t csr;                                                              \
+    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
+    void unpack(uint32_t word) final {                                         \
+      rd  = unpack_rd(word);                                                   \
+      rs  = unpack_rs1(word);                                                  \
+      csr = unpack_csr(word);                                                  \
+    }                                                                          \
+    uint32_t pack() const final {                                              \
+      return rd << 7 | to_int(funct3) << 12 | rs << 15 | csr << 20 |           \
+             to_int(OpCode::Csr_Env);                                          \
+    }                                                                          \
+    explicit(false) operator uint32_t() const { return pack(); }               \
+  };
+
+RV32_CSR_INST(csrrw, Csr_Env::CSRRW)
+RV32_CSR_INST(csrrs, Csr_Env::CSRRS)
+RV32_CSR_INST(csrrc, Csr_Env::CSRRC)
+RV32_CSR_INST(csrrwi, Csr_Env::CSRRWI)
+RV32_CSR_INST(csrrsi, Csr_Env::CSRRSI)
+RV32_CSR_INST(csrrci, Csr_Env::CSRRCI)
+
+#undef RV32_CSR_INST

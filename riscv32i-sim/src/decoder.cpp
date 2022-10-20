@@ -345,7 +345,39 @@ decoder_out decode_fence(uint32_t word) {
 }
 
 decoder_out decode_csrenv(uint32_t word) {
-  fmt::print("CSR and ENV opcodes are not implemented\n");
-  // insert NOP
-  return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
+  switch (static_cast<Csr_Env>(offset<12u, 14u>(word))) {
+    using enum Csr_Env;
+  case CSRRW: {
+    rv32_csrrw isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RW,
+                       pipeline_type::CSR, isn.csr);
+  }
+  case CSRRS: {
+    rv32_csrrs isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RS,
+                       pipeline_type::CSR, isn.csr);
+  }
+  case CSRRC: {
+    rv32_csrrc isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RC,
+                       pipeline_type::CSR, isn.csr);
+  }
+  case CSRRWI: {
+    rv32_csrrwi isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RWI,
+                       pipeline_type::CSR, isn.csr);
+  }
+  case CSRRSI: {
+    rv32_csrrsi isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RSI,
+                       pipeline_type::CSR, isn.csr);
+  }
+  case CSRRCI: {
+    rv32_csrrci isn{word};
+    return decoder_out(true, isn.rd, isn.rs, 0, csr_type::RCI,
+                       pipeline_type::CSR, isn.csr);
+  }
+  default:
+    return decoder_out(true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0);
+  }
 }
