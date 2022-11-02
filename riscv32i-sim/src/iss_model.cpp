@@ -23,6 +23,10 @@ void iss_model::step() {
   decoder_out dec = decode(isn);
 
   exec(dec);
+  if (dec.target == pipeline_type::CSR) {
+    PC = PC + 4;
+    return;
+  }
   if (dec.target == pipeline_type::LS) {
     mem_phase(dec);
   }
