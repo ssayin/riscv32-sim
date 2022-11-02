@@ -46,5 +46,8 @@ public:
   bool done() const { return terminate; }
   void step();
 
+  void write_csr(uint32_t addr, uint32_t v);
+  uint32_t read_csr(uint32_t addr);
+
   friend class loader;
 };

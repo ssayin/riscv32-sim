@@ -42,6 +42,9 @@ void iss_model::exec(decoder_out &dec) {
   case BRANCH:
     exec_alu_branch(dec);
     break;
+  case CSR:
+    csr(dec);
+    break;
   }
 }
 
@@ -240,4 +243,48 @@ void iss_model::wb_retire_alu(decoder_out &dec) {
   }
 }
 
-void iss_model::csr(decoder_out &dec) {}
+void iss_model::csr(decoder_out &dec) {
+  switch (std::get<csr_type>(dec.op)) {
+    using enum csr_type;
+  case RW: {
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, regfile.read(dec.rs1));
+    regfile.write(dec.rd, tmp);
+  } break;
+
+  case RS: {
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, tmp | regfile.read(dec.rs1));
+    regfile.write(dec.rd, tmp);
+  } break;
+
+  case RC: {
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, tmp & (!regfile.read(dec.rs1)));
+    regfile.write(dec.rd, tmp);
+  } break;
+
+  case RWI: {
+    regfile.write(dec.rd, read_csr(dec.imm));
+    write_csr(dec.imm, dec.rs1);
+  } break;
+
+  case RSI: {
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, dec.rs1 | tmp);
+    regfile.write(dec.rd, tmp);
+
+  } break;
+
+  case RCI: {
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, (!dec.rs1) & tmp);
+    regfile.write(dec.rd, tmp);
+  } break;
+  }
+}
+
+// TODO Impl. privileges later
+void iss_model::write_csr(uint32_t addr, uint32_t v) { csrs[addr] = v; }
+
+uint32_t iss_model::read_csr(uint32_t addr) { return csrs[addr]; }
