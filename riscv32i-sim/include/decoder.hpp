@@ -66,13 +66,14 @@ enum class csr_type : uint8_t {
 using op_type = std::variant<alu_type, ls_type, branch_type, csr_type>;
 
 struct decoder_out {
-  bool          has_imm;
+  uint32_t      imm;
+  op_type       op;
   uint8_t       rd;
   uint8_t       rs1;
   uint8_t       rs2;
-  op_type       op;
   pipeline_type target;
-  uint32_t      imm;
+  bool          has_imm;
+
   decoder_out(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type op,
               pipeline_type target, uint32_t imm)
       : has_imm{has_imm}, rd{rd}, rs1{rs1}, rs2{rs2}, op{op}, target{target},

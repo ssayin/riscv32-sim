@@ -288,7 +288,25 @@ void iss_model::csr(decoder_out &dec) {
   }
 }
 
-// TODO Impl. privileges later
-void iss_model::write_csr(uint32_t addr, uint32_t v) { csrs[addr] = v; }
+bool is_unimplemented_csr(uint16_t addr) {
+  return addr >= 0x7A0 && addr <= 0x7BF;
+}
 
-uint32_t iss_model::read_csr(uint32_t addr) { return csrs[addr]; }
+void iss_model::write_csr(uint32_t addr, uint32_t v) {
+  uint8_t priv = offset<8u, 11u>(addr);
+  if (is_unimplemented_csr(addr) || ((priv & 0xC) == 0xC) ||
+      (priv & 0x3) > mode) {
+    // TODO: Impl. trap
+    return;
+  }
+  csrs[addr] = v;
+}
+
+uint32_t iss_model::read_csr(uint32_t addr) {
+  if (offset<8u, 9u>(addr) > mode || is_unimplemented_csr(addr)) {
+    // TODO: Impl. trap
+    return 0x0;
+  }
+
+  return csrs[addr];
+}
