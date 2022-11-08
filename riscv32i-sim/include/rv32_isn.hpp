@@ -78,13 +78,13 @@ enum class Fence : uint32_t {
 
 // I-type
 enum class Csr_Env : uint32_t {
-  ECALL_EBREAK = 0b000,
-  CSRRW        = 0b001,
-  CSRRS        = 0b010,
-  CSRRC        = 0b011,
-  CSRRWI       = 0b101,
-  CSRRSI       = 0b110,
-  CSRRCI       = 0b111,
+  ECALL_EBREAK_TRET_WFI = 0b000,
+  CSRRW                 = 0b001,
+  CSRRS                 = 0b010,
+  CSRRC                 = 0b011,
+  CSRRWI                = 0b101,
+  CSRRSI                = 0b110,
+  CSRRCI                = 0b111,
 };
 
 template <typename T>
@@ -435,3 +435,29 @@ RV32_CSR_INST(csrrsi, Csr_Env::CSRRSI)
 RV32_CSR_INST(csrrci, Csr_Env::CSRRCI)
 
 #undef RV32_CSR_INST
+
+#define RV32_TRAP_ENV_INST(name, rs2, funct7)                                  \
+  struct rv32_##name : public rv32_isn {                                       \
+    uint8_t rd;                                                                \
+    uint8_t rs1;                                                               \
+                                                                               \
+    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
+    void unpack(uint32_t word) final {                                         \
+      rd  = unpack_rd(word);                                                   \
+      rs1 = unpack_rs1(word);                                                  \
+    }                                                                          \
+    uint32_t pack() const final {                                              \
+      return rd << 7 | 0x0 << 12 | rs1 << 15 | rs2 << 20 | funct7 << 25 |      \
+             to_int(OpCode::Csr_Env);                                          \
+    }                                                                          \
+    explicit(false) operator uint32_t() const { return pack(); }               \
+  };
+
+RV32_TRAP_ENV_INST(ecall, 0x0, 0x0)
+RV32_TRAP_ENV_INST(ebreak, 0x1, 0x0)
+RV32_TRAP_ENV_INST(uret, 0x2, 0x0)
+RV32_TRAP_ENV_INST(sret, 0x2, 0x8)
+RV32_TRAP_ENV_INST(mret, 0x2, 0x24)
+RV32_TRAP_ENV_INST(wfi, 0x5, 0x8)
+
+#undef RV32_TRAP_ECALL_INST
