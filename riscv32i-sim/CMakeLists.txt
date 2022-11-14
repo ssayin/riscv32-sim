@@ -5,6 +5,7 @@ set(
   src/decoder.cpp
   src/sparse_memory.cpp
   src/loader.cpp
+  src/csr_handler.cpp
 )
 
 add_executable(riscv32i-sim ${SRC_FILES})

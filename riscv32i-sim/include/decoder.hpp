@@ -8,6 +8,7 @@ enum class pipeline_type : uint8_t {
   ALU,
   BRANCH,
   CSR,
+  TRET,
 };
 
 enum class alu_type : uint8_t {
@@ -63,21 +64,24 @@ enum class csr_type : uint8_t {
   RCI,
 };
 
-using op_type = std::variant<alu_type, ls_type, branch_type, csr_type>;
+enum class trap_ret_type : uint8_t { Machine, Supervisor, User };
 
-struct decoder_out {
+using op_type =
+    std::variant<alu_type, ls_type, branch_type, csr_type, trap_ret_type>;
+
+struct op {
   uint32_t      imm;
-  op_type       op;
+  op_type       opt;
   uint8_t       rd;
   uint8_t       rs1;
   uint8_t       rs2;
   pipeline_type target;
   bool          has_imm;
 
-  decoder_out(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type op,
-              pipeline_type target, uint32_t imm)
-      : has_imm{has_imm}, rd{rd}, rs1{rs1}, rs2{rs2}, op{op}, target{target},
+  constexpr op(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type opt,
+               pipeline_type target, uint32_t imm)
+      : has_imm{has_imm}, rd{rd}, rs1{rs1}, rs2{rs2}, opt{opt}, target{target},
         imm{imm} {};
 };
 
-decoder_out decode(uint32_t word);
+op decode(uint32_t word);

@@ -1,12 +1,10 @@
 #include "loader.hpp"
 #include "iss_model.hpp"
 #include <elfio/elfio.hpp>
-#include <elfio/elfio_dump.hpp>
 #include <elfio/elfio_section.hpp>
 #include <elfio/elfio_segment.hpp>
 
 #include <algorithm>
-#include <cstdio>
 
 ELFIO::Elf64_Addr tohost_addr(ELFIO::elfio &reader) {
   const ELFIO::section                *sec = reader.sections[".symtab"];

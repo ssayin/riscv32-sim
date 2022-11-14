@@ -78,13 +78,20 @@ enum class Fence : uint32_t {
 
 // I-type
 enum class Csr_Env : uint32_t {
-  ECALL_EBREAK_TRET_WFI = 0b000,
-  CSRRW                 = 0b001,
-  CSRRS                 = 0b010,
-  CSRRC                 = 0b011,
-  CSRRWI                = 0b101,
-  CSRRSI                = 0b110,
-  CSRRCI                = 0b111,
+  OTHER  = 0b000,
+  CSRRW  = 0b001,
+  CSRRS  = 0b010,
+  CSRRC  = 0b011,
+  CSRRWI = 0b101,
+  CSRRSI = 0b110,
+  CSRRCI = 0b111,
+};
+
+enum class OtherSys : uint8_t {
+  ECALL               = 0x0,
+  EBREAK              = 0x1,
+  TrapReturn          = 0x2,
+  InterruptManagement = 0x5
 };
 
 template <typename T>
@@ -447,17 +454,17 @@ RV32_CSR_INST(csrrci, Csr_Env::CSRRCI)
       rs1 = unpack_rs1(word);                                                  \
     }                                                                          \
     uint32_t pack() const final {                                              \
-      return rd << 7 | 0x0 << 12 | rs1 << 15 | rs2 << 20 | funct7 << 25 |      \
-             to_int(OpCode::Csr_Env);                                          \
+      return rd << 7 | 0x0 << 12 | rs1 << 15 | to_int(rs2) << 20 |             \
+             funct7 << 25 | to_int(OpCode::Csr_Env);                           \
     }                                                                          \
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_TRAP_ENV_INST(ecall, 0x0, 0x0)
-RV32_TRAP_ENV_INST(ebreak, 0x1, 0x0)
-RV32_TRAP_ENV_INST(uret, 0x2, 0x0)
-RV32_TRAP_ENV_INST(sret, 0x2, 0x8)
-RV32_TRAP_ENV_INST(mret, 0x2, 0x24)
-RV32_TRAP_ENV_INST(wfi, 0x5, 0x8)
+RV32_TRAP_ENV_INST(ecall, OtherSys::ECALL, 0x0)
+RV32_TRAP_ENV_INST(ebreak, OtherSys::EBREAK, 0x0)
+RV32_TRAP_ENV_INST(uret, OtherSys::TrapReturn, 0x0)
+RV32_TRAP_ENV_INST(sret, OtherSys::TrapReturn, 0x8)
+RV32_TRAP_ENV_INST(mret, OtherSys::TrapReturn, 0x24)
+RV32_TRAP_ENV_INST(wfi, OtherSys::InterruptManagement, 0x8)
 
 #undef RV32_TRAP_ECALL_INST

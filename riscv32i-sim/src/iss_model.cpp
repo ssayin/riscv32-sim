@@ -2,8 +2,6 @@
 #include "rv32_isn.hpp"
 #include <fmt/format.h>
 
-#include <iostream>
-
 uint32_t iss_model::reg_file::read(uint8_t index) {
   assert(index < 32u);
   return x[index];
@@ -20,21 +18,27 @@ void iss_model::reg_file::write(uint8_t index, uint32_t data) {
 void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
   fmt::print("PC: {:#x}, Inst: {:#x}\n", PC, isn);
-  decoder_out dec = decode(isn);
+  op dec = decode(isn);
 
   exec(dec);
-  if (dec.target == pipeline_type::CSR) {
+
+  switch (dec.target) {
+  case pipeline_type::LS:
+    mem_phase(dec);
+    break;
+  case pipeline_type::ALU:
+  case pipeline_type::BRANCH:
+    break;
+  case pipeline_type::CSR:
     PC = PC + 4;
     return;
+  case pipeline_type::TRET:
+    return;
   }
-  if (dec.target == pipeline_type::LS) {
-    mem_phase(dec);
-  }
-
   wb_retire_phase(dec);
 }
 
-void iss_model::exec(decoder_out &dec) {
+void iss_model::exec(op &dec) {
   switch (dec.target) {
     using enum pipeline_type;
   case ALU:
@@ -49,14 +53,17 @@ void iss_model::exec(decoder_out &dec) {
   case CSR:
     csr(dec);
     break;
+  case TRET:
+    tret(dec);
+    break;
   }
 }
 
-void iss_model::exec_alu(decoder_out &dec) {
+void iss_model::exec_alu(op &dec) {
   uint32_t opd1 = regfile.read(dec.rs1);
   uint32_t opd2 = dec.has_imm ? dec.imm : regfile.read(dec.rs2);
 
-  switch (std::get<alu_type>(dec.op)) {
+  switch (std::get<alu_type>(dec.opt)) {
     using enum alu_type;
   case OR:
     alu_out = opd1 | opd2;
@@ -95,7 +102,7 @@ void iss_model::exec_alu(decoder_out &dec) {
         static_cast<uint64_t>(static_cast<int64_t>(opd1) * opd2));
     break;
   case MULHU:
-    alu_out = offset<32u, 61u>(opd1 * opd2);
+    alu_out = offset<32u, 61u>(static_cast<uint64_t>(opd1) * opd2);
     break;
   case DIV:
     alu_out = static_cast<uint32_t>(static_cast<int32_t>(opd1) /
@@ -127,11 +134,11 @@ void iss_model::exec_alu(decoder_out &dec) {
   }
 }
 
-void iss_model::exec_alu_branch(decoder_out &dec) {
+void iss_model::exec_alu_branch(op &dec) {
   uint32_t opd1 = regfile.read(dec.rs1);
   uint32_t opd2 = regfile.read(dec.rs2);
 
-  switch (std::get<branch_type>(dec.op)) {
+  switch (std::get<branch_type>(dec.opt)) {
     using enum branch_type;
   case BEQ:
     alu_out = opd1 == opd2;
@@ -158,12 +165,12 @@ uint32_t sign_extend(uint32_t in, uint8_t shamt) {
   return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
 }
 
-void iss_model::mem_phase(decoder_out &dec) {
+void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_type::LS)
     return;
   terminate = (alu_out == tohost_addr);
 
-  switch (std::get<ls_type>(dec.op)) {
+  switch (std::get<ls_type>(dec.opt)) {
     using enum ls_type;
   case LB:
     mem_out = sign_extend(mem.read_byte(alu_out), 24);
@@ -192,33 +199,30 @@ void iss_model::mem_phase(decoder_out &dec) {
   }
 }
 
-void iss_model::wb_retire_phase(decoder_out &dec) {
+void iss_model::wb_retire_phase(op &dec) {
   switch (dec.target) {
     using enum pipeline_type;
   case LS:
     wb_retire_ls(dec);
     PC += 4;
     break;
-    /* should skip mem_phase for branch and alu, so that alu_out will not be
-     * overwritten */
   case ALU:
     wb_retire_alu(dec);
     break;
   case BRANCH:
-    if (alu_out) {
-      PC = PC + dec.imm;
-    } else
-      PC = PC + 4;
+    PC = PC + (alu_out ? dec.imm : 4);
     break;
   case CSR: {
     csr(dec);
     break;
   }
+  default:
+    break;
   }
 }
 
-void iss_model::wb_retire_ls(decoder_out &dec) {
-  switch (std::get<ls_type>(dec.op)) {
+void iss_model::wb_retire_ls(op &dec) {
+  switch (std::get<ls_type>(dec.opt)) {
     using enum ls_type;
   case LB:
   case LH:
@@ -232,9 +236,9 @@ void iss_model::wb_retire_ls(decoder_out &dec) {
   }
 }
 
-void iss_model::wb_retire_alu(decoder_out &dec) {
-  alu_type alut = std::get<alu_type>(dec.op);
-  if (alut == alu_type::JAL || alut == alu_type::JALR) {
+void iss_model::wb_retire_alu(op &dec) {
+  if (alu_type alut = std::get<alu_type>(dec.opt);
+      alut == alu_type::JAL || alut == alu_type::JALR) {
     regfile.write(dec.rd, PC + 4);
     PC = alu_out;
     if (dec.rd != 0) {
@@ -247,66 +251,102 @@ void iss_model::wb_retire_alu(decoder_out &dec) {
   }
 }
 
-void iss_model::csr(decoder_out &dec) {
-  switch (std::get<csr_type>(dec.op)) {
+void iss_model::csr(op &dec) {
+  switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
   case RW: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, regfile.read(dec.rs1));
+    uint32_t tmp = csrh.read(dec.imm);
+    csrh.write(dec.imm, regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
   case RS: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp | regfile.read(dec.rs1));
+    uint32_t tmp = csrh.read(dec.imm);
+    csrh.write(dec.imm, tmp | regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
   case RC: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp & (!regfile.read(dec.rs1)));
+    uint32_t tmp = csrh.read(dec.imm);
+    csrh.write(dec.imm, tmp & (!regfile.read(dec.rs1)));
     regfile.write(dec.rd, tmp);
   } break;
 
   case RWI: {
-    regfile.write(dec.rd, read_csr(dec.imm));
-    write_csr(dec.imm, dec.rs1);
+    regfile.write(dec.rd, csrh.read(dec.imm));
+    csrh.write(dec.imm, dec.rs1);
   } break;
 
   case RSI: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, dec.rs1 | tmp);
+    uint32_t tmp = csrh.read(dec.imm);
+    csrh.write(dec.imm, dec.rs1 | tmp);
     regfile.write(dec.rd, tmp);
 
   } break;
 
   case RCI: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, (!dec.rs1) & tmp);
+    uint32_t tmp = csrh.read(dec.imm);
+    csrh.write(dec.imm, (!dec.rs1) & tmp);
     regfile.write(dec.rd, tmp);
   } break;
   }
 }
 
-bool is_unimplemented_csr(uint16_t addr) {
-  return addr >= 0x7A0 && addr <= 0x7BF;
+void iss_model::handle_mret() {
+  /*
+   * y <- MPP
+   * MIE <- MPIE
+   * mode <- y
+   * MPIE <- 1
+   * MPP <- U (if impl.), M
+   */
+  uint32_t stat = csrh.read(csr::mstatus);
+  uint8_t  y    = offset<11u, 12u>(stat);
+  uint8_t  mpie = offset<7u, 7u>(stat);
+  stat          = stat & (0xFFFFFF8 | ((mpie) << 3)); // make sure its 3
+  csrh.mode     = static_cast<csr_handler::priv>(y);  // recheck
+  stat          = stat | (1 << 7);
+  // might add user mode later
+  stat = stat & (0xFFFFE7FF | (csr_handler::priv::machine << 11));
+  csrh.write(csr::mstatus, stat);
+  PC = csrh.read(csr::mepc);
 }
 
-void iss_model::write_csr(uint32_t addr, uint32_t v) {
-  uint8_t priv = offset<8u, 11u>(addr);
-  if (is_unimplemented_csr(addr) || ((priv & 0xC) == 0xC) ||
-      (priv & 0x3) > mode) {
-    // TODO: Impl. trap
-    return;
-  }
-  csrs[addr] = v;
+void iss_model::handle_sret() {
+  /*
+   * y <- SPP
+   * SIE <- SPIE
+   * mode <- y
+   * SPIE <- 1
+   * SPP <- U (if impl.), M
+   */
+  uint32_t stat = csrh.read(csr::sstatus);
+  uint8_t  y    = offset<8u, 8u>(stat);
+  uint8_t  spie = offset<5u, 5u>(stat);
+
+  stat = stat & (0xFFFFFFC | ((spie) << 1));
+
+  csrh.mode = static_cast<csr_handler::priv>(y); // recheck
+
+  stat = stat | (1 << 5);
+
+  // might add user mode later
+  stat = stat & (0xFFFFFEFF | csr_handler::priv::machine); // spp [8:8]
+
+  csrh.write(csr::sstatus, stat);
+  PC = csrh.read(csr::sepc);
 }
 
-uint32_t iss_model::read_csr(uint32_t addr) {
-  if (offset<8u, 9u>(addr) > mode || is_unimplemented_csr(addr)) {
-    // TODO: Impl. trap
-    return 0x0;
+void iss_model::tret(op &op) {
+  switch (std::get<trap_ret_type>(op.opt)) {
+    using enum trap_ret_type;
+  case Machine:
+    handle_mret();
+    break;
+  case Supervisor:
+    handle_sret();
+    break;
+  case User:
+    break;
   }
-
-  return csrs[addr];
 }

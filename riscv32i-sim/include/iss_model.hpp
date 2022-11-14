@@ -1,5 +1,6 @@
 #pragma once
 
+#include "csr_handler.hpp"
 #include "decoder.hpp"
 #include "sparse_memory.hpp"
 
@@ -16,26 +17,25 @@ class iss_model {
     std::array<uint32_t, 32> x{};
   };
 
-  enum priv_level { user = 0, supervisor, reserved, machine };
-
-  priv_level mode = machine;
-
   reg_file      regfile{};
   sparse_memory mem{};
 
-  uint32_t alu_out;
-  uint32_t mem_out;
+  csr_handler csrh{};
 
-  uint32_t csrs[4096];
+  uint32_t alu_out{};
+  uint32_t mem_out{};
 
-  void exec(decoder_out &dec);
-  void exec_alu(decoder_out &dec);
-  void exec_alu_branch(decoder_out &dec);
-  void mem_phase(decoder_out &dec);
-  void wb_retire_phase(decoder_out &dec);
-  void wb_retire_ls(decoder_out &dec);
-  void wb_retire_alu(decoder_out &dec);
-  void csr(decoder_out &dec);
+  void exec(op &dec);
+  void exec_alu(op &dec);
+  void exec_alu_branch(op &dec);
+  void mem_phase(op &dec);
+  void wb_retire_phase(op &dec);
+  void wb_retire_ls(op &dec);
+  void wb_retire_alu(op &dec);
+  void csr(op &dec);
+  void tret(op &dec);
+  void handle_mret();
+  void handle_sret();
 
   enum class interrupt_cause {
     SW_U    = 0x0,
@@ -68,7 +68,7 @@ class iss_model {
 
   bool terminate = false;
 
-  uint32_t tohost_addr;
+  uint32_t tohost_addr{};
   uint32_t PC{0};
 
   void load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
@@ -78,9 +78,5 @@ class iss_model {
 public:
   bool done() const { return terminate; }
   void step();
-
-  void     write_csr(uint32_t addr, uint32_t v);
-  uint32_t read_csr(uint32_t addr);
-
   friend class loader;
 };
