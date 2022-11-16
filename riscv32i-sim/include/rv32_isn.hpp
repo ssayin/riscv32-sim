@@ -467,4 +467,4 @@ RV32_TRAP_ENV_INST(sret, OtherSys::TrapReturn, 0x8)
 RV32_TRAP_ENV_INST(mret, OtherSys::TrapReturn, 0x24)
 RV32_TRAP_ENV_INST(wfi, OtherSys::InterruptManagement, 0x8)
 
-#undef RV32_TRAP_ECALL_INST
+#undef RV32_TRAP_ENV_INST
