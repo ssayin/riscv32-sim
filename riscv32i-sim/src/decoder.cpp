@@ -5,407 +5,287 @@
 static op decode_load(uint32_t word);
 static op decode_store(uint32_t word);
 static op decode_branch(uint32_t word);
-static op decode_immediate(uint32_t word);
+static op decode_reg_imm(uint32_t word);
 static op decode_alu(uint32_t word);
-static op decode_csrenv(uint32_t word);
+static op decode_sys(uint32_t word);
 static op decode_fence(uint32_t word);
 
 static op decode_sys_other(uint32_t word);
 static op decode_trap_return(uint32_t word);
 static op decode_interrupt_management(uint32_t word);
 
+#define FUNCT7 offset<25u, 31u>(word)
+
 op decode(uint32_t word) {
-  switch (static_cast<OpCode>(offset<0u, 6u>(word))) {
-    using enum OpCode;
-  case AUIPC: {
+  switch (static_cast<opcode>(offset<0u, 6u>(word))) {
+    using enum opcode;
+  case auipc: {
     rv32_auipc isn{word};
-    return {true, isn.rd, 0, 0, alu_type::AUIPC, pipeline_type::ALU, isn.imm};
+    return {true, isn.rd, 0, 0, alu_type::AUIPC, pipeline_target::alu, isn.imm};
   }
-  case LUI: {
+  case lui: {
     rv32_lui isn{word};
-    return {true, isn.rd, 0, 0, alu_type::ADD, pipeline_type::ALU, isn.imm};
+    return {true, isn.rd, 0, 0, alu_type::_add, pipeline_target::alu, isn.imm};
   }
-  case JAL: {
+  case jal: {
     rv32_jal isn{word};
-    return {true, isn.rd, 0, 0, alu_type::JAL, pipeline_type::ALU, isn.imm};
+    return {true, isn.rd, 0, 0, alu_type::JAL, pipeline_target::alu, isn.imm};
   }
-  case JALR: {
+  case jalr: {
     rv32_jalr isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::JALR, pipeline_type::ALU,
+    return {true,   isn.rd, isn.rs, 0, alu_type::JALR, pipeline_target::alu,
             isn.imm};
   }
-  case Load:
+  case load:
     return decode_load(word);
-  case Store:
+  case store:
     return decode_store(word);
-  case Branch:
+  case branch:
     return decode_branch(word);
-  case Immediate:
-    return decode_immediate(word);
-  case ALU:
+  case reg_imm:
+    return decode_reg_imm(word);
+  case reg_reg:
     return decode_alu(word);
-  case Csr_Env:
-    return decode_csrenv(word);
-  case Fence:
+  case sys:
+    return decode_sys(word);
+  case misc_mem:
     return decode_fence(word);
   default:
     throw std::runtime_error("unknown instruction type");
   }
 }
 
+#define RV32_LOAD(name)                                                        \
+  case load::name: {                                                           \
+    rv32_##name isn{word};                                                     \
+    return {true,   isn.rd, isn.rs, 0, mem_type::name, pipeline_target::mem,   \
+            isn.imm};                                                          \
+  }
+
 static op decode_load(uint32_t word) {
-  switch (static_cast<Load>(offset<12u, 14u>(word))) {
-    using enum Load;
-  case LB: {
-    rv32_lb isn{word};
-    return {true, isn.rd, isn.rs, 0, ls_type::LB, pipeline_type::LS, isn.imm};
-  }
-  case LH: {
-    rv32_lh isn{word};
-    return {true, isn.rd, isn.rs, 0, ls_type::LH, pipeline_type::LS, isn.imm};
-  }
-  case LW: {
-    rv32_lw isn{word};
-    return {true, isn.rd, isn.rs, 0, ls_type::LW, pipeline_type::LS, isn.imm};
-  }
-  case LBU: {
-    rv32_lbu isn{word};
-    return {true, isn.rd, isn.rs, 0, ls_type::LBU, pipeline_type::LS, isn.imm};
-  }
-  case LHU: {
-    rv32_lhu isn{word};
-    return {true, isn.rd, isn.rs, 0, ls_type::LHU, pipeline_type::LS, isn.imm};
-  }
+  switch (static_cast<load>(offset<12u, 14u>(word))) {
+    RV32_LOAD(lb)
+    RV32_LOAD(lh)
+    RV32_LOAD(lw)
+    RV32_LOAD(lbu)
+    RV32_LOAD(lhu)
   }
 }
+
+#undef RV32_LOAD
+
+#define RV32_STORE(name)                                                       \
+  case store::name: {                                                          \
+    rv32_##name isn{word};                                                     \
+    return {true,   0, isn.rs1, isn.rs2, mem_type::name, pipeline_target::mem, \
+            isn.imm};                                                          \
+  }
 
 op decode_store(uint32_t word) {
-  switch (static_cast<Store>(offset<12u, 14u>(word))) {
-    using enum Store;
-  case SB: {
-    rv32_sb isn{word};
-    return {true, 0, isn.rs1, isn.rs2, ls_type::SB, pipeline_type::LS, isn.imm};
-  }
-  case SH: {
-    rv32_sh isn{word};
-    return {true, 0, isn.rs1, isn.rs2, ls_type::SH, pipeline_type::LS, isn.imm};
-  }
-  case SW: {
-    rv32_sw isn{word};
-    return {true, 0, isn.rs1, isn.rs2, ls_type::SW, pipeline_type::LS, isn.imm};
-  }
+  switch (static_cast<store>(offset<12u, 14u>(word))) {
+    RV32_STORE(sb)
+    RV32_STORE(sh)
+    RV32_STORE(sw)
   }
 }
 
+#undef RV32_STORE
+
+#define RV32_REG_REG(name, funct7)                                             \
+  case funct7: {                                                               \
+    rv32_##name isn{word};                                                     \
+    return {false,                                                             \
+            isn.rd,                                                            \
+            isn.rs1,                                                           \
+            isn.rs2,                                                           \
+            alu_type::_##name,                                                 \
+            pipeline_target::alu,                                              \
+            0};                                                                \
+  }
+
 static op decode_alu_and_remu(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_and isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::AND, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_remu isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::REMU, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(and, 0x0)
+    RV32_REG_REG(remu, 0x1)
   }
 }
 
 static op decode_alu_or_rem(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_or isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::OR, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_rem isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::REM, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(or, 0x0)
+    RV32_REG_REG(rem, 0x1)
   }
 }
 
 static op decode_alu_xor_div(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_xor isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::XOR, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_div isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::DIV, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(xor, 0x0)
+    RV32_REG_REG(div, 0x1)
   }
 }
 
 static op decode_alu_add_sub_mul(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_add isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::ADD, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_mul isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::MUL, pipeline_type::ALU,
-            0};
-  }
-
-  case 0x20: {
-    rv32_sub isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SUB, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(add, 0x0)
+    RV32_REG_REG(mul, 0x1)
+    RV32_REG_REG(sub, 0x20)
   }
 }
 
 static op decode_alu_sll_mulh(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_sll isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SLL, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_mulh isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::MULH, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(sll, 0x0)
+    RV32_REG_REG(mulh, 0x1)
   }
 }
 
 static op decode_alu_srl_sra_divu(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_srl isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SRL, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_divu isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::DIVU, pipeline_type::ALU,
-            0};
-  }
-  case 0x20: {
-    rv32_sra isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SRA, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(srl, 0x0)
+    RV32_REG_REG(divu, 0x1)
+    RV32_REG_REG(sra, 0x20)
   }
 }
 
 static op decode_alu_slt_mulhsu(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_slt isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SLT, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_mulhsu isn{word};
-    return {false,   isn.rd,           isn.rs1,
-            isn.rs2, alu_type::MULHSU, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(slt, 0x0)
+    RV32_REG_REG(mulhsu, 0x1)
   }
 }
 
 static op decode_alu_sltu_mulhu(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
-  case 0x0: {
-    rv32_sltu isn{word};
-    return {false, isn.rd, isn.rs1, isn.rs2, alu_type::SLTU, pipeline_type::ALU,
-            0};
-  }
-  case 0x1: {
-    rv32_mulhu isn{word};
-    return {false,   isn.rd,          isn.rs1,
-            isn.rs2, alu_type::MULHU, pipeline_type::ALU,
-            0};
-  }
+  switch (FUNCT7) {
+    RV32_REG_REG(sltu, 0x0)
+    RV32_REG_REG(mulhu, 0x1)
   }
 }
 
+#undef RV32_REG_REG
+
 static op decode_alu(uint32_t word) {
-  switch (static_cast<ALU>(offset<12u, 14u>(word))) {
-    using enum ALU;
-  case AND_REMU:
+  switch (static_cast<reg_reg>(offset<12u, 14u>(word))) {
+    using enum reg_reg;
+  case and_remu:
     return decode_alu_and_remu(word);
-  case OR_REM:
+  case or_rem:
     return decode_alu_or_rem(word);
-  case XOR_DIV:
+  case xor_div:
     return decode_alu_xor_div(word);
-  case ADD_SUB_MUL:
+  case add_sub_mul:
     return decode_alu_add_sub_mul(word);
-  case SLL_MULH:
+  case sll_mulh:
     return decode_alu_sll_mulh(word);
-  case SRL_SRA_DIVU:
+  case srl_sra_divu:
     return decode_alu_srl_sra_divu(word);
-  case SLT_MULHSU:
+  case slt_mulhsu:
     return decode_alu_slt_mulhsu(word);
-  case SLTU_MULHU:
+  case sltu_mulhu:
     return decode_alu_sltu_mulhu(word);
   }
 }
 
-static op decode_immediate(uint32_t word) {
-  switch (static_cast<Immediate>(offset<12u, 14u>(word))) {
-    using enum Immediate;
-  case ADDI: {
-    rv32_addi isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::ADD, pipeline_type::ALU,
-            isn.imm};
-  }
-  case SLTI: {
-    rv32_slti isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::SLT, pipeline_type::ALU,
-            isn.imm};
+#define RV32_REG_IMM(name)                                                     \
+  case name##i: {                                                              \
+    rv32_##name##i isn{word};                                                  \
+    return {                                                                   \
+        true,   isn.rd, isn.rs, 0, alu_type::_##name, pipeline_target::alu,    \
+        isn.imm};                                                              \
   }
 
-  case SLTIU: {
+static op decode_reg_imm(uint32_t word) {
+  constexpr int srli = 0x0;
+  constexpr int srai = 0x20;
+  switch (static_cast<reg_imm>(offset<12u, 14u>(word))) {
+    using enum reg_imm;
+    RV32_REG_IMM(add)
+    RV32_REG_IMM(slt)
+    RV32_REG_IMM(xor)
+    RV32_REG_IMM(or)
+    RV32_REG_IMM(and)
+    RV32_REG_IMM(sll)
+
+  case srli_srai:
+    switch (FUNCT7) {
+      RV32_REG_IMM(srl)
+      RV32_REG_IMM(sra)
+    }
+
+  case sltiu: {
     rv32_sltiu isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::SLTU, pipeline_type::ALU,
-            isn.imm};
-  }
-
-  case XORI: {
-    rv32_xori isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::XOR, pipeline_type::ALU,
-            isn.imm};
-  }
-
-  case ORI: {
-    rv32_ori isn{word};
-    return {true, isn.rd, isn.rs, 0, alu_type::OR, pipeline_type::ALU, isn.imm};
-  }
-
-  case ANDI: {
-    rv32_andi isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::AND, pipeline_type::ALU,
-            isn.imm};
-  }
-
-  case SRLI_SRAI:
-    switch (offset<25u, 31u>(word)) {
-    case 0x0: {
-      rv32_srli isn{word};
-      return {true,   isn.rd, isn.rs, 0, alu_type::SRL, pipeline_type::ALU,
-              isn.imm};
-    }
-    case 0x20: {
-      rv32_srai isn{word};
-      return {true,   isn.rd, isn.rs, 0, alu_type::SRA, pipeline_type::ALU,
-              isn.imm};
-    }
-    }
-
-  case SLLI: {
-    rv32_slli isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::SLL, pipeline_type::ALU,
+    return {true,   isn.rd, isn.rs, 0, alu_type::_sltu, pipeline_target::alu,
             isn.imm};
   }
   }
 }
+
+#undef RV32_REG_IMM
+
+#define RV32_BRANCH(name)                                                      \
+  case branch::name: {                                                         \
+    rv32_##name isn{word};                                                     \
+    return {true,                                                              \
+            0,                                                                 \
+            isn.rs1,                                                           \
+            isn.rs2,                                                           \
+            branch_type::name,                                                 \
+            pipeline_target::branch,                                           \
+            isn.imm};                                                          \
+  }
 
 static op decode_branch(uint32_t word) {
-  switch (static_cast<Branch>(offset<12u, 14u>(word))) {
-    using enum Branch;
-  case BEQ: {
-    rv32_beq isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BEQ, pipeline_type::BRANCH,
-        isn.imm};
-  }
-  case BNE: {
-    rv32_bne isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BNE, pipeline_type::BRANCH,
-        isn.imm};
-  }
-  case BLT: {
-    rv32_blt isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BLT, pipeline_type::BRANCH,
-        isn.imm};
-  }
-  case BLTU: {
-    rv32_bltu isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BLTU, pipeline_type::BRANCH,
-        isn.imm};
-  }
-  case BGE: {
-    rv32_bge isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BGE, pipeline_type::BRANCH,
-        isn.imm};
-  }
-  case BGEU: {
-    rv32_bgeu isn{word};
-    return {
-        true,   0, isn.rs1, isn.rs2, branch_type::BGEU, pipeline_type::BRANCH,
-        isn.imm};
-  }
+  switch (static_cast<branch>(offset<12u, 14u>(word))) {
+    RV32_BRANCH(beq)
+    RV32_BRANCH(bne)
+    RV32_BRANCH(blt)
+    RV32_BRANCH(bltu)
+    RV32_BRANCH(bge)
+    RV32_BRANCH(bgeu)
   }
 }
 
+#undef RV32_BRANCH
+
 constexpr op make_NOP() {
-  return {true, 0, 0, 0, alu_type::ADD, pipeline_type::ALU, 0};
+  return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
 }
 
 static op decode_fence(uint32_t word) {
 
-  fmt::print("Fence opcodes are not implemented\n");
+  fmt::print("misc_mem opcodes are not implemented\n");
   return make_NOP();
 }
 
-static op decode_csrenv(uint32_t word) {
-  switch (static_cast<Csr_Env>(offset<12u, 14u>(word))) {
-    using enum Csr_Env;
-  case CSRRW: {
-    rv32_csrrw isn{word};
-    return {true, isn.rd, isn.rs, 0, csr_type::RW, pipeline_type::CSR, isn.csr};
+#define RV32_CSR(name)                                                         \
+  case sys::name: {                                                            \
+    rv32_##name isn{word};                                                     \
+    return {true,   isn.rd, isn.rs, 0, csr_type::name, pipeline_target::csr,   \
+            isn.csr};                                                          \
   }
-  case CSRRS: {
-    rv32_csrrs isn{word};
-    return {true, isn.rd, isn.rs, 0, csr_type::RS, pipeline_type::CSR, isn.csr};
-  }
-  case CSRRC: {
-    rv32_csrrc isn{word};
-    return {true, isn.rd, isn.rs, 0, csr_type::RC, pipeline_type::CSR, isn.csr};
-  }
-  case CSRRWI: {
-    rv32_csrrwi isn{word};
-    return {true,   isn.rd, isn.rs, 0, csr_type::RWI, pipeline_type::CSR,
-            isn.csr};
-  }
-  case CSRRSI: {
-    rv32_csrrsi isn{word};
-    return {true,   isn.rd, isn.rs, 0, csr_type::RSI, pipeline_type::CSR,
-            isn.csr};
-  }
-  case CSRRCI: {
-    rv32_csrrci isn{word};
-    return {true,   isn.rd, isn.rs, 0, csr_type::RCI, pipeline_type::CSR,
-            isn.csr};
-  }
-  case OTHER:
+
+static op decode_sys(uint32_t word) {
+  switch (static_cast<sys>(offset<12u, 14u>(word))) {
+    RV32_CSR(csrrw)
+    RV32_CSR(csrrs)
+    RV32_CSR(csrrc)
+    RV32_CSR(csrrwi)
+    RV32_CSR(csrrsi)
+    RV32_CSR(csrrci)
+  case sys::other:
     return decode_sys_other(word);
   }
 }
 
+#undef RV32_CSR
+
 static op decode_sys_other(uint32_t word) {
-  switch (static_cast<OtherSys>(offset<20u, 24u>(word))) {
-  case OtherSys::ECALL:
-  case OtherSys::EBREAK:
+  switch (static_cast<other_sys>(offset<20u, 24u>(word))) {
+  case other_sys::ecall:
+  case other_sys::ebreak:
     return make_NOP();
-  case OtherSys::TrapReturn:
+  case other_sys::trap_ret:
     return decode_trap_return(word);
-  case OtherSys::InterruptManagement:
+  case other_sys::interrupt_management:
     return decode_interrupt_management(word);
   }
 }
@@ -421,8 +301,9 @@ static op decode_trap_return(uint32_t word) {
   switch (offset<25u, 31u>(word)) {
   case 0x0: {
     rv32_uret isn{word};
-    return {false, isn.rd, isn.rs1, 0, trap_ret_type::User, pipeline_type::TRET,
-            0};
+    return {
+        false, isn.rd, isn.rs1, 0, trap_ret_type::user, pipeline_target::tret,
+        0};
   }
   case 0x8: {
     rv32_sret isn{word};
@@ -430,15 +311,19 @@ static op decode_trap_return(uint32_t word) {
             isn.rd,
             isn.rs1,
             0,
-            trap_ret_type::Supervisor,
-            pipeline_type::TRET,
+            trap_ret_type::supervisor,
+            pipeline_target::tret,
             0};
   }
   case 0x24: {
     rv32_mret isn{word};
-    return {
-        false, isn.rd, isn.rs1, 0, trap_ret_type::Machine, pipeline_type::TRET,
-        0};
+    return {false,
+            isn.rd,
+            isn.rs1,
+            0,
+            trap_ret_type::machine,
+            pipeline_target::tret,
+            0};
   }
   default:
     return make_NOP();

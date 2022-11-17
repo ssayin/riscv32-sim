@@ -6,92 +6,92 @@
 #include <type_traits>
 #include <utility>
 
-enum class OpCode : uint32_t {
-  Branch    = 0b1100011,
-  Load      = 0b0000011,
-  Store     = 0b0100011,
-  Immediate = 0b0010011,
-  ALU       = 0b0110011,
-  Fence     = 0b0001111,
-  Csr_Env   = 0b1110011,
-  LUI       = 0b0110111, // U-type
-  AUIPC     = 0b0010111, // U-type
-  JAL       = 0b1101111, // J-type
-  JALR      = 0b1100111, // I-type
+enum class opcode : uint8_t {
+  branch    = 0b1100011,
+  load      = 0b0000011,
+  store     = 0b0100011,
+  reg_imm = 0b0010011,
+  reg_reg = 0b0110011,
+  misc_mem = 0b0001111,
+  sys       = 0b1110011,
+  lui       = 0b0110111,
+  auipc     = 0b0010111,
+  jal       = 0b1101111,
+  jalr      = 0b1100111,
 };
 
 // B-Type
-enum class Branch : uint32_t {
-  BEQ  = 0b000,
-  BNE  = 0b001,
-  BLT  = 0b100,
-  BGE  = 0b101,
-  BLTU = 0b110,
-  BGEU = 0b111
+enum class branch : uint8_t {
+  beq  = 0b000,
+  bne  = 0b001,
+  blt  = 0b100,
+  bge  = 0b101,
+  bltu = 0b110,
+  bgeu = 0b111
 };
 
 // I-type
-enum class Load : uint32_t {
-  LB  = 0b000,
-  LH  = 0b001,
-  LW  = 0b010,
-  LBU = 0b100,
-  LHU = 0b101
+enum class load : uint8_t {
+  lb  = 0b000,
+  lh  = 0b001,
+  lw  = 0b010,
+  lbu = 0b100,
+  lhu = 0b101
 };
 
 // S-type
-enum class Store : uint32_t {
-  SB = 0b000,
-  SH = 0b001,
-  SW = 0b010,
+enum class store : uint8_t {
+  sb = 0b000,
+  sh = 0b001,
+  sw = 0b010,
 };
 
 // I-type
-enum class Immediate : uint32_t {
-  ADDI      = 0b000,
-  SLTI      = 0b010,
-  SLTIU     = 0b011,
-  XORI      = 0b100,
-  ORI       = 0b110,
-  ANDI      = 0b111,
-  SLLI      = 0b001,
-  SRLI_SRAI = 0b101,
+enum class reg_imm : uint8_t {
+  addi      = 0b000,
+  slti      = 0b010,
+  sltiu     = 0b011,
+  xori      = 0b100,
+  ori       = 0b110,
+  andi      = 0b111,
+  slli      = 0b001,
+  srli_srai = 0b101,
 };
 
 // R-type
-enum class ALU : uint32_t {
-  ADD_SUB_MUL  = 0b000,
-  SLL_MULH     = 0b001,
-  SLT_MULHSU   = 0b010,
-  SLTU_MULHU   = 0b011,
-  XOR_DIV      = 0b100,
-  SRL_SRA_DIVU = 0b101,
-  OR_REM       = 0b110,
-  AND_REMU     = 0b111,
+enum class reg_reg : uint8_t {
+  add_sub_mul  = 0b000,
+  sll_mulh     = 0b001,
+  slt_mulhsu   = 0b010,
+  sltu_mulhu   = 0b011,
+  xor_div      = 0b100,
+  srl_sra_divu = 0b101,
+  or_rem       = 0b110,
+  and_remu     = 0b111,
 };
 
 // I-type
-enum class Fence : uint32_t {
-  FENCE  = 0b000,
-  FENCEI = 0b001,
+enum class misc_mem : uint8_t {
+  fence  = 0b000,
+  fencei = 0b001,
 };
 
 // I-type
-enum class Csr_Env : uint32_t {
-  OTHER  = 0b000,
-  CSRRW  = 0b001,
-  CSRRS  = 0b010,
-  CSRRC  = 0b011,
-  CSRRWI = 0b101,
-  CSRRSI = 0b110,
-  CSRRCI = 0b111,
+enum class sys : uint8_t {
+  other  = 0b000,
+  csrrw  = 0b001,
+  csrrs  = 0b010,
+  csrrc  = 0b011,
+  csrrwi = 0b101,
+  csrrsi = 0b110,
+  csrrci = 0b111,
 };
 
-enum class OtherSys : uint8_t {
-  ECALL               = 0x0,
-  EBREAK              = 0x1,
-  TrapReturn          = 0x2,
-  InterruptManagement = 0x5
+enum class other_sys : uint8_t {
+  ecall               = 0x0,
+  ebreak              = 0x1,
+  trap_ret            = 0x2,
+  interrupt_management = 0x5
 };
 
 template <typename T>
@@ -138,7 +138,7 @@ constexpr uint8_t unpack_rs2(uint32_t word) { return offset<20u, 24u>(word); }
 constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
                             uint8_t rs1, uint8_t rs2) {
   return rd << 7 | funct3 << 12 | rs1 << 15 | rs2 << 20 | funct7 << 25 |
-         to_int(OpCode::ALU);
+         to_int(opcode::reg_reg);
 }
 
 constexpr uint32_t unpack_imm_i(uint32_t word) {
@@ -147,7 +147,7 @@ constexpr uint32_t unpack_imm_i(uint32_t word) {
 }
 
 constexpr uint32_t pack_i_op(uint8_t funct3, uint8_t rd, uint8_t rs,
-                             uint32_t imm, OpCode opc) {
+                             uint32_t imm, opcode opc) {
   return rd << 7 | funct3 << 12 | rs << 15 | imm << 20 | to_int(opc);
 }
 
@@ -174,7 +174,7 @@ constexpr uint32_t pack_branch_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
                                   uint32_t imm) {
   return offset<11u, 11u>(imm) << 7 | offset<1u, 4u>(imm) << 8 | funct3 << 12 |
          rs1 << 15 | rs2 << 20 | offset<5u, 11u>(imm) << 25 |
-         offset<12u, 12u>(imm) << 31 | to_int(OpCode::Branch);
+         offset<12u, 12u>(imm) << 31 | to_int(opcode::branch);
 }
 
 constexpr uint32_t unpack_imm_b(uint32_t word) {
@@ -185,7 +185,7 @@ constexpr uint32_t unpack_imm_b(uint32_t word) {
 constexpr uint32_t pack_store_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
                                  uint32_t imm) {
   return offset<0u, 4u>(imm) << 7 | funct3 << 12 | rs1 << 15 | rs2 << 20 |
-         offset<5u, 11u>(imm) << 25 | to_int(OpCode::Store);
+         offset<5u, 11u>(imm) << 25 | to_int(opcode::store);
 };
 
 constexpr uint32_t unpack_imm_s(uint32_t word) {
@@ -200,7 +200,7 @@ struct rv32_isn {
   virtual ~rv32_isn()                    = default;
 };
 
-#define RV32_ALU_INST(name, funct3, funct7)                                    \
+#define RV32_REG_REG_INST(name, funct3, funct7)                                    \
   struct rv32_##name : public rv32_isn {                                       \
     uint8_t rd;                                                                \
     uint8_t rs1;                                                               \
@@ -217,29 +217,29 @@ struct rv32_isn {
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_ALU_INST(sll, ALU::SLL_MULH, 0x0)
-RV32_ALU_INST(srl, ALU::SRL_SRA_DIVU, 0x0)
-RV32_ALU_INST(sra, ALU::SRL_SRA_DIVU, 0x20)
-RV32_ALU_INST(add, ALU::ADD_SUB_MUL, 0x0)
-RV32_ALU_INST(sub, ALU::ADD_SUB_MUL, 0x20)
-RV32_ALU_INST(slt, ALU::SLT_MULHSU, 0x0)
-RV32_ALU_INST(sltu, ALU::SLTU_MULHU, 0x0)
-RV32_ALU_INST(xor, ALU::XOR_DIV, 0x0)
-RV32_ALU_INST(or, ALU::OR_REM, 0x0)
-RV32_ALU_INST(and, ALU::AND_REMU, 0x0)
+RV32_REG_REG_INST(sll, reg_reg::sll_mulh, 0x0)
+RV32_REG_REG_INST(srl, reg_reg::srl_sra_divu, 0x0)
+RV32_REG_REG_INST(sra, reg_reg::srl_sra_divu, 0x20)
+RV32_REG_REG_INST(add, reg_reg::add_sub_mul, 0x0)
+RV32_REG_REG_INST(sub, reg_reg::add_sub_mul, 0x20)
+RV32_REG_REG_INST(slt, reg_reg::slt_mulhsu, 0x0)
+RV32_REG_REG_INST(sltu, reg_reg::sltu_mulhu, 0x0)
+RV32_REG_REG_INST(xor, reg_reg::xor_div, 0x0)
+RV32_REG_REG_INST(or, reg_reg::or_rem, 0x0)
+RV32_REG_REG_INST(and, reg_reg::and_remu, 0x0)
 
-RV32_ALU_INST(mulh, ALU::SLL_MULH, 0x1)
-RV32_ALU_INST(divu, ALU::SRL_SRA_DIVU, 0x1)
-RV32_ALU_INST(mul, ALU::ADD_SUB_MUL, 0x1)
-RV32_ALU_INST(mulhsu, ALU::SLT_MULHSU, 0x1)
-RV32_ALU_INST(mulhu, ALU::SLTU_MULHU, 0x1)
-RV32_ALU_INST(div, ALU::XOR_DIV, 0x1)
-RV32_ALU_INST(rem, ALU::OR_REM, 0x1)
-RV32_ALU_INST(remu, ALU::AND_REMU, 0x1)
+RV32_REG_REG_INST(mulh, reg_reg::sll_mulh, 0x1)
+RV32_REG_REG_INST(divu, reg_reg::srl_sra_divu, 0x1)
+RV32_REG_REG_INST(mul, reg_reg::add_sub_mul, 0x1)
+RV32_REG_REG_INST(mulhsu, reg_reg::slt_mulhsu, 0x1)
+RV32_REG_REG_INST(mulhu, reg_reg::sltu_mulhu, 0x1)
+RV32_REG_REG_INST(div, reg_reg::xor_div, 0x1)
+RV32_REG_REG_INST(rem, reg_reg::or_rem, 0x1)
+RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
 
-#undef RV32_ALU_INST
+#undef RV32_REG_REG_INST
 
-#define RV32_ALU_IMM_INST(name, funct3, opc)                                   \
+#define RV32_REG_IMM_INST(name, funct3, opc)                                   \
   struct rv32_##name : public rv32_isn {                                       \
     uint8_t  rd;                                                               \
     uint8_t  rs;                                                               \
@@ -256,22 +256,22 @@ RV32_ALU_INST(remu, ALU::AND_REMU, 0x1)
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_ALU_IMM_INST(addi, Immediate::ADDI, OpCode::Immediate)
-RV32_ALU_IMM_INST(xori, Immediate::XORI, OpCode::Immediate)
-RV32_ALU_IMM_INST(ori, Immediate::ORI, OpCode::Immediate)
-RV32_ALU_IMM_INST(andi, Immediate::ANDI, OpCode::Immediate)
-RV32_ALU_IMM_INST(slti, Immediate::SLTI, OpCode::Immediate)
-RV32_ALU_IMM_INST(sltiu, Immediate::SLTIU, OpCode::Immediate)
+RV32_REG_IMM_INST(addi, reg_imm::addi, opcode::reg_imm)
+RV32_REG_IMM_INST(xori, reg_imm::xori, opcode::reg_imm)
+RV32_REG_IMM_INST(ori, reg_imm::ori, opcode::reg_imm)
+RV32_REG_IMM_INST(andi, reg_imm::andi, opcode::reg_imm)
+RV32_REG_IMM_INST(slti, reg_imm::slti, opcode::reg_imm)
+RV32_REG_IMM_INST(sltiu, reg_imm::sltiu, opcode::reg_imm)
 
-RV32_ALU_IMM_INST(lb, Load::LB, OpCode::Load)
-RV32_ALU_IMM_INST(lh, Load::LH, OpCode::Load)
-RV32_ALU_IMM_INST(lw, Load::LW, OpCode::Load)
-RV32_ALU_IMM_INST(lbu, Load::LBU, OpCode::Load)
-RV32_ALU_IMM_INST(lhu, Load::LHU, OpCode::Load)
+RV32_REG_IMM_INST(lb, load::lb, opcode::load)
+RV32_REG_IMM_INST(lh, load::lh, opcode::load)
+RV32_REG_IMM_INST(lw, load::lw, opcode::load)
+RV32_REG_IMM_INST(lbu, load::lbu, opcode::load)
+RV32_REG_IMM_INST(lhu, load::lhu, opcode::load)
 
-RV32_ALU_IMM_INST(jalr, 0b000, OpCode::JALR)
+RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
 
-#undef RV32_ALU_IMM_INST
+#undef RV32_REG_IMM_INST
 
 struct rv32_slli : public rv32_isn {
   uint8_t  rd;
@@ -284,8 +284,8 @@ struct rv32_slli : public rv32_isn {
     imm = unpack_rs2(word);
   }
   uint32_t pack() const final {
-    return pack_i_op(static_cast<uint8_t>(Immediate::SLLI), rd, rs, imm,
-                     OpCode::Immediate);
+    return pack_i_op(static_cast<uint8_t>(reg_imm::slli), rd, rs, imm,
+                     opcode::reg_imm);
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
@@ -301,8 +301,8 @@ struct rv32_srli : public rv32_isn {
     imm = unpack_rs2(word);
   }
   uint32_t pack() const final {
-    return pack_i_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs, imm,
-                     OpCode::Immediate);
+    return pack_i_op(static_cast<uint8_t>(reg_imm::srli_srai), rd, rs, imm,
+                     opcode::reg_imm);
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
@@ -318,8 +318,8 @@ struct rv32_srai : public rv32_isn {
     imm = unpack_rs2(word);
   }
   uint32_t pack() const final {
-    return pack_i_op(static_cast<uint8_t>(Immediate::SRLI_SRAI), rd, rs, imm,
-                     OpCode::Immediate) |
+    return pack_i_op(static_cast<uint8_t>(reg_imm::srli_srai), rd, rs, imm,
+                     opcode::reg_imm) |
            (0b0100000 << 25);
   }
   explicit(false) operator uint32_t() const { return pack(); }
@@ -334,7 +334,7 @@ struct rv32_lui : public rv32_isn {
     imm = unpack_imm_u(word);
   }
   uint32_t pack() const final {
-    return pack_imm_u(rd, imm, static_cast<uint8_t>(OpCode::LUI));
+    return pack_imm_u(rd, imm, static_cast<uint8_t>(opcode::lui));
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
@@ -348,7 +348,7 @@ struct rv32_auipc : public rv32_isn {
     imm = unpack_imm_u(word);
   }
   uint32_t pack() const final {
-    return pack_imm_u(rd, imm, static_cast<uint8_t>(OpCode::AUIPC));
+    return pack_imm_u(rd, imm, static_cast<uint8_t>(opcode::auipc));
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
@@ -362,7 +362,7 @@ struct rv32_jal : public rv32_isn {
     imm = unpack_imm_j(word);
   }
   uint32_t pack() const final {
-    return pack_jump_op(rd, imm, to_int(OpCode::JAL));
+    return pack_jump_op(rd, imm, to_int(opcode::jal));
   }
   explicit(false) operator uint32_t() const { return pack(); }
 };
@@ -384,9 +384,9 @@ struct rv32_jal : public rv32_isn {
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_STORE_INST(sb, Store::SB)
-RV32_STORE_INST(sh, Store::SH)
-RV32_STORE_INST(sw, Store::SW)
+RV32_STORE_INST(sb, store::sb)
+RV32_STORE_INST(sh, store::sh)
+RV32_STORE_INST(sw, store::sw)
 
 #undef RV32_STORE_INST
 
@@ -407,12 +407,12 @@ RV32_STORE_INST(sw, Store::SW)
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_BRANCH_INST(beq, Branch::BEQ)
-RV32_BRANCH_INST(bne, Branch::BNE)
-RV32_BRANCH_INST(blt, Branch::BLT)
-RV32_BRANCH_INST(bge, Branch::BGE)
-RV32_BRANCH_INST(bltu, Branch::BLTU)
-RV32_BRANCH_INST(bgeu, Branch::BGEU)
+RV32_BRANCH_INST(beq, branch::beq)
+RV32_BRANCH_INST(bne, branch::bne)
+RV32_BRANCH_INST(blt, branch::blt)
+RV32_BRANCH_INST(bge, branch::bge)
+RV32_BRANCH_INST(bltu, branch::bltu)
+RV32_BRANCH_INST(bgeu, branch::bgeu)
 
 #undef RV32_BRANCH_INST
 
@@ -429,17 +429,17 @@ RV32_BRANCH_INST(bgeu, Branch::BGEU)
     }                                                                          \
     uint32_t pack() const final {                                              \
       return rd << 7 | to_int(funct3) << 12 | rs << 15 | csr << 20 |           \
-             to_int(OpCode::Csr_Env);                                          \
+             to_int(opcode::sys);                                          \
     }                                                                          \
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_CSR_INST(csrrw, Csr_Env::CSRRW)
-RV32_CSR_INST(csrrs, Csr_Env::CSRRS)
-RV32_CSR_INST(csrrc, Csr_Env::CSRRC)
-RV32_CSR_INST(csrrwi, Csr_Env::CSRRWI)
-RV32_CSR_INST(csrrsi, Csr_Env::CSRRSI)
-RV32_CSR_INST(csrrci, Csr_Env::CSRRCI)
+RV32_CSR_INST(csrrw, sys::csrrw)
+RV32_CSR_INST(csrrs, sys::csrrs)
+RV32_CSR_INST(csrrc, sys::csrrc)
+RV32_CSR_INST(csrrwi, sys::csrrwi)
+RV32_CSR_INST(csrrsi, sys::csrrsi)
+RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
 
@@ -455,16 +455,16 @@ RV32_CSR_INST(csrrci, Csr_Env::CSRRCI)
     }                                                                          \
     uint32_t pack() const final {                                              \
       return rd << 7 | 0x0 << 12 | rs1 << 15 | to_int(rs2) << 20 |             \
-             funct7 << 25 | to_int(OpCode::Csr_Env);                           \
+             funct7 << 25 | to_int(opcode::sys);                           \
     }                                                                          \
     explicit(false) operator uint32_t() const { return pack(); }               \
   };
 
-RV32_TRAP_ENV_INST(ecall, OtherSys::ECALL, 0x0)
-RV32_TRAP_ENV_INST(ebreak, OtherSys::EBREAK, 0x0)
-RV32_TRAP_ENV_INST(uret, OtherSys::TrapReturn, 0x0)
-RV32_TRAP_ENV_INST(sret, OtherSys::TrapReturn, 0x8)
-RV32_TRAP_ENV_INST(mret, OtherSys::TrapReturn, 0x24)
-RV32_TRAP_ENV_INST(wfi, OtherSys::InterruptManagement, 0x8)
+RV32_TRAP_ENV_INST(ecall, other_sys::ecall, 0x0)
+RV32_TRAP_ENV_INST(ebreak, other_sys::ebreak, 0x0)
+RV32_TRAP_ENV_INST(uret, other_sys::trap_ret, 0x0)
+RV32_TRAP_ENV_INST(sret, other_sys::trap_ret, 0x8)
+RV32_TRAP_ENV_INST(mret, other_sys::trap_ret, 0x24)
+RV32_TRAP_ENV_INST(wfi, other_sys::interrupt_management, 0x8)
 
 #undef RV32_TRAP_ENV_INST

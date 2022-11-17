@@ -23,16 +23,16 @@ void iss_model::step() {
   exec(dec);
 
   switch (dec.target) {
-  case pipeline_type::LS:
+  case pipeline_target::mem:
     mem_phase(dec);
     break;
-  case pipeline_type::ALU:
-  case pipeline_type::BRANCH:
+  case pipeline_target::alu:
+  case pipeline_target::branch:
     break;
-  case pipeline_type::CSR:
+  case pipeline_target::csr:
     PC = PC + 4;
     return;
-  case pipeline_type::TRET:
+  case pipeline_target::tret:
     return;
   }
   wb_retire_phase(dec);
@@ -40,20 +40,19 @@ void iss_model::step() {
 
 void iss_model::exec(op &dec) {
   switch (dec.target) {
-    using enum pipeline_type;
-  case ALU:
+  case pipeline_target::alu:
     exec_alu(dec);
     break;
-  case LS:
+  case pipeline_target::mem:
     alu_out = regfile.read(dec.rs1) + dec.imm; /* mem addr for load/store */
     break;
-  case BRANCH:
+  case pipeline_target::branch:
     exec_alu_branch(dec);
     break;
-  case CSR:
+  case pipeline_target::csr:
     csr(dec);
     break;
-  case TRET:
+  case pipeline_target::tret:
     tret(dec);
     break;
   }
@@ -65,63 +64,63 @@ void iss_model::exec_alu(op &dec) {
 
   switch (std::get<alu_type>(dec.opt)) {
     using enum alu_type;
-  case OR:
+  case _or:
     alu_out = opd1 | opd2;
     break;
-  case AND:
+  case _and:
     alu_out = opd1 & opd2;
     break;
-  case XOR:
+  case _xor:
     alu_out = opd1 ^ opd2;
     break;
-  case ADD:
+  case _add:
     alu_out = opd1 + opd2;
     break;
-  case SUB:
+  case _sub:
     alu_out = opd1 - opd2;
     break;
-  case SLL:
+  case _sll:
     alu_out = opd1 << opd2;
     break;
-  case SRL:
+  case _srl:
     alu_out = opd1 >> opd2;
     break;
-  case SRA:
+  case _sra:
     alu_out = sign_extend(opd1, opd2);
     break;
-  case MUL:
+  case _mul:
     alu_out = offset<0u, 31u>(static_cast<uint64_t>(
         static_cast<int64_t>(opd1) * static_cast<int64_t>(opd2)));
     break;
-  case MULH:
+  case _mulh:
     alu_out = offset<32u, 61u>(static_cast<uint64_t>(
         static_cast<int64_t>(opd1) * static_cast<int64_t>(opd2)));
     break;
-  case MULHSU:
+  case _mulhsu:
     alu_out = offset<32u, 61u>(
         static_cast<uint64_t>(static_cast<int64_t>(opd1) * opd2));
     break;
-  case MULHU:
+  case _mulhu:
     alu_out = offset<32u, 61u>(static_cast<uint64_t>(opd1) * opd2);
     break;
-  case DIV:
+  case _div:
     alu_out = static_cast<uint32_t>(static_cast<int32_t>(opd1) /
                                     static_cast<int32_t>(opd2));
     break;
-  case DIVU:
+  case _divu:
     alu_out = opd1 / opd2;
     break;
-  case REM:
+  case _rem:
     alu_out = static_cast<uint32_t>(static_cast<int32_t>(opd1) %
                                     static_cast<int32_t>(opd2));
     break;
-  case REMU:
+  case _remu:
     alu_out = opd1 % opd2;
     break;
-  case SLT:
+  case _slt:
     alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
     break;
-  case SLTU:
+  case _sltu:
     alu_out = opd1 < opd2;
     break;
   case AUIPC:
@@ -140,22 +139,22 @@ void iss_model::exec_alu_branch(op &dec) {
 
   switch (std::get<branch_type>(dec.opt)) {
     using enum branch_type;
-  case BEQ:
+  case beq:
     alu_out = opd1 == opd2;
     break;
-  case BNE:
+  case bne:
     alu_out = opd1 != opd2;
     break;
-  case BLT:
+  case blt:
     alu_out = static_cast<int32_t>(opd1) < static_cast<int32_t>(opd2);
     break;
-  case BLTU:
+  case bltu:
     alu_out = opd1 < opd2;
     break;
-  case BGE:
+  case bge:
     alu_out = static_cast<int32_t>(opd1) >= static_cast<int32_t>(opd2);
     break;
-  case BGEU:
+  case bgeu:
     alu_out = opd1 >= opd2;
     break;
   }
@@ -166,34 +165,34 @@ uint32_t sign_extend(uint32_t in, uint8_t shamt) {
 }
 
 void iss_model::mem_phase(op &dec) {
-  if (dec.target != pipeline_type::LS)
+  if (dec.target != pipeline_target::mem)
     return;
   terminate = (alu_out == tohost_addr);
 
-  switch (std::get<ls_type>(dec.opt)) {
-    using enum ls_type;
-  case LB:
+  switch (std::get<mem_type>(dec.opt)) {
+    using enum mem_type;
+  case lb:
     mem_out = sign_extend(mem.read_byte(alu_out), 24);
     break;
-  case LH:
+  case lh:
     mem_out = sign_extend(mem.read_half(alu_out), 16);
     break;
-  case LW:
+  case lw:
     mem_out = mem.read_word(alu_out);
     break;
-  case LBU:
+  case lbu:
     mem_out = mem.read_byte(alu_out) << 24;
     break;
-  case LHU:
+  case lhu:
     mem_out = mem.read_half(alu_out) << 16;
     break;
-  case SB:
+  case sb:
     mem.write_byte(alu_out, regfile.read(dec.rs2));
     break;
-  case SH:
+  case sh:
     mem.write_half(alu_out, regfile.read(dec.rs2));
     break;
-  case SW:
+  case sw:
     mem.write_word(alu_out, regfile.read(dec.rs2));
     break;
   }
@@ -201,18 +200,17 @@ void iss_model::mem_phase(op &dec) {
 
 void iss_model::wb_retire_phase(op &dec) {
   switch (dec.target) {
-    using enum pipeline_type;
-  case LS:
+  case pipeline_target::mem:
     wb_retire_ls(dec);
     PC += 4;
     break;
-  case ALU:
+  case pipeline_target::alu:
     wb_retire_alu(dec);
     break;
-  case BRANCH:
+  case pipeline_target::branch:
     PC = PC + (alu_out ? dec.imm : 4);
     break;
-  case CSR: {
+  case pipeline_target::csr: {
     csr(dec);
     break;
   }
@@ -222,13 +220,13 @@ void iss_model::wb_retire_phase(op &dec) {
 }
 
 void iss_model::wb_retire_ls(op &dec) {
-  switch (std::get<ls_type>(dec.opt)) {
-    using enum ls_type;
-  case LB:
-  case LH:
-  case LW:
-  case LBU:
-  case LHU:
+  switch (std::get<mem_type>(dec.opt)) {
+    using enum mem_type;
+  case lb:
+  case lh:
+  case lw:
+  case lbu:
+  case lhu:
     regfile.write(dec.rd, mem_out);
     break;
   default:
@@ -254,37 +252,37 @@ void iss_model::wb_retire_alu(op &dec) {
 void iss_model::csr(op &dec) {
   switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
-  case RW: {
+  case csrrw: {
     uint32_t tmp = csrh.read(dec.imm);
     csrh.write(dec.imm, regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
-  case RS: {
+  case csrrs: {
     uint32_t tmp = csrh.read(dec.imm);
     csrh.write(dec.imm, tmp | regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
-  case RC: {
+  case csrrc: {
     uint32_t tmp = csrh.read(dec.imm);
     csrh.write(dec.imm, tmp & (!regfile.read(dec.rs1)));
     regfile.write(dec.rd, tmp);
   } break;
 
-  case RWI: {
+  case csrrwi: {
     regfile.write(dec.rd, csrh.read(dec.imm));
     csrh.write(dec.imm, dec.rs1);
   } break;
 
-  case RSI: {
+  case csrrsi: {
     uint32_t tmp = csrh.read(dec.imm);
     csrh.write(dec.imm, dec.rs1 | tmp);
     regfile.write(dec.rd, tmp);
 
   } break;
 
-  case RCI: {
+  case csrrci: {
     uint32_t tmp = csrh.read(dec.imm);
     csrh.write(dec.imm, (!dec.rs1) & tmp);
     regfile.write(dec.rd, tmp);
@@ -340,13 +338,13 @@ void iss_model::handle_sret() {
 void iss_model::tret(op &op) {
   switch (std::get<trap_ret_type>(op.opt)) {
     using enum trap_ret_type;
-  case Machine:
+  case machine:
     handle_mret();
     break;
-  case Supervisor:
+  case supervisor:
     handle_sret();
     break;
-  case User:
+  case user:
     break;
   }
 }
