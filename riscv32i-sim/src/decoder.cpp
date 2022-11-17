@@ -291,14 +291,14 @@ static op decode_sys_other(uint32_t word) {
 }
 
 static op decode_interrupt_management(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
+  switch (FUNCT7) {
   default:
     return make_NOP();
   }
 }
 
 static op decode_trap_return(uint32_t word) {
-  switch (offset<25u, 31u>(word)) {
+  switch (FUNCT7) {
   case 0x0: {
     rv32_uret isn{word};
     return {
