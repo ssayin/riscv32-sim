@@ -335,7 +335,6 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 
 RV32_TRAP_ENV_INST(ecall, other_sys::ecall, 0x0)
 RV32_TRAP_ENV_INST(ebreak, other_sys::ebreak, 0x0)
-RV32_TRAP_ENV_INST(uret, other_sys::trap_ret, 0x0)
 RV32_TRAP_ENV_INST(sret, other_sys::trap_ret, 0x8)
 RV32_TRAP_ENV_INST(mret, other_sys::trap_ret, 0x24)
 RV32_TRAP_ENV_INST(wfi, other_sys::interrupt_management, 0x8)

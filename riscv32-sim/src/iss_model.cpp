@@ -291,48 +291,11 @@ void iss_model::csr(op &dec) {
 }
 
 void iss_model::handle_mret() {
-  /*
-   * y <- MPP
-   * MIE <- MPIE
-   * mode <- y
-   * MPIE <- 1
-   * MPP <- U (if impl.), M
-   */
-  uint32_t stat = csrh.read(csr::mstatus);
-  uint8_t  y    = offset<11u, 12u>(stat);
-  uint8_t  mpie = offset<7u, 7u>(stat);
-  stat          = stat & (0xFFFFFF8 | ((mpie) << 3)); // make sure its 3
-  csrh.mode     = static_cast<csr_handler::priv>(y);  // recheck
-  stat          = stat | (1 << 7);
-  // might add user mode later
-  stat = stat & (0xFFFFE7FF | (csr_handler::priv::machine << 11));
-  csrh.write(csr::mstatus, stat);
-  PC = csrh.read(csr::mepc);
+
 }
 
 void iss_model::handle_sret() {
-  /*
-   * y <- SPP
-   * SIE <- SPIE
-   * mode <- y
-   * SPIE <- 1
-   * SPP <- U (if impl.), M
-   */
-  uint32_t stat = csrh.read(csr::sstatus);
-  uint8_t  y    = offset<8u, 8u>(stat);
-  uint8_t  spie = offset<5u, 5u>(stat);
 
-  stat = stat & (0xFFFFFFC | ((spie) << 1));
-
-  csrh.mode = static_cast<csr_handler::priv>(y); // recheck
-
-  stat = stat | (1 << 5);
-
-  // might add user mode later
-  stat = stat & (0xFFFFFEFF | csr_handler::priv::machine); // spp [8:8]
-
-  csrh.write(csr::sstatus, stat);
-  PC = csrh.read(csr::sepc);
 }
 
 void iss_model::tret(op &op) {

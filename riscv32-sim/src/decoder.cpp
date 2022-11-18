@@ -298,12 +298,6 @@ static op decode_interrupt_management(uint32_t word) {
 
 static op decode_trap_return(uint32_t word) {
   switch (FUNCT7) {
-  case 0x0: {
-    rv32_uret isn{word};
-    return {
-        false, isn.rd, isn.rs1, 0, trap_ret_type::user, pipeline_target::tret,
-        0};
-  }
   case 0x8: {
     rv32_sret isn{word};
     return {false,
