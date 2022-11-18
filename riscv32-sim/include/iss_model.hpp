@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RISCV32_SIM_ISS_MODEL_HPP
+#define RISCV32_SIM_ISS_MODEL_HPP
 
 #include "csr_handler.hpp"
 #include "decoder.hpp"
@@ -37,35 +38,6 @@ class iss_model {
   void handle_mret();
   void handle_sret();
 
-  enum class interrupt_cause {
-    SW_U    = 0x0,
-    SW_S    = 0x1,
-    SW_M    = 0x3,
-    Timer_U = 0x4,
-    Timer_S = 0x5,
-    Timer_M = 0x7,
-    Ext_U   = 0x8,
-    Ext_S   = 0x9,
-    Ext_M   = 0x11
-  };
-
-  enum class exception_cause {
-    InstAddrMisaligned  = 0x0,
-    InstAccFault        = 0x1,
-    IllegalInst         = 0x2,
-    Breakpoint          = 0x3,
-    LocalAddrMisaligned = 0x4,
-    LocalAccFault       = 0x5,
-    StoreAccMisaligned  = 0x6,
-    StoreAccFault       = 0x7,
-    ECALL_U             = 0x8,
-    ECALL_S             = 0x9,
-    ECALL_M             = 0x11,
-    InstPageFault       = 0x12,
-    LoadPageFault       = 0x13,
-    StorePageFault      = 0x15,
-  };
-
   bool terminate = false;
 
   uint32_t tohost_addr{};
@@ -80,3 +52,5 @@ public:
   void step();
   friend class loader;
 };
+
+#endif // RISCV32_SIM_ISS_MODEL_HPP

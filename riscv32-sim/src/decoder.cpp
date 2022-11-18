@@ -14,14 +14,13 @@ static op decode_sys_other(uint32_t word);
 static op decode_trap_return(uint32_t word);
 static op decode_interrupt_management(uint32_t word);
 
-#define FUNCT7 offset<25u, 31u>(word)
 
 op decode(uint32_t word) {
   switch (static_cast<opcode>(offset<0u, 6u>(word))) {
     using enum opcode;
   case auipc: {
     rv32_auipc isn{word};
-    return {true, isn.rd, 0, 0, alu_type::AUIPC, pipeline_target::alu, isn.imm};
+    return {true, isn.rd, 0, 0, alu_type::_auipc, pipeline_target::alu, isn.imm};
   }
   case lui: {
     rv32_lui isn{word};
@@ -29,11 +28,11 @@ op decode(uint32_t word) {
   }
   case jal: {
     rv32_jal isn{word};
-    return {true, isn.rd, 0, 0, alu_type::JAL, pipeline_target::alu, isn.imm};
+    return {true, isn.rd, 0, 0, alu_type::_jal, pipeline_target::alu, isn.imm};
   }
   case jalr: {
     rv32_jalr isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::JALR, pipeline_target::alu,
+    return {true,   isn.rd, isn.rs, 0, alu_type::_jalr, pipeline_target::alu,
             isn.imm};
   }
   case load:

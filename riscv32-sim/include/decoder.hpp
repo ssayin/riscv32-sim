@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RISCV32_SIM_DECODER_HPP
+#define RISCV32_SIM_DECODER_HPP
 
 #include <cstdint>
 #include <variant>
@@ -30,10 +31,9 @@ enum class alu_type : uint8_t {
   _divu,
   _rem,
   _remu,
-
-  AUIPC,
-  JAL,
-  JALR,
+  _auipc,
+  _jal,
+  _jalr,
 };
 
 enum class mem_type : uint8_t {
@@ -73,10 +73,10 @@ using op_type =
 struct op {
   uint32_t      imm;
   op_type       opt;
+  pipeline_target target;
   uint8_t       rd;
   uint8_t       rs1;
   uint8_t       rs2;
-  pipeline_target target;
   bool          has_imm;
 
   constexpr op(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type opt,
@@ -86,3 +86,5 @@ struct op {
 };
 
 op decode(uint32_t word);
+
+#endif // RISCV32_SIM_DECODER_HPP

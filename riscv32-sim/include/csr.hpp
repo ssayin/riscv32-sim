@@ -1,10 +1,7 @@
-#pragma once
+#ifndef RISCV32_SIM_CSR_HPP
+#define RISCV32_SIM_CSR_HPP
 
-#include <array>
-#include <cstddef>
 #include <cstdint>
-#include <numeric>
-#include <string_view>
 
 enum class csr : uint16_t {
   ustatus = 0x000,
@@ -92,32 +89,4 @@ enum class csr : uint16_t {
   dscratch = 0x7B2,
 };
 
-consteval uint32_t operator"" _MISA(const char *isa, size_t) {
-  std::string_view str{isa};
-  auto             sel = [](uint32_t acc, char c) -> uint32_t {
-    return acc | ((c >= 'A' && c <= 'Z') ? 1 << (25 - ('Z' - c)) : 0);
-  };
-  return std::accumulate(str.begin(), str.end(), 0x0, sel);
-}
-
-constexpr uint32_t RV32 = (1 << 30);
-
-class csr_handler {
-  static bool                is_unimplemented_csr(uint32_t addr);
-  std::array<uint32_t, 4096> csrs{};
-
-public:
-  csr_handler();
-  uint32_t read(uint32_t addr);
-  void     write(uint32_t addr, uint32_t v);
-  void     write(csr addr, uint32_t v);
-  uint32_t read(csr addr);
-
-  enum priv {
-    user [[maybe_unused]] = 0,
-    supervisor [[maybe_unused]],
-    reserved [[maybe_unused]],
-    machine
-  };
-  priv mode = machine;
-};
+#endif // RISCV32_SIM_CSR_HPP

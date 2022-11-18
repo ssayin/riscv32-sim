@@ -1,6 +1,5 @@
 #include "sparse_memory.hpp"
 #include "rv32_isn.hpp"
-#include <iostream>
 
 uint32_t sparse_memory::ensure_page_exists(uint32_t addr) {
   uint32_t key = addr & mask;

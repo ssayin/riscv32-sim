@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RISCV32_SIM_SPARSE_MEMORY_HPP
+#define RISCV32_SIM_SPARSE_MEMORY_HPP
 
 #include <cassert>
 #include <cstring>
@@ -8,7 +9,7 @@
 class sparse_memory {
   std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;
 
-  void    *write_block(uint8_t *page_offset, void *ptr, uint32_t size_in_bytes);
+  static void    *write_block(uint8_t *page_offset, void *ptr, uint32_t size_in_bytes);
   uint32_t ensure_page_exists(uint32_t addr);
 
 public:
@@ -23,3 +24,6 @@ public:
   void     write_half(uint32_t off, uint16_t h);
   void     write_word(uint32_t off, uint32_t w);
 };
+
+
+#endif // RISCV32_SIM_SPARSE_MEMORY_HPP

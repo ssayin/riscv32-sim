@@ -123,11 +123,11 @@ void iss_model::exec_alu(op &dec) {
   case _sltu:
     alu_out = opd1 < opd2;
     break;
-  case AUIPC:
-  case JAL:
+  case _auipc:
+  case _jal:
     alu_out = PC + opd2;
     break;
-  case JALR:
+  case _jalr:
     alu_out = (opd1 + opd2) & 0xFFFFFFFE;
     break;
   }
@@ -236,7 +236,7 @@ void iss_model::wb_retire_ls(op &dec) {
 
 void iss_model::wb_retire_alu(op &dec) {
   if (alu_type alut = std::get<alu_type>(dec.opt);
-      alut == alu_type::JAL || alut == alu_type::JALR) {
+      alut == alu_type::_jal || alut == alu_type::_jalr) {
     regfile.write(dec.rd, PC + 4);
     PC = alu_out;
     if (dec.rd != 0) {
