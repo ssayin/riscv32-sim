@@ -1,6 +1,12 @@
 #include "sparse_memory.hpp"
 #include "rv32_isn.hpp"
 
+static void *write_block(uint8_t *page_offset, void *ptr,
+                         uint32_t size_in_bytes) {
+  std::memcpy(page_offset, ptr, size_in_bytes);
+  return (uint8_t *)ptr + size_in_bytes;
+}
+
 uint32_t sparse_memory::ensure_page_exists(uint32_t addr) {
   uint32_t key = addr & mask;
   if (!page.contains(key))
@@ -20,19 +26,11 @@ void sparse_memory::write_blocks(uint32_t virt_addr, void *ptr,
   }
 }
 
-void *sparse_memory::write_block(uint8_t *page_offset, void *ptr,
-                                 uint32_t size_in_bytes) {
-  std::memcpy(page_offset, ptr, size_in_bytes);
-  return (uint8_t *)ptr + size_in_bytes;
-}
-
-// TODO: add memory address decoder as a separate class.
 uint8_t sparse_memory::read_byte(uint32_t off) {
+  if (!page.contains(off & mask)) throw std::runtime_error("tried to read uninitialized memory");
   return page[off & mask].get()[offset<0u, 11u>(off)];
 }
 
-// FIXME: reading at page boundary is A PROBLEM
-// TODO: impl. unaligned read later
 uint16_t sparse_memory::read_half(uint32_t off) {
   return read_byte(off) | (read_byte(off + 1) << 8);
 }

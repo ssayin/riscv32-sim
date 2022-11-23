@@ -65,19 +65,19 @@ enum class csr_type : uint8_t {
   csrrci,
 };
 
-enum class trap_ret_type : uint8_t { machine, supervisor, user };
+enum class trap_ret_type : uint8_t { mret, sret };
 
 using op_type =
     std::variant<alu_type, mem_type, branch_type, csr_type, trap_ret_type>;
 
 struct op {
-  uint32_t      imm;
-  op_type       opt;
+  uint32_t        imm;
+  op_type         opt;
   pipeline_target target;
-  uint8_t       rd;
-  uint8_t       rs1;
-  uint8_t       rs2;
-  bool          has_imm;
+  uint8_t         rd;
+  uint8_t         rs1;
+  uint8_t         rs2;
+  bool            has_imm;
 
   constexpr op(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type opt,
                pipeline_target target, uint32_t imm)

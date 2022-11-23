@@ -35,4 +35,41 @@ enum class trap_cause : uint32_t {
   int_external_s_guest       = 0x80000012
 };
 
+constexpr bool is_interrupt(trap_cause cause) {
+  switch (cause) {
+  case trap_cause::exp_inst_addr_misaligned:
+  case trap_cause::exp_inst_access_fault:
+  case trap_cause::exp_inst_illegal:
+  case trap_cause::exp_breakpoint:
+  case trap_cause::exp_load_addr_misaligned:
+  case trap_cause::exp_load_access_fault:
+  case trap_cause::exp_store_addr_misaligned:
+  case trap_cause::exp_store_access_fault:
+  case trap_cause::exp_ecall_from_u_vu_mode:
+  case trap_cause::exp_ecall_from_hs_mode:
+  case trap_cause::exp_ecall_from_vs_mode:
+  case trap_cause::exp_ecall_from_m_mode:
+  case trap_cause::exp_inst_page_fault:
+  case trap_cause::exp_load_page_fault:
+  case trap_cause::exp_store_page_fault:
+  case trap_cause::exp_inst_guest_page_fault:
+  case trap_cause::exp_load_guest_page_fault:
+  case trap_cause::exp_inst_virtual:
+  case trap_cause::exp_store_guest_page_fault:
+  default:
+    return false;
+  case trap_cause::int_sw_s:
+  case trap_cause::int_sw_vs:
+  case trap_cause::int_sw_m:
+  case trap_cause::int_timer_s:
+  case trap_cause::int_timer_vs:
+  case trap_cause::int_timer_m:
+  case trap_cause::int_external_s:
+  case trap_cause::int_external_vs:
+  case trap_cause::int_external_m:
+  case trap_cause::int_external_s_guest:
+    return true;
+  }
+}
+
 #endif // RISCV32_SIM_TRAP_CAUSE_HPP

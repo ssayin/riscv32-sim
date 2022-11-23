@@ -84,4 +84,9 @@ enum class other_sys : uint8_t {
   interrupt_management = 0x5
 };
 
+enum class trap_return : uint8_t {
+  sret = 0x8,
+  mret = 0x18
+};
+
 #endif // RISCV32_SIM_MASKS_HPP

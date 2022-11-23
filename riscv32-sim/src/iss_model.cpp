@@ -22,20 +22,32 @@ void iss_model::step() {
 
   exec(dec);
 
+  if(trap) goto __trap;
+
   switch (dec.target) {
   case pipeline_target::mem:
     mem_phase(dec);
+    if(trap) goto __trap;
     break;
   case pipeline_target::alu:
   case pipeline_target::branch:
     break;
   case pipeline_target::csr:
+    if(trap) goto __trap;
     PC = PC + 4;
     return;
   case pipeline_target::tret:
+    tret(dec);
     return;
   }
+
   wb_retire_phase(dec);
+  if(trap) goto __trap;
+
+  return;
+
+  __trap:
+    handle_trap();
 }
 
 void iss_model::exec(op &dec) {
@@ -253,61 +265,166 @@ void iss_model::csr(op &dec) {
   switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
   case csrrw: {
-    uint32_t tmp = csrh.read(dec.imm);
-    csrh.write(dec.imm, regfile.read(dec.rs1));
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
   case csrrs: {
-    uint32_t tmp = csrh.read(dec.imm);
-    csrh.write(dec.imm, tmp | regfile.read(dec.rs1));
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, tmp | regfile.read(dec.rs1));
     regfile.write(dec.rd, tmp);
   } break;
 
   case csrrc: {
-    uint32_t tmp = csrh.read(dec.imm);
-    csrh.write(dec.imm, tmp & (!regfile.read(dec.rs1)));
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, tmp & (!regfile.read(dec.rs1)));
     regfile.write(dec.rd, tmp);
   } break;
 
   case csrrwi: {
-    regfile.write(dec.rd, csrh.read(dec.imm));
-    csrh.write(dec.imm, dec.rs1);
+    regfile.write(dec.rd, read_csr(dec.imm));
+    write_csr(dec.imm, dec.rs1);
   } break;
 
   case csrrsi: {
-    uint32_t tmp = csrh.read(dec.imm);
-    csrh.write(dec.imm, dec.rs1 | tmp);
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, dec.rs1 | tmp);
     regfile.write(dec.rd, tmp);
-
   } break;
 
   case csrrci: {
-    uint32_t tmp = csrh.read(dec.imm);
-    csrh.write(dec.imm, (!dec.rs1) & tmp);
+    uint32_t tmp = read_csr(dec.imm);
+    write_csr(dec.imm, (!dec.rs1) & tmp);
     regfile.write(dec.rd, tmp);
   } break;
   }
 }
 
-void iss_model::handle_mret() {
+/*
+ An MRET or SRET instruction is used to return from a trap_setup in M-mode or S-mode
+respectively. When executing an xRET instruction, supposing xPP holds the value
+y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to 1; and
+xPP is set to the least-privileged supported mode (U if U-mode is implemented,
+else M). If xPP̸=M, xRET also sets MPRV=0.
+ */
 
+void iss_model::handle_mret() {
+  enum {
+    MIE  = 3,
+    MPIE = 7,
+    MPP  = 11, //[11:12]
+    MPRV = 17,
+  };
+
+  std::bitset<32> mstat{read_csr(csr::mstatus)};
+  mstat[MIE] = mstat[MPIE];
+  mode  = static_cast<privilege_level>((mstat[MPP + 1] << 1) |
+                                                        mstat[MPP]);
+  fmt::print("MRET: Changed privilege mode to: {}\n", static_cast<uint8_t>(mode));
+  mstat[MPIE]    = true;
+  mstat[MPP]     = true;
+  mstat[MPP + 1] = true;
+  write_csr(csr::mstatus, mstat.to_ulong());
+  PC = read_csr(csr::mepc) + 4;
+
+  fmt::print("MRET: returning to addr {}\n", PC);
 }
 
 void iss_model::handle_sret() {
+  enum {
+    SIE  = 1,
+    SPIE = 5,
+    SPP  = 8,
+  };
 
+  std::bitset<32> sstat{read_csr(csr::sstatus)};
+  sstat[SIE] = sstat[SPIE];
+  mode  = static_cast<privilege_level>(
+      static_cast<uint8_t>(sstat[SPP]));
+  fmt::print("SRET: Changed privilege mode to: {}\n", static_cast<uint8_t>(mode));
+  sstat[SPIE] = true;
+  sstat[SPP]  = true;
+  write_csr(csr::sstatus, sstat.to_ulong());
+  PC = read_csr(csr::sepc) + 4;
+
+  fmt::print("SRET: returning to addr {}\n", PC);
 }
 
 void iss_model::tret(op &op) {
   switch (std::get<trap_ret_type>(op.opt)) {
     using enum trap_ret_type;
-  case machine:
+  case mret:
     handle_mret();
     break;
-  case supervisor:
+  case sret:
     handle_sret();
     break;
-  case user:
+  default:
     break;
   }
+}
+
+
+inline constexpr uint8_t priv(uint32_t addr) {
+  return offset<8u,9u>(addr);
+};
+
+void iss_model::write_csr(uint32_t addr, uint32_t v) {
+  auto is_readonly = [](uint32_t addr) {
+    return offset<10u,11u>(addr) == 0b11;
+  };
+
+  if (is_readonly(addr) || (priv(addr) > to_int(mode))) {
+    trap_setup(trap_cause::exp_inst_illegal);
+    return;
+  }
+
+  csrs[addr] = v;
+}
+
+uint32_t iss_model::read_csr(uint32_t addr) {
+  if (priv(addr) > to_int(mode)) {
+    trap_setup(trap_cause::exp_inst_illegal);
+    return 0x0;
+  }
+
+  return csrs[addr];
+}
+
+void iss_model::trap_setup(trap_cause cause) {
+  auto cause_csr = [](){
+    return csr::mcause;
+  };
+
+  auto is_fatal = [](trap_cause cause) { return false; };
+
+  write_csr(cause_csr(), static_cast<uint32_t>(cause));
+  write_csr(csr::mtval, 0);
+  write_csr(csr::mepc, PC);
+  if(is_fatal(cause)) throw std::exception();
+
+  trap = true;
+
+}
+
+void iss_model::handle_trap() {
+  auto cause = read_csr(csr::mcause);
+  auto tval = read_csr(csr::mtval);
+  auto tvec = read_csr(csr::mtvec);
+
+  enum {
+    direct = 0,
+    vectored = 1,
+  };
+
+  if(is_interrupt(static_cast<trap_cause>(cause))) {
+    uint8_t tvec_type = (tvec & 0x00000002);
+  } else {
+    PC = (tvec & 0xFFFFFFFFC);
+  }
+
+  fmt::print("Trap Handled\n");
+
+  trap = false;
 }

@@ -2,25 +2,29 @@
 #include "rv32_isn.hpp"
 #include <fmt/format.h>
 
-static op decode_load(uint32_t word);
-static op decode_store(uint32_t word);
-static op decode_branch(uint32_t word);
-static op decode_reg_imm(uint32_t word);
-static op decode_alu(uint32_t word);
-static op decode_sys(uint32_t word);
-static op decode_fence(uint32_t word);
+static op    decode_load(uint32_t word);
+static op    decode_store(uint32_t word);
+static op    decode_branch(uint32_t word);
+static op    decode_reg_imm(uint32_t word);
+static op    decode_alu(uint32_t word);
+static op    decode_sys(uint32_t word);
+static op    decode_fence(uint32_t word);
 
-static op decode_sys_other(uint32_t word);
-static op decode_trap_return(uint32_t word);
-static op decode_interrupt_management(uint32_t word);
+static op    decode_sys_other(uint32_t word);
+static op    decode_trap_return(uint32_t word);
+static op    decode_interrupt_management(uint32_t word);
 
+constexpr op make_NOP() {
+  return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
+}
 
 op decode(uint32_t word) {
   switch (static_cast<opcode>(offset<0u, 6u>(word))) {
     using enum opcode;
   case auipc: {
     rv32_auipc isn{word};
-    return {true, isn.rd, 0, 0, alu_type::_auipc, pipeline_target::alu, isn.imm};
+    return {true,   isn.rd, 0, 0, alu_type::_auipc, pipeline_target::alu,
+            isn.imm};
   }
   case lui: {
     rv32_lui isn{word};
@@ -50,7 +54,7 @@ op decode(uint32_t word) {
   case misc_mem:
     return decode_fence(word);
   default:
-    throw std::runtime_error("unknown instruction type");
+    return make_NOP();
   }
 }
 
@@ -68,6 +72,8 @@ static op decode_load(uint32_t word) {
     RV32_LOAD(lw)
     RV32_LOAD(lbu)
     RV32_LOAD(lhu)
+  default:
+    return make_NOP();
   }
 }
 
@@ -85,6 +91,8 @@ op decode_store(uint32_t word) {
     RV32_STORE(sb)
     RV32_STORE(sh)
     RV32_STORE(sw)
+  default:
+    return make_NOP();
   }
 }
 
@@ -106,6 +114,8 @@ static op decode_alu_and_remu(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(and, 0x0)
     RV32_REG_REG(remu, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -113,6 +123,8 @@ static op decode_alu_or_rem(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(or, 0x0)
     RV32_REG_REG(rem, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -120,6 +132,8 @@ static op decode_alu_xor_div(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(xor, 0x0)
     RV32_REG_REG(div, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -128,6 +142,8 @@ static op decode_alu_add_sub_mul(uint32_t word) {
     RV32_REG_REG(add, 0x0)
     RV32_REG_REG(mul, 0x1)
     RV32_REG_REG(sub, 0x20)
+  default:
+    return make_NOP();
   }
 }
 
@@ -135,6 +151,8 @@ static op decode_alu_sll_mulh(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(sll, 0x0)
     RV32_REG_REG(mulh, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -143,6 +161,8 @@ static op decode_alu_srl_sra_divu(uint32_t word) {
     RV32_REG_REG(srl, 0x0)
     RV32_REG_REG(divu, 0x1)
     RV32_REG_REG(sra, 0x20)
+  default:
+    return make_NOP();
   }
 }
 
@@ -150,6 +170,8 @@ static op decode_alu_slt_mulhsu(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(slt, 0x0)
     RV32_REG_REG(mulhsu, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -157,6 +179,8 @@ static op decode_alu_sltu_mulhu(uint32_t word) {
   switch (FUNCT7) {
     RV32_REG_REG(sltu, 0x0)
     RV32_REG_REG(mulhu, 0x1)
+  default:
+    return make_NOP();
   }
 }
 
@@ -181,6 +205,8 @@ static op decode_alu(uint32_t word) {
     return decode_alu_slt_mulhsu(word);
   case sltu_mulhu:
     return decode_alu_sltu_mulhu(word);
+  default:
+    return make_NOP();
   }
 }
 
@@ -208,6 +234,8 @@ static op decode_reg_imm(uint32_t word) {
     switch (FUNCT7) {
       RV32_REG_IMM(srl)
       RV32_REG_IMM(sra)
+    default:
+      return make_NOP();
     }
 
   case sltiu: {
@@ -215,6 +243,8 @@ static op decode_reg_imm(uint32_t word) {
     return {true,   isn.rd, isn.rs, 0, alu_type::_sltu, pipeline_target::alu,
             isn.imm};
   }
+  default:
+    return make_NOP();
   }
 }
 
@@ -240,20 +270,14 @@ static op decode_branch(uint32_t word) {
     RV32_BRANCH(bltu)
     RV32_BRANCH(bge)
     RV32_BRANCH(bgeu)
+  default:
+    return make_NOP();
   }
 }
 
 #undef RV32_BRANCH
 
-constexpr op make_NOP() {
-  return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
-}
-
-static op decode_fence(uint32_t word) {
-
-  fmt::print("misc_mem opcodes are not implemented\n");
-  return make_NOP();
-}
+static op decode_fence(uint32_t word) { return make_NOP(); }
 
 #define RV32_CSR(name)                                                         \
   case sys::name: {                                                            \
@@ -272,12 +296,15 @@ static op decode_sys(uint32_t word) {
     RV32_CSR(csrrci)
   case sys::other:
     return decode_sys_other(word);
+  default:
+    return make_NOP();
   }
 }
 
 #undef RV32_CSR
 
 static op decode_sys_other(uint32_t word) {
+
   switch (static_cast<other_sys>(offset<20u, 24u>(word))) {
   case other_sys::ecall:
   case other_sys::ebreak:
@@ -286,6 +313,8 @@ static op decode_sys_other(uint32_t word) {
     return decode_trap_return(word);
   case other_sys::interrupt_management:
     return decode_interrupt_management(word);
+  default:
+    return make_NOP();
   }
 }
 
@@ -296,29 +325,21 @@ static op decode_interrupt_management(uint32_t word) {
   }
 }
 
+#define RV32_TRAP_RETURN(name)                                                 \
+  case trap_return::name: {                                                    \
+    rv32_##name isn{word};                                                     \
+    return {                                                                   \
+        false, isn.rd, isn.rs1, 0, trap_ret_type::name, pipeline_target::tret, \
+        0};                                                                    \
+  }
+
 static op decode_trap_return(uint32_t word) {
-  switch (FUNCT7) {
-  case 0x8: {
-    rv32_sret isn{word};
-    return {false,
-            isn.rd,
-            isn.rs1,
-            0,
-            trap_ret_type::supervisor,
-            pipeline_target::tret,
-            0};
-  }
-  case 0x24: {
-    rv32_mret isn{word};
-    return {false,
-            isn.rd,
-            isn.rs1,
-            0,
-            trap_ret_type::machine,
-            pipeline_target::tret,
-            0};
-  }
+  switch (static_cast<trap_return>(FUNCT7)) {
+    RV32_TRAP_RETURN(sret)
+    RV32_TRAP_RETURN(mret)
   default:
     return make_NOP();
   }
 }
+
+#undef RV32_TRAP_RETURN

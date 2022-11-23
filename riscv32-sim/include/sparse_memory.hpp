@@ -9,7 +9,6 @@
 class sparse_memory {
   std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> page;
 
-  static void    *write_block(uint8_t *page_offset, void *ptr, uint32_t size_in_bytes);
   uint32_t ensure_page_exists(uint32_t addr);
 
 public:
