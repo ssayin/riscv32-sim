@@ -14,7 +14,7 @@ set(
         include/rv32_isn.hpp
         include/sparse_memory.hpp
         include/types.hpp
-        include/trap_cause.hpp include/config.hpp)
+        include/trap_cause.hpp include/config.hpp include/offset.hpp)
 
 add_executable(riscv32-sim ${SRC_FILES})
 
