@@ -37,7 +37,6 @@ void iss_model::step() {
     PC = PC + 4;
     return;
   case pipeline_target::tret:
-    tret(dec);
     return;
   }
 
