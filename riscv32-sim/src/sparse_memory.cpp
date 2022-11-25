@@ -14,8 +14,7 @@ uint32_t sparse_memory::ensure_page_exists(uint32_t addr) {
   return key;
 }
 
-void sparse_memory::write_blocks(uint32_t virt_addr, void *ptr,
-                                 int64_t size_in_bytes) {
+void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
   while (size_in_bytes > 0) {
     uint32_t key      = ensure_page_exists(virt_addr);
     uint32_t off      = offset<0u, 11u>(virt_addr);
@@ -27,7 +26,8 @@ void sparse_memory::write_blocks(uint32_t virt_addr, void *ptr,
 }
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
-  if (!page.contains(off & mask)) throw std::runtime_error("tried to read uninitialized memory");
+  if (!page.contains(off & mask))
+    throw std::runtime_error("tried to read uninitialized memory");
   return page[off & mask].get()[offset<0u, 11u>(off)];
 }
 

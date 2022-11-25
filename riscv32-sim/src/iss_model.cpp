@@ -2,19 +2,6 @@
 #include "rv32_isn.hpp"
 #include <fmt/format.h>
 
-uint32_t iss_model::reg_file::read(uint8_t index) {
-  assert(index < 32u);
-  return x[index];
-}
-
-void iss_model::reg_file::write(uint8_t index, uint32_t data) {
-  assert(index < 32u);
-  if (index == 0)
-    return;
-  fmt::print("Writing to x{}, value: {:#x}\n", index, data);
-  x[index] = data;
-}
-
 void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
   fmt::print("PC: {:#x}, Inst: {:#x}\n", PC, isn);
@@ -55,7 +42,7 @@ void iss_model::exec(op &dec) {
     exec_alu(dec);
     break;
   case pipeline_target::mem:
-    alu_out = regfile.read(dec.rs1) + dec.imm; /* mem addr for load/store */
+    alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
     break;
   case pipeline_target::branch:
     exec_alu_branch(dec);
@@ -70,8 +57,8 @@ void iss_model::exec(op &dec) {
 }
 
 void iss_model::exec_alu(op &dec) {
-  uint32_t opd1 = regfile.read(dec.rs1);
-  uint32_t opd2 = dec.has_imm ? dec.imm : regfile.read(dec.rs2);
+  uint32_t opd1 = rf.read(dec.rs1);
+  uint32_t opd2 = dec.has_imm ? dec.imm : rf.read(dec.rs2);
 
   switch (std::get<alu_type>(dec.opt)) {
     using enum alu_type;
@@ -145,8 +132,8 @@ void iss_model::exec_alu(op &dec) {
 }
 
 void iss_model::exec_alu_branch(op &dec) {
-  uint32_t opd1 = regfile.read(dec.rs1);
-  uint32_t opd2 = regfile.read(dec.rs2);
+  uint32_t opd1 = rf.read(dec.rs1);
+  uint32_t opd2 = rf.read(dec.rs2);
 
   switch (std::get<branch_type>(dec.opt)) {
     using enum branch_type;
@@ -198,13 +185,13 @@ void iss_model::mem_phase(op &dec) {
     mem_out = mem.read_half(alu_out) << 16;
     break;
   case sb:
-    mem.write_byte(alu_out, regfile.read(dec.rs2));
+    mem.write_byte(alu_out, rf.read(dec.rs2));
     break;
   case sh:
-    mem.write_half(alu_out, regfile.read(dec.rs2));
+    mem.write_half(alu_out, rf.read(dec.rs2));
     break;
   case sw:
-    mem.write_word(alu_out, regfile.read(dec.rs2));
+    mem.write_word(alu_out, rf.read(dec.rs2));
     break;
   }
 }
@@ -238,7 +225,7 @@ void iss_model::wb_retire_ls(op &dec) {
   case lw:
   case lbu:
   case lhu:
-    regfile.write(dec.rd, mem_out);
+    rf.write(dec.rd, mem_out);
     break;
   default:
     break;
@@ -248,14 +235,14 @@ void iss_model::wb_retire_ls(op &dec) {
 void iss_model::wb_retire_alu(op &dec) {
   if (alu_type alut = std::get<alu_type>(dec.opt);
       alut == alu_type::_jal || alut == alu_type::_jalr) {
-    regfile.write(dec.rd, PC + 4);
+    rf.write(dec.rd, PC + 4);
     PC = alu_out;
     if (dec.rd != 0) {
       fmt::print("JUMP to {:#x}: Return Addr: {:#x}\n", PC, alu_out);
     } else
       fmt::print("JUMP to {:#x}: Return Addr is discarded\n", PC);
   } else {
-    regfile.write(dec.rd, alu_out);
+    rf.write(dec.rd, alu_out);
     PC = PC + 4;
   }
 }
@@ -265,37 +252,37 @@ void iss_model::csr(op &dec) {
     using enum csr_type;
   case csrrw: {
     uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, regfile.read(dec.rs1));
-    regfile.write(dec.rd, tmp);
+    write_csr(dec.imm, rf.read(dec.rs1));
+    rf.write(dec.rd, tmp);
   } break;
 
   case csrrs: {
     uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp | regfile.read(dec.rs1));
-    regfile.write(dec.rd, tmp);
+    write_csr(dec.imm, tmp | rf.read(dec.rs1));
+    rf.write(dec.rd, tmp);
   } break;
 
   case csrrc: {
     uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp & (!regfile.read(dec.rs1)));
-    regfile.write(dec.rd, tmp);
+    write_csr(dec.imm, tmp & (!rf.read(dec.rs1)));
+    rf.write(dec.rd, tmp);
   } break;
 
   case csrrwi: {
-    regfile.write(dec.rd, read_csr(dec.imm));
+    rf.write(dec.rd, read_csr(dec.imm));
     write_csr(dec.imm, dec.rs1);
   } break;
 
   case csrrsi: {
     uint32_t tmp = read_csr(dec.imm);
     write_csr(dec.imm, dec.rs1 | tmp);
-    regfile.write(dec.rd, tmp);
+    rf.write(dec.rd, tmp);
   } break;
 
   case csrrci: {
     uint32_t tmp = read_csr(dec.imm);
     write_csr(dec.imm, (!dec.rs1) & tmp);
-    regfile.write(dec.rd, tmp);
+    rf.write(dec.rd, tmp);
   } break;
   }
 }
@@ -426,4 +413,10 @@ void iss_model::handle_trap() {
   fmt::print("Trap Handled\n");
 
   trap = false;
+}
+iss_model::iss_model(loader l, sparse_memory &mem)
+    : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()}  {
+  write_csr(csr::misa, misa_value);
+  write_csr(csr::sstatus, 0b1 << 8);
+  write_csr(csr::mstatus, 0b11 << 11);
 }

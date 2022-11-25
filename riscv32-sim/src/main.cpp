@@ -1,5 +1,6 @@
 #include "iss_model.hpp"
 #include "loader.hpp"
+#include "sparse_memory.hpp"
 #include <cstdio>
 
 int main(int argc, char **argv) {
@@ -8,8 +9,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  iss_model model;
-  loader::load(argv[1], model);
+  sparse_memory mem;
+  iss_model model{loader(argv[1], mem), mem};
 
   while (!model.done()) {
     model.step();

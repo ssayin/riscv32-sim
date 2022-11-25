@@ -15,7 +15,7 @@ public:
   constexpr static uint32_t page_size = 4096;
   constexpr static uint32_t mask      = 0xFFFFF000;
 
-  void     write_blocks(uint32_t virt_addr, void *ptr, int64_t size_in_bytes);
+  void     load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes);
   uint8_t  read_byte(uint32_t off);
   uint16_t read_half(uint32_t off);
   uint32_t read_word(uint32_t off);
