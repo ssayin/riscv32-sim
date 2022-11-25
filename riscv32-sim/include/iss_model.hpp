@@ -63,13 +63,6 @@ public:
 
   void                       handle_trap();
 
-  void                       write_csr(enum csr addr, uint32_t v) {
-    write_csr(static_cast<uint32_t>(addr), v);
-  }
-  uint32_t read_csr(enum csr addr) {
-    return read_csr(static_cast<uint32_t>(addr));
-  }
-
   iss_model(loader l, sparse_memory &mem);
 };
 

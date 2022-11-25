@@ -303,7 +303,7 @@ void iss_model::handle_mret() {
     MPRV = 17,
   };
 
-  std::bitset<32> mstat{read_csr(csr::mstatus)};
+  std::bitset<32> mstat{read_csr(to_int(csr::mstatus))};
   mstat[MIE] = mstat[MPIE];
   mode  = static_cast<privilege_level>((mstat[MPP + 1] << 1) |
                                                         mstat[MPP]);
@@ -311,8 +311,8 @@ void iss_model::handle_mret() {
   mstat[MPIE]    = true;
   mstat[MPP]     = true;
   mstat[MPP + 1] = true;
-  write_csr(csr::mstatus, mstat.to_ulong());
-  PC = read_csr(csr::mepc) + 4;
+  write_csr(to_int(csr::mstatus), mstat.to_ulong());
+  PC = read_csr(to_int(csr::mepc)) + 4;
 
   fmt::print("MRET: returning to addr {}\n", PC);
 }
@@ -324,15 +324,15 @@ void iss_model::handle_sret() {
     SPP  = 8,
   };
 
-  std::bitset<32> sstat{read_csr(csr::sstatus)};
+  std::bitset<32> sstat{read_csr(to_int(csr::sstatus))};
   sstat[SIE] = sstat[SPIE];
   mode  = static_cast<privilege_level>(
       static_cast<uint8_t>(sstat[SPP]));
   fmt::print("SRET: Changed privilege mode to: {}\n", static_cast<uint8_t>(mode));
   sstat[SPIE] = true;
   sstat[SPP]  = true;
-  write_csr(csr::sstatus, sstat.to_ulong());
-  PC = read_csr(csr::sepc) + 4;
+  write_csr(to_int(csr::sstatus), sstat.to_ulong());
+  PC = read_csr(to_int(csr::sepc)) + 4;
 
   fmt::print("SRET: returning to addr {}\n", PC);
 }
@@ -385,9 +385,9 @@ void iss_model::trap_setup(trap_cause cause) {
 
   auto is_fatal = [](trap_cause cause) { return false; };
 
-  write_csr(cause_csr(), static_cast<uint32_t>(cause));
-  write_csr(csr::mtval, 0);
-  write_csr(csr::mepc, PC);
+  write_csr(to_int(cause_csr()), static_cast<uint32_t>(cause));
+  write_csr(to_int(csr::mtval), 0);
+  write_csr(to_int(csr::mepc), PC);
   if(is_fatal(cause)) throw std::exception();
 
   trap = true;
@@ -395,9 +395,9 @@ void iss_model::trap_setup(trap_cause cause) {
 }
 
 void iss_model::handle_trap() {
-  auto cause = read_csr(csr::mcause);
-  auto tval = read_csr(csr::mtval);
-  auto tvec = read_csr(csr::mtvec);
+  auto cause = read_csr(to_int(csr::mcause));
+  auto tval = read_csr(to_int(csr::mtval));
+  auto tvec = read_csr(to_int(csr::mtvec));
 
   enum {
     direct = 0,
@@ -416,7 +416,7 @@ void iss_model::handle_trap() {
 }
 iss_model::iss_model(loader l, sparse_memory &mem)
     : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()}  {
-  write_csr(csr::misa, misa_value);
-  write_csr(csr::sstatus, 0b1 << 8);
-  write_csr(csr::mstatus, 0b11 << 11);
+  write_csr(to_int(csr::misa), misa_value);
+  write_csr(to_int(csr::sstatus), 0b1 << 8);
+  write_csr(to_int(csr::mstatus), 0b11 << 11);
 }
