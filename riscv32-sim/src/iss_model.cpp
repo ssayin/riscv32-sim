@@ -9,18 +9,21 @@ void iss_model::step() {
 
   exec(dec);
 
-  if(trap) goto __trap;
+  if (trap)
+    goto __trap;
 
   switch (dec.target) {
   case pipeline_target::mem:
     mem_phase(dec);
-    if(trap) goto __trap;
+    if (trap)
+      goto __trap;
     break;
   case pipeline_target::alu:
   case pipeline_target::branch:
     break;
   case pipeline_target::csr:
-    if(trap) goto __trap;
+    if (trap)
+      goto __trap;
     PC = PC + 4;
     return;
   case pipeline_target::tret:
@@ -28,12 +31,13 @@ void iss_model::step() {
   }
 
   wb_retire_phase(dec);
-  if(trap) goto __trap;
+  if (trap)
+    goto __trap;
 
   return;
 
-  __trap:
-    handle_trap();
+__trap:
+  handle_trap();
 }
 
 void iss_model::exec(op &dec) {
@@ -288,11 +292,11 @@ void iss_model::csr(op &dec) {
 }
 
 /*
- An MRET or SRET instruction is used to return from a trap_setup in M-mode or S-mode
-respectively. When executing an xRET instruction, supposing xPP holds the value
-y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to 1; and
-xPP is set to the least-privileged supported mode (U if U-mode is implemented,
-else M). If xPP̸=M, xRET also sets MPRV=0.
+ An MRET or SRET instruction is used to return from a trap_setup in M-mode or
+S-mode respectively. When executing an xRET instruction, supposing xPP holds the
+value y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to
+1; and xPP is set to the least-privileged supported mode (U if U-mode is
+implemented, else M). If xPP̸=M, xRET also sets MPRV=0.
  */
 
 void iss_model::handle_mret() {
@@ -305,9 +309,9 @@ void iss_model::handle_mret() {
 
   std::bitset<32> mstat{read_csr(to_int(csr::mstatus))};
   mstat[MIE] = mstat[MPIE];
-  mode  = static_cast<privilege_level>((mstat[MPP + 1] << 1) |
-                                                        mstat[MPP]);
-  fmt::print("MRET: Changed privilege mode to: {}\n", static_cast<uint8_t>(mode));
+  mode       = static_cast<privilege_level>((mstat[MPP + 1] << 1) | mstat[MPP]);
+  fmt::print("MRET: Changed privilege mode to: {}\n",
+             static_cast<uint8_t>(mode));
   mstat[MPIE]    = true;
   mstat[MPP]     = true;
   mstat[MPP + 1] = true;
@@ -326,9 +330,9 @@ void iss_model::handle_sret() {
 
   std::bitset<32> sstat{read_csr(to_int(csr::sstatus))};
   sstat[SIE] = sstat[SPIE];
-  mode  = static_cast<privilege_level>(
-      static_cast<uint8_t>(sstat[SPP]));
-  fmt::print("SRET: Changed privilege mode to: {}\n", static_cast<uint8_t>(mode));
+  mode       = static_cast<privilege_level>(static_cast<uint8_t>(sstat[SPP]));
+  fmt::print("SRET: Changed privilege mode to: {}\n",
+             static_cast<uint8_t>(mode));
   sstat[SPIE] = true;
   sstat[SPP]  = true;
   write_csr(to_int(csr::sstatus), sstat.to_ulong());
@@ -351,14 +355,11 @@ void iss_model::tret(op &op) {
   }
 }
 
+inline constexpr uint8_t priv(uint32_t addr) { return offset<8u, 9u>(addr); };
 
-inline constexpr uint8_t priv(uint32_t addr) {
-  return offset<8u,9u>(addr);
-};
-
-void iss_model::write_csr(uint32_t addr, uint32_t v) {
+void                     iss_model::write_csr(uint32_t addr, uint32_t v) {
   auto is_readonly = [](uint32_t addr) {
-    return offset<10u,11u>(addr) == 0b11;
+    return offset<10u, 11u>(addr) == 0b11;
   };
 
   if (is_readonly(addr) || (priv(addr) > to_int(mode))) {
@@ -379,32 +380,30 @@ uint32_t iss_model::read_csr(uint32_t addr) {
 }
 
 void iss_model::trap_setup(trap_cause cause) {
-  auto cause_csr = [](){
-    return csr::mcause;
-  };
 
-  auto is_fatal = [](trap_cause cause) { return false; };
-
-  write_csr(to_int(cause_csr()), static_cast<uint32_t>(cause));
-  write_csr(to_int(csr::mtval), 0);
-  write_csr(to_int(csr::mepc), PC);
-  if(is_fatal(cause)) throw std::exception();
+  auto     is_fatal       = [](trap_cause cause) { return false; };
+  uint16_t privilege_base = to_int(mode) << 8;
+  write_csr(privilege_base | to_int(csr::ucause), to_int(cause));
+  write_csr(privilege_base | to_int(csr::utval), 0);
+  write_csr(privilege_base | to_int(csr::uepc), PC);
+  if (is_fatal(cause))
+    throw std::exception();
 
   trap = true;
-
 }
 
 void iss_model::handle_trap() {
-  auto cause = read_csr(to_int(csr::mcause));
-  auto tval = read_csr(to_int(csr::mtval));
-  auto tvec = read_csr(to_int(csr::mtvec));
+  uint16_t privilege_base = to_int(mode) << 8;
+  auto     cause          = read_csr(privilege_base | to_int(csr::ucause));
+  auto     tval           = read_csr(privilege_base | to_int(csr::utval));
+  auto     tvec           = read_csr(privilege_base | to_int(csr::utvec));
 
   enum {
-    direct = 0,
+    direct   = 0,
     vectored = 1,
   };
 
-  if(is_interrupt(static_cast<trap_cause>(cause))) {
+  if (is_interrupt(static_cast<trap_cause>(cause))) {
     uint8_t tvec_type = (tvec & 0x00000002);
   } else {
     PC = (tvec & 0xFFFFFFFFC);
@@ -415,8 +414,11 @@ void iss_model::handle_trap() {
   trap = false;
 }
 iss_model::iss_model(loader l, sparse_memory &mem)
-    : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()}  {
-  write_csr(to_int(csr::misa), misa_value);
+    : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()} {
+  // Set read-only CSRs
+  csrs[to_int(csr::misa)] = misa_value;
+
+  // TODO: These CSRs may later be loaded during the boot process.
   write_csr(to_int(csr::sstatus), 0b1 << 8);
   write_csr(to_int(csr::mstatus), 0b11 << 11);
 }
