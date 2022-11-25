@@ -416,9 +416,9 @@ void iss_model::handle_trap() {
 iss_model::iss_model(loader l, sparse_memory &mem)
     : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()} {
   // Set read-only CSRs
-  csrs[to_int(csr::misa)] = misa_value;
 
   // TODO: These CSRs may later be loaded during the boot process.
+  write_csr(to_int(csr::misa), misa_value);
   write_csr(to_int(csr::sstatus), 0b1 << 8);
   write_csr(to_int(csr::mstatus), 0b11 << 11);
 }
