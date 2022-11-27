@@ -46,7 +46,7 @@ void iss_model::step() {
     wb_retire_phase(dec);
   }
 
-  catch (sync_exception ex) {
+  catch (sync_exception& ex) {
     auto is_fatal = [](trap_cause cause) {
       switch (cause) {
       case trap_cause::exp_inst_access_fault:
@@ -247,7 +247,7 @@ void iss_model::mem_phase(op &dec) {
 
   // crt: _exit() sets tohost to exit code
   if (alu_out == tohost_addr) {
-    fmt::print("Called _exit with return code: {:x}\n", rf.read(dec.rs2));
+    fmt::print("Called _exit with return code: {}\n", static_cast<int32_t>(rf.read(dec.rs2)));
     terminate = true;
   }
 }

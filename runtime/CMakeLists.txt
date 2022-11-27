@@ -1,25 +1,26 @@
-project(riscv32-sim-build)
-include(../cmake/riscv32-sim.cmake)
+project(riscv32-sim-build C)
+include(../cmake/riscv.cmake)
 
-if (FOUND_RISCV_GCC)
-    message(STATUS "unknown-elf-riscv32-gcc found, building runtime")
-    set(RISCV32I_FLAGS -nostdlib -nodefaultlibs)
+# set(CMAKE_C_FLAGS "-Os -g -Wall -ffunction-sections")
+set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/serdar.ld")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -nodefaultlibs -fno-exceptions -T ${LINKER_SCRIPT}")
 
 
-    add_library(serdar STATIC crt/crt.c)
+add_library(serdar STATIC crt/crt.c)
+set_target_properties(serdar PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
 
-    add_executable(test test/test.c)
-    add_executable(test_csr test/test_csr.c)
+set(
+        SOURCES
+        test/test.c
+        test/test_csr.c
+        test/fib.c
+)
 
-    target_link_libraries(test PRIVATE serdar)
-    target_link_libraries(test_csr PRIVATE serdar)
+foreach (SRC ${SOURCES})
+    get_filename_component(TARGET ${SRC} NAME_WLE)
 
-    target_compile_options(test PRIVATE ${RISCV32I_FLAGS})
-    target_link_options(test PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/serdar.ld ${RISCV32I_FLAGS})
+    add_executable(${TARGET} ${SRC})
+    set_target_properties(${TARGET} PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
+    target_link_libraries(${TARGET} PRIVATE serdar)
+endforeach ()
 
-    target_compile_options(test_csr PRIVATE ${RISCV32I_FLAGS})
-    target_link_options(test_csr PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/serdar.ld ${RISCV32I_FLAGS})
-
-else ()
-    message(STATUS "unknown-elf-riscv32-gcc not found, skipping building runtime")
-endif ()
