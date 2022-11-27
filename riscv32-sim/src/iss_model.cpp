@@ -216,7 +216,6 @@ void iss_model::exec_alu_branch(op &dec) {
 void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_target::mem)
     return;
-  terminate = (alu_out == tohost_addr);
 
   switch (std::get<mem_type>(dec.opt)) {
     using enum mem_type;
@@ -244,6 +243,12 @@ void iss_model::mem_phase(op &dec) {
   case sw:
     mem.write_word(alu_out, rf.read(dec.rs2));
     break;
+  }
+
+  // crt: _exit() sets tohost to exit code
+  if (alu_out == tohost_addr) {
+    fmt::print("Called _exit with return code: {:x}\n", rf.read(dec.rs2));
+    terminate = true;
   }
 }
 

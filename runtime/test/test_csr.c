@@ -1,5 +1,3 @@
-#include "start.h"
-
 void handle_trap() {
   asm("j base");
 }

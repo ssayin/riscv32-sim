@@ -1,4 +1,4 @@
-set(CMAKE_SYSTEM_NAME riscv32i-sim)
+set(CMAKE_SYSTEM_NAME riscv32-sim)
 
 set(CMAKE_FIND_ROOT_PATH /opt/riscv32)
 

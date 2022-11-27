@@ -18,7 +18,8 @@ class iss_model {
   reg_file      rf{};
   csr_file      cf;
 
-  uint32_t tohost_addr{};
+  const uint32_t tohost_addr;
+
   uint32_t PC{0};
   uint32_t alu_out{};
   uint32_t mem_out{};
