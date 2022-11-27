@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   }
 
   sparse_memory mem;
-  iss_model model{loader(argv[1], mem), mem};
+  iss_model     model{loader(argv[1], mem), mem};
 
   while (!model.done()) {
     model.step();

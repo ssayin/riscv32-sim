@@ -13,7 +13,6 @@ uint32_t loader::symbol(const std::string &str) {
   ELFIO::Elf_Half                      section_index;
   unsigned char                        other;
   if (!symbols.get_symbol(str, value, size, bind, type, section_index, other)) {
-
     throw std::runtime_error(
         fmt::format("unable to find '{}' symbol in the ELF file", str));
   }

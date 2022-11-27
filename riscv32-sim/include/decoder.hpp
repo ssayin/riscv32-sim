@@ -65,7 +65,10 @@ enum class csr_type : uint8_t {
   csrrci,
 };
 
-enum class trap_ret_type : uint8_t { mret, sret };
+enum class trap_ret_type : uint8_t {
+  mret,
+  sret
+};
 
 using op_type =
     std::variant<alu_type, mem_type, branch_type, csr_type, trap_ret_type>;
@@ -78,11 +81,16 @@ struct op {
   uint8_t         rs1;
   uint8_t         rs2;
   bool            has_imm;
+  bool            is_illegal;
+  bool            is_breakpoint;
+  bool            is_ecall;
 
   constexpr op(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type opt,
-               pipeline_target target, uint32_t imm)
+               pipeline_target target, uint32_t imm, bool is_illegal = false,
+               bool is_breakpoint = false, bool is_ecall = false)
       : has_imm{has_imm}, rd{rd}, rs1{rs1}, rs2{rs2}, opt{opt}, target{target},
-        imm{imm} {};
+        imm{imm}, is_illegal{is_illegal},
+        is_breakpoint{is_breakpoint}, is_ecall{is_ecall} {};
 };
 
 op decode(uint32_t word);

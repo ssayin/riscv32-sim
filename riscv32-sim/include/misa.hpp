@@ -2,8 +2,8 @@
 #define RISCV32_SIM_MISA_HPP
 
 #include <cstdint>
-#include <string_view>
 #include <numeric>
+#include <string_view>
 
 consteval uint32_t operator"" _MISA(const char *isa, size_t) {
   std::string_view str{isa};

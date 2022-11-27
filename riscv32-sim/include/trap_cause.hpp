@@ -1,6 +1,7 @@
 #ifndef RISCV32_SIM_TRAP_CAUSE_HPP
 #define RISCV32_SIM_TRAP_CAUSE_HPP
 
+#include "rv32_isn.hpp"
 #include <cstdint>
 
 enum class trap_cause : uint32_t {
@@ -35,40 +36,69 @@ enum class trap_cause : uint32_t {
   int_external_s_guest       = 0x80000012
 };
 
-constexpr bool is_interrupt(trap_cause cause) {
+// switch-case is a better hint for optimization?
+static constexpr std::string_view str_trap_cause(trap_cause cause) {
   switch (cause) {
   case trap_cause::exp_inst_addr_misaligned:
+    return "misaligned instruction address";
   case trap_cause::exp_inst_access_fault:
+    return "instruction access fault";
   case trap_cause::exp_inst_illegal:
+    return "illegal instruction";
   case trap_cause::exp_breakpoint:
+    return "breakpoint";
   case trap_cause::exp_load_addr_misaligned:
+    return "misaligned load address";
   case trap_cause::exp_load_access_fault:
+    return "load access fault";
   case trap_cause::exp_store_addr_misaligned:
+    return "misaligned store address";
   case trap_cause::exp_store_access_fault:
+    return "store access fault";
   case trap_cause::exp_ecall_from_u_vu_mode:
+    return "ecall from user / virtual user mode";
   case trap_cause::exp_ecall_from_hs_mode:
+    return "ecall from supervisor mode";
   case trap_cause::exp_ecall_from_vs_mode:
+    return "ecall from virtual supervisor mode";
   case trap_cause::exp_ecall_from_m_mode:
+    return "ecall from machine mode";
   case trap_cause::exp_inst_page_fault:
+    return "instruction page fault";
   case trap_cause::exp_load_page_fault:
+    return "load page fault";
   case trap_cause::exp_store_page_fault:
+    return "store page fault";
   case trap_cause::exp_inst_guest_page_fault:
+    return "instruction guest page fault";
   case trap_cause::exp_load_guest_page_fault:
+    return "load guest page fault";
   case trap_cause::exp_inst_virtual:
+    return "virtual instruction";
   case trap_cause::exp_store_guest_page_fault:
-  default:
-    return false;
+    return "store guest page fault";
   case trap_cause::int_sw_s:
+    return "supervisor software interrupt";
   case trap_cause::int_sw_vs:
+    return "virtual supervisor software interrupt";
   case trap_cause::int_sw_m:
+    return "machine software interrupt";
   case trap_cause::int_timer_s:
+    return "supervisor timer interrupt";
   case trap_cause::int_timer_vs:
+    return "virtual supervisor timer interrupt";
   case trap_cause::int_timer_m:
+    return "machine timer interrupt";
   case trap_cause::int_external_s:
+    return "supervisor external interrupt";
   case trap_cause::int_external_vs:
+    return "virtual supervisor external interrupt";
   case trap_cause::int_external_m:
+    return "machine external interrupt";
   case trap_cause::int_external_s_guest:
-    return true;
+    return "supervisor guest external interrupt";
+  default:
+    return "unknown";
   }
 }
 

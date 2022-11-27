@@ -22,11 +22,10 @@ constexpr decltype(auto) offset(Unsigned auto inst) {
 }
 
 #define FUNCT7(word) offset<25u, 31u>(word)
-#define RS2(word) offset<20u, 24u>(word)
-#define RS1(word) offset<15u, 19u>(word)
+#define RS2(word)    offset<20u, 24u>(word)
+#define RS1(word)    offset<15u, 19u>(word)
 #define FUNCT3(word) offset<12u, 14u>(word)
-#define RD(word) offset<7u, 11u>(word)
+#define RD(word)     offset<7u, 11u>(word)
 #define OPCODE(word) offset<0u, 6u>(word)
-
 
 #endif // RISCV32_SIM_OFFSET_HPP

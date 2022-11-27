@@ -1,6 +1,7 @@
 #ifndef RISCV32_SIM_RV32_ISN_HPP
 #define RISCV32_SIM_RV32_ISN_HPP
 
+#include "consts.hpp"
 #include "masks.hpp"
 #include "offset.hpp"
 #include "types.hpp"
@@ -8,8 +9,6 @@
 #include <cstdint>
 #include <numeric>
 #include <utility>
-
-constexpr static uint32_t sign_bit_mask = 0x80000000;
 
 template <Enum T> constexpr std::underlying_type_t<T> to_int(T t) {
   return static_cast<std::underlying_type_t<T>>(t);
@@ -20,6 +19,10 @@ constexpr auto sign_extend(Integral auto x, Unsigned auto shamt) {
       static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
 }
 
+constexpr uint32_t sign_extend(uint32_t in, uint8_t shamt) {
+  return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
+}
+
 constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
                             uint8_t rs1, uint8_t rs2) {
   return rd << 7 | funct3 << 12 | rs1 << 15 | rs2 << 20 | funct7 << 25 |
@@ -28,7 +31,7 @@ constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
 
 constexpr uint32_t unpack_imm_i(uint32_t word) {
   return offset<20u, 20u>(word) | (offset<21u, 30u>(word) << 1) |
-         sign_extend(word & sign_bit_mask, 20u);
+         sign_extend(word & consts::sign_bit_mask, 20u);
 }
 
 constexpr uint32_t pack_i_op(uint8_t funct3, uint8_t rd, uint8_t rs,
@@ -52,7 +55,7 @@ constexpr uint32_t pack_jump_op(uint8_t rd, uint32_t imm, uint8_t opc) {
 constexpr uint32_t unpack_imm_j(uint32_t word) {
   return (offset<21u, 30u>(word) << 1) | (offset<20u, 20u>(word) << 11) |
          (offset<12u, 19u>(word) << 12) |
-         sign_extend(word & sign_bit_mask, 11u);
+         sign_extend(word & consts::sign_bit_mask, 11u);
 }
 
 constexpr uint32_t pack_branch_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
@@ -64,7 +67,8 @@ constexpr uint32_t pack_branch_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
 
 constexpr uint32_t unpack_imm_b(uint32_t word) {
   return (offset<8u, 11u>(word) << 1) | (offset<25u, 30u>(word) << 5) |
-         (offset<7u, 7u>(word) << 11) | sign_extend(word & sign_bit_mask, 19u);
+         (offset<7u, 7u>(word) << 11) |
+         sign_extend(word & consts::sign_bit_mask, 19u);
 }
 
 constexpr uint32_t pack_store_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
@@ -75,7 +79,7 @@ constexpr uint32_t pack_store_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
 
 constexpr uint32_t unpack_imm_s(uint32_t word) {
   return RD(word) | (offset<25u, 30u>(word) << 5) |
-         sign_extend(word & sign_bit_mask, 20u);
+         sign_extend(word & consts::sign_bit_mask, 20u);
 }
 constexpr uint32_t unpack_csr(uint32_t word) { return offset<20u, 31u>(word); }
 

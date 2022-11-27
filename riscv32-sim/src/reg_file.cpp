@@ -11,6 +11,6 @@ void reg_file::write(uint8_t index, uint32_t data) {
   assert(index < 32u);
   if (index == 0)
     return;
-  fmt::print("Writing to x{}, value: {:#x}\n", index, data);
+  fmt::print("x{} <= {:#x}\n", index, data);
   x[index] = data;
 }

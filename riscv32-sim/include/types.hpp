@@ -1,6 +1,7 @@
 #ifndef RISCV32_SIM_TYPES_HPP
 #define RISCV32_SIM_TYPES_HPP
 
+#include <cstdint>
 #include <type_traits>
 
 template <typename T>

@@ -1,20 +1,24 @@
 #include "decoder.hpp"
 #include "rv32_isn.hpp"
 
-static op    decode_load(uint32_t word);
-static op    decode_store(uint32_t word);
-static op    decode_branch(uint32_t word);
-static op    decode_reg_imm(uint32_t word);
-static op    decode_alu(uint32_t word);
-static op    decode_sys(uint32_t word);
-static op    decode_fence(uint32_t word);
+static op decode_load(uint32_t word);
+static op decode_store(uint32_t word);
+static op decode_branch(uint32_t word);
+static op decode_reg_imm(uint32_t word);
+static op decode_alu(uint32_t word);
+static op decode_sys(uint32_t word);
+static op decode_fence(uint32_t word);
 
-static op    decode_sys_other(uint32_t word);
-static op    decode_trap_return(uint32_t word);
-static op    decode_interrupt_management(uint32_t word);
+static op decode_sys_other(uint32_t word);
+static op decode_trap_return(uint32_t word);
+static op decode_interrupt_management(uint32_t word);
 
 constexpr op make_NOP() {
   return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
+}
+
+constexpr op make_illegal() {
+  return {false, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0, true};
 }
 
 op decode(uint32_t word) {
@@ -53,7 +57,7 @@ op decode(uint32_t word) {
   case misc_mem:
     return decode_fence(word);
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -72,7 +76,7 @@ static op decode_load(uint32_t word) {
     RV32_LOAD(lbu)
     RV32_LOAD(lhu)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -91,7 +95,7 @@ op decode_store(uint32_t word) {
     RV32_STORE(sh)
     RV32_STORE(sw)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -114,7 +118,7 @@ static op decode_alu_and_remu(uint32_t word) {
     RV32_REG_REG(and, 0x0)
     RV32_REG_REG(remu, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -123,7 +127,7 @@ static op decode_alu_or_rem(uint32_t word) {
     RV32_REG_REG(or, 0x0)
     RV32_REG_REG(rem, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -132,7 +136,7 @@ static op decode_alu_xor_div(uint32_t word) {
     RV32_REG_REG(xor, 0x0)
     RV32_REG_REG(div, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -142,7 +146,7 @@ static op decode_alu_add_sub_mul(uint32_t word) {
     RV32_REG_REG(mul, 0x1)
     RV32_REG_REG(sub, 0x20)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -151,7 +155,7 @@ static op decode_alu_sll_mulh(uint32_t word) {
     RV32_REG_REG(sll, 0x0)
     RV32_REG_REG(mulh, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -161,7 +165,7 @@ static op decode_alu_srl_sra_divu(uint32_t word) {
     RV32_REG_REG(divu, 0x1)
     RV32_REG_REG(sra, 0x20)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -170,7 +174,7 @@ static op decode_alu_slt_mulhsu(uint32_t word) {
     RV32_REG_REG(slt, 0x0)
     RV32_REG_REG(mulhsu, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -179,7 +183,7 @@ static op decode_alu_sltu_mulhu(uint32_t word) {
     RV32_REG_REG(sltu, 0x0)
     RV32_REG_REG(mulhu, 0x1)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -205,7 +209,7 @@ static op decode_alu(uint32_t word) {
   case sltu_mulhu:
     return decode_alu_sltu_mulhu(word);
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -234,7 +238,7 @@ static op decode_reg_imm(uint32_t word) {
       RV32_REG_IMM(srl)
       RV32_REG_IMM(sra)
     default:
-      return make_NOP();
+      return make_illegal();
     }
   }
 
@@ -244,7 +248,7 @@ static op decode_reg_imm(uint32_t word) {
             isn.imm};
   }
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -271,7 +275,7 @@ static op decode_branch(uint32_t word) {
     RV32_BRANCH(bge)
     RV32_BRANCH(bgeu)
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -297,7 +301,7 @@ static op decode_sys(uint32_t word) {
   case sys::other:
     return decode_sys_other(word);
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -314,7 +318,7 @@ static op decode_sys_other(uint32_t word) {
   case other_sys::interrupt_management:
     return decode_interrupt_management(word);
   default:
-    return make_NOP();
+    return make_illegal();
   }
 }
 
@@ -328,9 +332,7 @@ static op decode_interrupt_management(uint32_t word) {
 #define RV32_TRAP_RETURN(name)                                                 \
   case trap_return::name: {                                                    \
     rv32_##name isn{word};                                                     \
-    return {                                                                   \
-        false, 0, 0, 0, trap_ret_type::name, pipeline_target::tret, \
-        0};                                                                    \
+    return {false, 0, 0, 0, trap_ret_type::name, pipeline_target::tret, 0};    \
   }
 
 static op decode_trap_return(uint32_t word) {

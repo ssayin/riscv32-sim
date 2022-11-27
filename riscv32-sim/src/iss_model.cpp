@@ -1,5 +1,6 @@
 #include "iss_model.hpp"
 #include "rv32_isn.hpp"
+#include "sync_exception.hpp"
 #include <fmt/format.h>
 
 void iss_model::step() {
@@ -7,40 +8,91 @@ void iss_model::step() {
   fmt::print("PC: {:#x}, Inst: {:#x}\n", PC, isn);
   op dec = decode(isn);
 
-  exec(dec);
+  try {
+    if (dec.is_illegal)
+      throw sync_exception(trap_cause::exp_inst_illegal);
+    if (dec.is_breakpoint)
+      throw sync_exception(trap_cause::exp_breakpoint);
+    if (dec.is_ecall) {
+      switch (mode) {
+      case privilege_level::user:
+        throw sync_exception(trap_cause::exp_ecall_from_u_vu_mode);
+      case privilege_level::supervisor:
+        throw sync_exception(trap_cause::exp_ecall_from_vs_mode);
+      case privilege_level::hypervisor:
+        throw sync_exception(trap_cause::exp_ecall_from_hs_mode);
+      case privilege_level::machine:
+        throw sync_exception(trap_cause::exp_ecall_from_m_mode);
+      }
+    }
 
-  if (trap)
-    goto __trap;
+    exec(dec);
 
-  switch (dec.target) {
-  case pipeline_target::mem:
-    mem_phase(dec);
-    if (trap)
-      goto __trap;
-    break;
-  case pipeline_target::alu:
-  case pipeline_target::branch:
-    break;
-  case pipeline_target::csr:
-    if (trap)
-      goto __trap;
-    PC = PC + 4;
-    return;
-  case pipeline_target::tret:
-    return;
+    switch (dec.target) {
+    case pipeline_target::mem:
+      mem_phase(dec);
+      break;
+    case pipeline_target::alu:
+    case pipeline_target::branch:
+      break;
+    case pipeline_target::csr:
+      csr(dec);
+      PC = PC + 4;
+      break;
+    case pipeline_target::tret:
+      return;
+    }
+
+    wb_retire_phase(dec);
   }
 
-  wb_retire_phase(dec);
-  if (trap)
-    goto __trap;
+  catch (sync_exception ex) {
+    auto is_fatal = [](trap_cause cause) {
+      switch (cause) {
+      case trap_cause::exp_inst_access_fault:
+        return true;
+      default:
+        return false;
+      }
+    };
 
-  return;
+    uint16_t privilege_base = to_int(mode) << 8;
+    auto     cause          = ex.cause();
+    assert((to_int(cause) & consts::sign_bit_mask) == 0);
 
-__trap:
-  handle_trap();
+    fmt::print("{}\n", ex.what());
+
+    cf.write(privilege_base | to_int(csr::ucause), to_int(cause));
+    cf.write(privilege_base | to_int(csr::utval), 0);
+
+    if (is_fatal(cause))
+      throw std::runtime_error("exception is fatal");
+
+    cf.write(privilege_base | to_int(csr::uepc), PC);
+
+    auto tvec = cf.read(privilege_base | to_int(csr::utvec));
+
+    PC = (tvec & consts::tvec_base_addr_mask);
+  }
+
+  /* auto is_interrupt = [&cause]() -> bool { return to_int(cause) &
+  consts::sign_bit_mask; }; enum { direct   = 0, vectored = 1,
+  };
+
+   if (is_interrupt()){
+     uint8_t tvec_type = (tvec & consts::tvec_type_mask);
+     if (tvec_type == vectored) {
+       PC = (tvec & consts::tvec_base_addr_mask) + 4 * (to_int(cause) &
+  consts::msb_zero_mask);
+     }
+   } else {
+     PC = (tvec & consts::tvec_base_addr_mask);
+   }
+   */
 }
 
 void iss_model::exec(op &dec) {
+  fmt::print("[EXEC]\n");
   switch (dec.target) {
   case pipeline_target::alu:
     exec_alu(dec);
@@ -51,11 +103,10 @@ void iss_model::exec(op &dec) {
   case pipeline_target::branch:
     exec_alu_branch(dec);
     break;
-  case pipeline_target::csr:
-    csr(dec);
-    break;
   case pipeline_target::tret:
     tret(dec);
+    break;
+  default:
     break;
   }
 }
@@ -162,10 +213,6 @@ void iss_model::exec_alu_branch(op &dec) {
   }
 }
 
-uint32_t sign_extend(uint32_t in, uint8_t shamt) {
-  return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
-}
-
 void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_target::mem)
     return;
@@ -201,6 +248,8 @@ void iss_model::mem_phase(op &dec) {
 }
 
 void iss_model::wb_retire_phase(op &dec) {
+  fmt::print("[WB / RETIRE]\n");
+
   switch (dec.target) {
   case pipeline_target::mem:
     wb_retire_ls(dec);
@@ -212,10 +261,6 @@ void iss_model::wb_retire_phase(op &dec) {
   case pipeline_target::branch:
     PC = PC + (alu_out ? dec.imm : 4);
     break;
-  case pipeline_target::csr: {
-    csr(dec);
-    break;
-  }
   default:
     break;
   }
@@ -237,106 +282,91 @@ void iss_model::wb_retire_ls(op &dec) {
 }
 
 void iss_model::wb_retire_alu(op &dec) {
-  if (alu_type alut = std::get<alu_type>(dec.opt);
-      alut == alu_type::_jal || alut == alu_type::_jalr) {
+  switch (std::get<alu_type>(dec.opt)) {
+  case alu_type::_jal:
+  case alu_type::_jalr:
     rf.write(dec.rd, PC + 4);
     PC = alu_out;
-    if (dec.rd != 0) {
+    if (dec.rd != 0)
       fmt::print("JUMP to {:#x}: Return Addr: {:#x}\n", PC, alu_out);
-    } else
+    else
       fmt::print("JUMP to {:#x}: Return Addr is discarded\n", PC);
-  } else {
+    break;
+  default:
     rf.write(dec.rd, alu_out);
     PC = PC + 4;
+    break;
   }
 }
 
 void iss_model::csr(op &dec) {
+  fmt::print("[CSR]\n");
   switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
   case csrrw: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, rf.read(dec.rs1));
+    uint32_t tmp = cf.read(dec.imm);
+    cf.write(dec.imm, rf.read(dec.rs1));
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrs: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp | rf.read(dec.rs1));
+    uint32_t tmp = cf.read(dec.imm);
+    cf.write(dec.imm, tmp | rf.read(dec.rs1));
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrc: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, tmp & (!rf.read(dec.rs1)));
+    uint32_t tmp = cf.read(dec.imm);
+    cf.write(dec.imm, tmp & (!rf.read(dec.rs1)));
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrwi: {
-    rf.write(dec.rd, read_csr(dec.imm));
-    write_csr(dec.imm, dec.rs1);
+    rf.write(dec.rd, cf.read(dec.imm));
+    cf.write(dec.imm, dec.rs1);
   } break;
 
   case csrrsi: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, dec.rs1 | tmp);
+    uint32_t tmp = cf.read(dec.imm);
+    cf.write(dec.imm, dec.rs1 | tmp);
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrci: {
-    uint32_t tmp = read_csr(dec.imm);
-    write_csr(dec.imm, (!dec.rs1) & tmp);
+    uint32_t tmp = cf.read(dec.imm);
+    cf.write(dec.imm, (!dec.rs1) & tmp);
     rf.write(dec.rd, tmp);
   } break;
   }
 }
 
-/*
- An MRET or SRET instruction is used to return from a trap_setup in M-mode or
-S-mode respectively. When executing an xRET instruction, supposing xPP holds the
-value y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to
-1; and xPP is set to the least-privileged supported mode (U if U-mode is
-implemented, else M). If xPP̸=M, xRET also sets MPRV=0.
- */
-
 void iss_model::handle_mret() {
-  enum {
-    MIE  = 3,
-    MPIE = 7,
-    MPP  = 11, //[11:12]
-    MPRV = 17,
-  };
-
-  std::bitset<32> mstat{read_csr(to_int(csr::mstatus))};
-  mstat[MIE] = mstat[MPIE];
-  mode       = static_cast<privilege_level>((mstat[MPP + 1] << 1) | mstat[MPP]);
+  std::bitset<32> mstat{cf.read(to_int(csr::mstatus))};
+  mstat[consts::status_mie] = mstat[consts::status_mpie];
+  mode = static_cast<privilege_level>((mstat[consts::status_mpp + 1] << 1) |
+                                      mstat[consts::status_mpp]);
   fmt::print("MRET: Changed privilege mode to: {}\n",
              static_cast<uint8_t>(mode));
-  mstat[MPIE]    = true;
-  mstat[MPP]     = true;
-  mstat[MPP + 1] = true;
-  write_csr(to_int(csr::mstatus), mstat.to_ulong());
-  PC = read_csr(to_int(csr::mepc)) + 4;
+  mstat[consts::status_mpie]    = true;
+  mstat[consts::status_mpp]     = true;
+  mstat[consts::status_mpp + 1] = true;
+  cf.write(to_int(csr::mstatus), mstat.to_ulong());
+  PC = cf.read(to_int(csr::mepc)) + 4;
 
   fmt::print("MRET: returning to addr {}\n", PC);
 }
 
 void iss_model::handle_sret() {
-  enum {
-    SIE  = 1,
-    SPIE = 5,
-    SPP  = 8,
-  };
-
-  std::bitset<32> sstat{read_csr(to_int(csr::sstatus))};
-  sstat[SIE] = sstat[SPIE];
-  mode       = static_cast<privilege_level>(static_cast<uint8_t>(sstat[SPP]));
+  std::bitset<32> sstat{cf.read(to_int(csr::sstatus))};
+  sstat[consts::status_sie] = sstat[consts::status_spie];
+  mode                      = static_cast<privilege_level>(
+      static_cast<uint8_t>(sstat[consts::status_spp]));
   fmt::print("SRET: Changed privilege mode to: {}\n",
              static_cast<uint8_t>(mode));
-  sstat[SPIE] = true;
-  sstat[SPP]  = true;
-  write_csr(to_int(csr::sstatus), sstat.to_ulong());
-  PC = read_csr(to_int(csr::sepc)) + 4;
+  sstat[consts::status_spie] = true;
+  sstat[consts::status_spp]  = true;
+  cf.write(to_int(csr::sstatus), sstat.to_ulong());
+  PC = cf.read(to_int(csr::sepc)) + 4;
 
   fmt::print("SRET: returning to addr {}\n", PC);
 }
@@ -355,70 +385,13 @@ void iss_model::tret(op &op) {
   }
 }
 
-inline constexpr uint8_t priv(uint32_t addr) { return offset<8u, 9u>(addr); };
-
-void                     iss_model::write_csr(uint32_t addr, uint32_t v) {
-  auto is_readonly = [](uint32_t addr) {
-    return offset<10u, 11u>(addr) == 0b11;
-  };
-
-  if (is_readonly(addr) || (priv(addr) > to_int(mode))) {
-    trap_setup(trap_cause::exp_inst_illegal);
-    return;
-  }
-
-  csrs[addr] = v;
-}
-
-uint32_t iss_model::read_csr(uint32_t addr) {
-  if (priv(addr) > to_int(mode)) {
-    trap_setup(trap_cause::exp_inst_illegal);
-    return 0x0;
-  }
-
-  return csrs[addr];
-}
-
-void iss_model::trap_setup(trap_cause cause) {
-
-  auto     is_fatal       = [](trap_cause cause) { return false; };
-  uint16_t privilege_base = to_int(mode) << 8;
-  write_csr(privilege_base | to_int(csr::ucause), to_int(cause));
-  write_csr(privilege_base | to_int(csr::utval), 0);
-  write_csr(privilege_base | to_int(csr::uepc), PC);
-  if (is_fatal(cause))
-    throw std::exception();
-
-  trap = true;
-}
-
-void iss_model::handle_trap() {
-  uint16_t privilege_base = to_int(mode) << 8;
-  auto     cause          = read_csr(privilege_base | to_int(csr::ucause));
-  auto     tval           = read_csr(privilege_base | to_int(csr::utval));
-  auto     tvec           = read_csr(privilege_base | to_int(csr::utvec));
-
-  enum {
-    direct   = 0,
-    vectored = 1,
-  };
-
-  if (is_interrupt(static_cast<trap_cause>(cause))) {
-    uint8_t tvec_type = (tvec & 0x00000002);
-  } else {
-    PC = (tvec & 0xFFFFFFFFC);
-  }
-
-  fmt::print("Trap Handled\n");
-
-  trap = false;
-}
 iss_model::iss_model(loader l, sparse_memory &mem)
-    : mem(std::move(mem)), tohost_addr{l.symbol("tohost")}, PC{l.entry()} {
+    : mem(std::move(mem)),
+      tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
   // Set read-only CSRs
 
   // TODO: These CSRs may later be loaded during the boot process.
-  write_csr(to_int(csr::misa), misa_value);
-  write_csr(to_int(csr::sstatus), 0b1 << 8);
-  write_csr(to_int(csr::mstatus), 0b11 << 11);
+  cf.write(to_int(csr::misa), misa_value);
+  cf.write(to_int(csr::sstatus), 0b1 << 8);
+  cf.write(to_int(csr::mstatus), 0b11 << 11);
 }

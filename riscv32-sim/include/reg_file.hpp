@@ -1,8 +1,8 @@
 #ifndef RISCV32_SIM_REG_FILE_HPP
 #define RISCV32_SIM_REG_FILE_HPP
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 class reg_file {
 public:
