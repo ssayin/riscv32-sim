@@ -11,9 +11,9 @@ set_target_properties(serdar PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
 
 set(
         SOURCES
-        test/test.c
-        test/test_csr.c
-        test/fib.c
+        example/test.c
+        example/test_csr.c
+        example/fib.c
 )
 
 foreach (SRC ${SOURCES})
