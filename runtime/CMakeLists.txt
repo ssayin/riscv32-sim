@@ -11,8 +11,8 @@ set_target_properties(serdar PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
 
 set(
         SOURCES
-        example/test.c
-        example/test_csr.c
+        example/shift.c
+        example/csr_exception.c
         example/fib.c
 )
 
