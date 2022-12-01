@@ -58,9 +58,10 @@ jobs:
           git clone --recurse-submodules https://github.com/riscv/riscv-tests; cd riscv-tests
           git submodule update --init --recursive
           autoupdate
+          autoconf
           mkdir build; cd build
           RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV/target --with-xlen=32
-          CFLAGS="$CFLAGS -march=rv32im_zicsr" make
+          make
           make install
 
       - name: Set up JDK 11
