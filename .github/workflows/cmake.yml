@@ -59,8 +59,8 @@ jobs:
           git submodule update --init --recursive
           autoupdate
           mkdir build; cd build
-          CFLAGS="$CFLAGS -march=rv32im_zicsr" RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV/target --with-xlen=32
-          make
+          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV/target --with-xlen=32
+          CFLAGS="$CFLAGS -march=rv32im_zicsr" make
           make install
 
       - name: Set up JDK 11
