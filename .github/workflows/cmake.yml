@@ -55,7 +55,7 @@ jobs:
       - name: Clone, Make and Install riscv-tests
         shell: bash
         run: |
-          git clone --recurse-submodules https://github.com/riscv/riscv-tests; cd riscv-tests
+          git clone --recurse-submodules https://github.com/ssayin/riscv-tests; cd riscv-tests
           git submodule update --init --recursive
           autoupdate
           autoconf
