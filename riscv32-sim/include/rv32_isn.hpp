@@ -10,8 +10,8 @@
 #include <numeric>
 #include <utility>
 
-template <Enum T> constexpr std::underlying_type_t<T> to_int(T t) {
-  return static_cast<std::underlying_type_t<T>>(t);
+constexpr auto to_int(Enum auto t) {
+  return static_cast<std::underlying_type_t<decltype(t)>>(t);
 }
 
 constexpr auto sign_extend_msb_only(Integral auto x, Unsigned auto shamt) {
@@ -19,101 +19,51 @@ constexpr auto sign_extend_msb_only(Integral auto x, Unsigned auto shamt) {
       static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
 }
 
-constexpr uint32_t pack_alu(uint8_t funct3, uint8_t funct7, uint8_t rd,
-                            uint8_t rs1, uint8_t rs2) {
-  return rd << 7 | funct3 << 12 | rs1 << 15 | rs2 << 20 | funct7 << 25 |
-         to_int(opcode::reg_reg);
+constexpr uint32_t rv32_imm_i(uint32_t x) {
+  return static_cast<int32_t>(x) >> 20;
 }
 
-constexpr uint32_t unpack_imm_i(uint32_t word) {
-  return offset<20u, 20u>(word) | (offset<21u, 30u>(word) << 1) |
-         sign_extend_msb_only(word & consts::sign_bit_mask, 20u);
+constexpr uint32_t rv32_imm_s(uint32_t x) {
+  return (offset<7u, 11u>(x) | ((static_cast<int32_t>(x) >> 20) & 0xFFFFFFE0));
 }
 
-constexpr uint32_t pack_i_op(uint8_t funct3, uint8_t rd, uint8_t rs,
-                             uint32_t imm, opcode opc) {
-  return rd << 7 | funct3 << 12 | rs << 15 | imm << 20 | to_int(opc);
+constexpr uint32_t rv32_imm_b(uint32_t x) {
+  return ((rv32_imm_s(x) & 0xFFFFF7FF) | (offset<7u, 7u>(x) << 4)) & 0xFFFFFFFE;
 }
 
-constexpr uint32_t unpack_imm_u(uint32_t word) {
-  return offset<12u, 30u>(word) << 12;
+constexpr uint32_t rv32_imm_u(uint32_t x) {
+  return x & consts::type_u_imm_mask;
+}
+constexpr uint32_t rv32_imm_j(uint32_t x) {
+  return (rv32_imm_i(x) & 0xFFF007FE) | (offset<12u, 19u>(x) << 12) |
+         (offset<20u, 20u>(x) << 11);
 }
 
-constexpr uint32_t pack_imm_u(uint8_t rd, uint32_t imm, uint8_t opc) {
-  return opc | rd << 7 | imm;
-}
-
-constexpr uint32_t pack_jump_op(uint8_t rd, uint32_t imm, uint8_t opc) {
-  return rd << 7 | offset<12u, 19u>(imm) << 12 | offset<11u, 11u>(imm) << 20 |
-         offset<1u, 10u>(imm) << 21 | offset<20u, 20u>(imm) << 30 | opc;
-}
-
-constexpr uint32_t unpack_imm_j(uint32_t word) {
-  return (offset<21u, 30u>(word) << 1) | (offset<20u, 20u>(word) << 11) |
-         (offset<12u, 19u>(word) << 12) |
-         sign_extend_msb_only(word & consts::sign_bit_mask, 11u);
-}
-
-constexpr uint32_t pack_branch_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
-                                  uint32_t imm) {
-  return offset<11u, 11u>(imm) << 7 | offset<1u, 4u>(imm) << 8 | funct3 << 12 |
-         rs1 << 15 | rs2 << 20 | offset<5u, 11u>(imm) << 25 |
-         offset<12u, 12u>(imm) << 31 | to_int(opcode::branch);
-}
-
-constexpr uint32_t unpack_imm_b(uint32_t word) {
-  return (offset<8u, 11u>(word) << 1) | (offset<25u, 30u>(word) << 5) |
-         (offset<7u, 7u>(word) << 11) |
-         sign_extend_msb_only(word & consts::sign_bit_mask, 19u);
-}
-
-constexpr uint32_t pack_store_op(uint8_t funct3, uint8_t rs1, uint8_t rs2,
-                                 uint32_t imm) {
-  return offset<0u, 4u>(imm) << 7 | funct3 << 12 | rs1 << 15 | rs2 << 20 |
-         offset<5u, 11u>(imm) << 25 | to_int(opcode::store);
-};
-
-constexpr uint32_t unpack_imm_s(uint32_t word) {
-  return RD(word) | (offset<25u, 30u>(word) << 5) |
-         sign_extend_msb_only(word & consts::sign_bit_mask, 20u);
-}
-constexpr uint32_t unpack_csr(uint32_t word) { return offset<20u, 31u>(word); }
-
-struct rv32_isn {
-  virtual void     unpack(uint32_t word) = 0;
-  virtual uint32_t pack() const          = 0;
-  virtual ~rv32_isn()                    = default;
-};
-
-struct rv32_jal : public rv32_isn {
+struct rv32_jal {
   uint8_t  rd;
   uint32_t imm;
-  explicit(false) rv32_jal(uint32_t word) { unpack(word); }
-  void unpack(uint32_t word) final {
+  rv32_jal(uint32_t word) { unpack(word); }
+  void unpack(uint32_t word) {
     rd  = RD(word);
-    imm = unpack_imm_j(word);
+    imm = rv32_imm_j(word);
   }
-  uint32_t pack() const final {
-    return pack_jump_op(rd, imm, to_int(opcode::jal));
-  }
-  explicit(false) operator uint32_t() const { return pack(); }
+  uint32_t pack() const {}
+           operator uint32_t() const { return pack(); }
 };
 
 #define RV32_REG_REG_INST(name, funct3, funct7)                                \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t rd;                                                                \
     uint8_t rs1;                                                               \
     uint8_t rs2;                                                               \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rd  = RD(word);                                                          \
       rs1 = RS1(word);                                                         \
       rs2 = RS2(word);                                                         \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_alu(static_cast<uint8_t>(funct3), funct7, rd, rs1, rs2);     \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_REG_INST(sll, reg_reg::sll_mulh, 0x0)
@@ -139,20 +89,18 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
 #undef RV32_REG_REG_INST
 
 #define RV32_REG_IMM_INST(name, funct3, opc)                                   \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rd;                                                               \
     uint8_t  rs;                                                               \
     uint32_t imm;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rd  = RD(word);                                                          \
       rs  = RS1(word);                                                         \
-      imm = unpack_imm_i(word);                                                \
+      imm = rv32_imm_i(word);                                                  \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_i_op(static_cast<uint8_t>(funct3), rd, rs, imm, opc);        \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_INST(addi, reg_imm::addi, opcode::reg_imm)
@@ -173,22 +121,18 @@ RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
 #undef RV32_REG_IMM_INST
 
 #define RV32_REG_IMM_SH_INST(name, funct3, funct7)                             \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rd;                                                               \
     uint8_t  rs;                                                               \
     uint32_t imm;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rd  = RD(word);                                                          \
       rs  = RS1(word);                                                         \
       imm = RS2(word);                                                         \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_i_op(static_cast<uint8_t>(funct3), rd, rs, imm,              \
-                       opcode::reg_imm) |                                      \
-             (funct7 << 25);                                                   \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_SH_INST(slli, reg_imm::slli, 0x0)
@@ -198,18 +142,16 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
 #undef RV32_REG_IMM_SH_INST
 
 #define RV32_REG_IMM_U_INST(name, opc)                                         \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rd;                                                               \
     uint32_t imm;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rd  = RD(word);                                                          \
-      imm = unpack_imm_u(word);                                                \
+      imm = rv32_imm_u(word);                                                  \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_imm_u(rd, imm, static_cast<uint8_t>(opc));                   \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_U_INST(lui, opcode::lui)
@@ -218,20 +160,18 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
 #undef RV32_REG_IMM_U_INST
 
 #define RV32_STORE_INST(name, funct3)                                          \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rs1;                                                              \
     uint8_t  rs2;                                                              \
     uint32_t imm;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rs1 = RS1(word);                                                         \
       rs2 = RS2(word);                                                         \
-      imm = unpack_imm_s(word);                                                \
+      imm = rv32_imm_s(word);                                                  \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_store_op(to_int(funct3), rs1, rs2, imm);                     \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_STORE_INST(sb, store::sb)
@@ -241,20 +181,18 @@ RV32_STORE_INST(sw, store::sw)
 #undef RV32_STORE_INST
 
 #define RV32_BRANCH_INST(name, funct3)                                         \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rs1;                                                              \
     uint8_t  rs2;                                                              \
     uint32_t imm;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rs1 = RS1(word);                                                         \
       rs2 = RS2(word);                                                         \
-      imm = unpack_imm_b(word);                                                \
+      imm = rv32_imm_b(word);                                                  \
     }                                                                          \
-    uint32_t pack() const final {                                              \
-      return pack_branch_op(to_int(funct3), rs1, rs2, imm);                    \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_BRANCH_INST(beq, branch::beq)
@@ -267,21 +205,21 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
 #undef RV32_BRANCH_INST
 
 #define RV32_CSR_INST(name, funct3)                                            \
-  struct rv32_##name : public rv32_isn {                                       \
+  struct rv32_##name {                                                         \
     uint8_t  rd;                                                               \
     uint8_t  rs;                                                               \
     uint32_t csr;                                                              \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void unpack(uint32_t word) final {                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void unpack(uint32_t word) {                                               \
       rd  = RD(word);                                                          \
       rs  = RS1(word);                                                         \
-      csr = unpack_csr(word);                                                  \
+      csr = offset<20u, 31u>(word);                                            \
     }                                                                          \
-    uint32_t pack() const final {                                              \
+    uint32_t pack() const {                                                    \
       return rd << 7 | to_int(funct3) << 12 | rs << 15 | csr << 20 |           \
              to_int(opcode::sys);                                              \
     }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+    operator uint32_t() const { return pack(); }                               \
   };
 
 RV32_CSR_INST(csrrw, sys::csrrw)
@@ -294,14 +232,11 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 #undef RV32_CSR_INST
 
 #define RV32_TRAP_ENV_INST(name, rs2, funct7)                                  \
-  struct rv32_##name : public rv32_isn {                                       \
-    explicit(false) rv32_##name(uint32_t word) { unpack(word); }               \
-    void     unpack(uint32_t word) final {}                                    \
-    uint32_t pack() const final {                                              \
-      return 0x0 << 7 | 0x0 << 12 | 0x0 << 15 | to_int(rs2) << 20 |            \
-             funct7 << 25 | to_int(opcode::sys);                               \
-    }                                                                          \
-    explicit(false) operator uint32_t() const { return pack(); }               \
+  struct rv32_##name {                                                         \
+    rv32_##name(uint32_t word) { unpack(word); }                               \
+    void     unpack(uint32_t word) {}                                          \
+    uint32_t pack() const {}                                                   \
+             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_TRAP_ENV_INST(ecall, other_sys::ecall, 0x0)

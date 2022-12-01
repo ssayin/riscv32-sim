@@ -1,12 +1,14 @@
 #include "riscv_test.h"
 
-RVTEST_RV32U        # Define TVM used by program.
+RVTEST_RV32M        # Define TVM used by program.
 
 # Test code region.
 RVTEST_CODE_BEGIN   # Start of test code.
-        lw      x2, testdata
-        //addi    x2, 1         # Should be 42 into $2.
-        //sw      x2, result    # Store result into memory overwriting 1s.
+        auipc	sp, 0x2
+        lw      x2, -392(sp)
+        addi    x2, x0, 1     # Should be 42 into $2.
+        auipc	tp, 0x2
+        sw      x2, -388(tp)    # Store result into memory overwriting 1s.
         li      x3, 42        # Desired result.
         bne     x2, x3, fail  # Fail out if doesn't match.
         RVTEST_PASS           # Signal success.

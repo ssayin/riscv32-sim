@@ -23,6 +23,7 @@ macro(add_unit_test TEST)
     target_link_libraries(
             ${TEST}
             GTest::gtest_main
+            fmt::fmt
     )
     target_include_directories(${TEST} PRIVATE ../riscv32-sim/include)
     gtest_discover_tests(${TEST})

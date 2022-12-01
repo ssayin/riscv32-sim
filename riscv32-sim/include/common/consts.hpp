@@ -16,6 +16,8 @@ struct consts {
   static constexpr uint8_t status_sie  = 1;
   static constexpr uint8_t status_spie = 5;
   static constexpr uint8_t status_spp  = 8;
+
+  static constexpr uint32_t type_u_imm_mask = 0xFFFFF000;
 };
 
 #endif // RISCV32_SIM_CONSTS_HPP

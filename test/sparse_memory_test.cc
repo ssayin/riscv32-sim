@@ -1,5 +1,6 @@
 #include "sparse_memory.hpp"
 #include <gtest/gtest.h>
+#include <fmt/format.h>
 
 TEST(SparseMemoryTest, UninitializedMemory) {
   sparse_memory sm;

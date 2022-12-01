@@ -4,6 +4,7 @@
 #include "common/types.hpp"
 #include <elfio/elfio.hpp>
 #include <string>
+#include <fmt/printf.h>
 
 class loader {
   ELFIO::elfio reader;
@@ -32,6 +33,7 @@ loader::loader(const std::string &file_name, MM &mem) {
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
                   if (s->get_type() == ELFIO::PT_LOAD) {
+                    fmt::print("ADDR: {:x}, FILE_SIZE: {:x}\n", s->get_virtual_address(), s->get_file_size());
                     mem.load(s->get_virtual_address(), (void *)s->get_data(),
                              s->get_file_size());
                   }

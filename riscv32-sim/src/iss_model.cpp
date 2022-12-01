@@ -68,7 +68,7 @@ void iss_model::step() {
     if (is_fatal(cause))
       throw std::runtime_error("exception is fatal");
 
-    cf.write(privilege_base | to_int(csr::uepc), PC);
+    cf.write(privilege_base | to_int(csr::uepc), PC + 4);
 
     auto tvec = cf.read(privilege_base | to_int(csr::utvec));
 
@@ -91,6 +91,10 @@ void iss_model::step() {
    */
 }
 
+auto left_fill_sign_extend = [](uint32_t in, uint8_t shamt) {
+  return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
+};
+
 void iss_model::exec(op &dec) {
   fmt::print("[EXEC]\n");
   switch (dec.target) {
@@ -98,7 +102,6 @@ void iss_model::exec(op &dec) {
     exec_alu(dec);
     break;
   case pipeline_target::mem:
-    alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
     break;
   case pipeline_target::branch:
     exec_alu_branch(dec);
@@ -217,9 +220,10 @@ void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_target::mem)
     return;
 
-  auto left_fill_sign_extend = [](uint32_t in, uint8_t shamt) {
-    return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
-  };
+  fmt::print("[MEM]\n");
+
+  alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
+
 
   switch (std::get<mem_type>(dec.opt)) {
     using enum mem_type;
@@ -334,8 +338,7 @@ void iss_model::csr(op &dec) {
   } break;
 
   case csrrwi: {
-    if (dec.rd != 0)
-      uint32_t tmp = cf.read(dec.imm);
+    uint32_t tmp = (dec.rd != 0) ? cf.read(dec.imm) : 0;
     rf.write(dec.rd, tmp); // write to x0 is discarded
     cf.write(dec.imm, dec.rs1);
   } break;
@@ -357,7 +360,7 @@ void iss_model::csr(op &dec) {
 void iss_model::handle_mret() {
   std::bitset<32> mstat{cf.read(to_int(csr::mstatus))};
   mstat[consts::status_mie] = mstat[consts::status_mpie];
-  mode = static_cast<privilege_level>((mstat[consts::status_mpp + 1] << 1) |
+  privilege_level mode_tmp = static_cast<privilege_level>((mstat[consts::status_mpp + 1] << 1) |
                                       mstat[consts::status_mpp]);
   fmt::print("MRET: Changed privilege mode to: {}\n",
              static_cast<uint8_t>(mode));
@@ -365,9 +368,10 @@ void iss_model::handle_mret() {
   mstat[consts::status_mpp]     = true;
   mstat[consts::status_mpp + 1] = true;
   cf.write(to_int(csr::mstatus), mstat.to_ulong());
-  PC = cf.read(to_int(csr::mepc)) + 4;
-
-  fmt::print("MRET: returning to addr {}\n", PC);
+  fmt::print("PC before: {:x}",PC);
+  PC = cf.read(to_int(csr::mepc));
+  mode = mode_tmp;
+  fmt::print(" after PC = EPC + 4: {:x}\n", PC);
 }
 
 void iss_model::handle_sret() {
@@ -380,7 +384,7 @@ void iss_model::handle_sret() {
   sstat[consts::status_spie] = true;
   sstat[consts::status_spp]  = true;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
-  PC = cf.read(to_int(csr::sepc)) + 4;
+  PC = cf.read(to_int(csr::sepc));
 
   fmt::print("SRET: returning to addr {}\n", PC);
 }

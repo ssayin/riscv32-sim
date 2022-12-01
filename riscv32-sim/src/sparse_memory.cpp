@@ -1,5 +1,6 @@
 #include "sparse_memory.hpp"
 #include "rv32_isn.hpp"
+#include <fmt/format.h>
 
 static void *write_block(uint8_t *page_offset, void *ptr,
                          uint32_t size_in_bytes) {
@@ -27,7 +28,7 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (!page.contains(off & mask))
-    throw std::runtime_error("tried to read uninitialized memory");
+    throw std::runtime_error(fmt::format("tried to read uninitialized memory {:x}", off));
   return page[off & mask].get()[offset<0u, 11u>(off)];
 }
 
