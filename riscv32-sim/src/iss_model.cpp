@@ -321,18 +321,22 @@ void iss_model::csr(op &dec) {
 
   case csrrs: {
     uint32_t tmp = cf.read(dec.imm);
-    cf.write(dec.imm, tmp | rf.read(dec.rs1));
+    if (dec.rs1 != 0)
+      cf.write(dec.imm, tmp | rf.read(dec.rs1));
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrc: {
     uint32_t tmp = cf.read(dec.imm);
-    cf.write(dec.imm, tmp & (!rf.read(dec.rs1)));
+    if (dec.rs1 != 0)
+      cf.write(dec.imm, tmp & (!rf.read(dec.rs1)));
     rf.write(dec.rd, tmp);
   } break;
 
   case csrrwi: {
-    rf.write(dec.rd, cf.read(dec.imm));
+    if (dec.rd != 0)
+      uint32_t tmp = cf.read(dec.imm);
+    rf.write(dec.rd, tmp); // write to x0 is discarded
     cf.write(dec.imm, dec.rs1);
   } break;
 
@@ -396,8 +400,7 @@ void iss_model::tret(op &op) {
 }
 
 iss_model::iss_model(loader l, sparse_memory &mem)
-    : mem(mem),
-      tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
+    : mem(mem), tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
   // Set read-only CSRs
 
   // TODO: These CSRs may later be loaded during the boot process.
