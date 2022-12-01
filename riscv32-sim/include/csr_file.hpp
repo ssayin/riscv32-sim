@@ -1,7 +1,7 @@
 #ifndef RISCV32_SIM_CSR_FILE_HPP
 #define RISCV32_SIM_CSR_FILE_HPP
 
-#include "privilege_level.hpp"
+#include "common/privilege_level.hpp"
 #include <array>
 #include <cstdint>
 

@@ -16,3 +16,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 add_subdirectory(external)
 add_subdirectory(riscv32-sim)
 add_subdirectory(runtime)
+
+option(BUILD_TESTS "" OFF)
+
+if (BUILD_TESTS)
+add_subdirectory(test)
+endif()

@@ -1,8 +1,8 @@
 #include "csr_file.hpp"
+#include "common/trap_cause.hpp"
 #include "offset.hpp"
 #include "rv32_isn.hpp"
 #include "sync_exception.hpp"
-#include "trap_cause.hpp"
 
 static uint8_t priv(uint32_t addr);
 

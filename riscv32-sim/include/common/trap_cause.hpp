@@ -1,8 +1,8 @@
 #ifndef RISCV32_SIM_TRAP_CAUSE_HPP
 #define RISCV32_SIM_TRAP_CAUSE_HPP
 
-#include "rv32_isn.hpp"
 #include <cstdint>
+#include <string_view>
 
 enum class trap_cause : uint32_t {
   exp_inst_addr_misaligned   = 0x0,

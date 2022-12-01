@@ -46,7 +46,7 @@ void iss_model::step() {
     wb_retire_phase(dec);
   }
 
-  catch (sync_exception& ex) {
+  catch (sync_exception &ex) {
     auto is_fatal = [](trap_cause cause) {
       switch (cause) {
       case trap_cause::exp_inst_access_fault:
@@ -139,7 +139,7 @@ void iss_model::exec_alu(op &dec) {
     alu_out = opd1 >> opd2;
     break;
   case _sra:
-    alu_out = sign_extend(opd1, opd2);
+    alu_out = sign_extend_msb_only(opd1, opd2);
     break;
   case _mul:
     alu_out = offset<0u, 31u>(static_cast<uint64_t>(
@@ -217,22 +217,26 @@ void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_target::mem)
     return;
 
+  auto left_fill_sign_extend = [](uint32_t in, uint8_t shamt) {
+    return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
+  };
+
   switch (std::get<mem_type>(dec.opt)) {
     using enum mem_type;
   case lb:
-    mem_out = sign_extend(mem.read_byte(alu_out), 24);
+    mem_out = left_fill_sign_extend(mem.read_byte(alu_out), 24);
     break;
   case lh:
-    mem_out = sign_extend(mem.read_half(alu_out), 16);
+    mem_out = left_fill_sign_extend(mem.read_half(alu_out), 16);
     break;
   case lw:
     mem_out = mem.read_word(alu_out);
     break;
   case lbu:
-    mem_out = mem.read_byte(alu_out) << 24;
+    mem_out = mem.read_byte(alu_out);
     break;
   case lhu:
-    mem_out = mem.read_half(alu_out) << 16;
+    mem_out = mem.read_half(alu_out);
     break;
   case sb:
     mem.write_byte(alu_out, rf.read(dec.rs2));
@@ -247,7 +251,8 @@ void iss_model::mem_phase(op &dec) {
 
   // crt: _exit() sets tohost to exit code
   if (alu_out == tohost_addr) {
-    fmt::print("Called _exit with return code: {}\n", static_cast<int32_t>(rf.read(dec.rs2)));
+    fmt::print("Called _exit with return code: {}\n",
+               static_cast<int32_t>(rf.read(dec.rs2)));
     terminate = true;
   }
 }
@@ -391,7 +396,7 @@ void iss_model::tret(op &op) {
 }
 
 iss_model::iss_model(loader l, sparse_memory &mem)
-    : mem(std::move(mem)),
+    : mem(mem),
       tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
   // Set read-only CSRs
 

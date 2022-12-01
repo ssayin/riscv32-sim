@@ -1,7 +1,7 @@
 #ifndef RISCV32_SIM_SYNC_EXCEPTION_HPP
 #define RISCV32_SIM_SYNC_EXCEPTION_HPP
 
-#include "trap_cause.hpp"
+#include "common/trap_cause.hpp"
 #include <cstdint>
 
 class sync_exception : public std::exception {

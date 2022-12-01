@@ -2,19 +2,19 @@
 #define RISCV32_SIM_ISS_MODEL_HPP
 
 #include "config.hpp"
-#include "csr.hpp"
 #include "csr_file.hpp"
 #include "decoder.hpp"
+#include "common/csr.hpp"
+#include "common/trap_cause.hpp"
 #include "loader.hpp"
 #include "reg_file.hpp"
 #include "sparse_memory.hpp"
-#include "trap_cause.hpp"
 
 #include <array>
 #include <cstdint>
 
 class iss_model {
-  sparse_memory mem;
+  sparse_memory& mem;
   reg_file      rf{};
   csr_file      cf;
 

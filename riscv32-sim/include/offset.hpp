@@ -1,7 +1,7 @@
 #ifndef RISCV32_SIM_OFFSET_HPP
 #define RISCV32_SIM_OFFSET_HPP
 
-#include "types.hpp"
+#include "common/types.hpp"
 
 consteval auto fillbits(Unsigned auto bitcount) {
   if (bitcount == 0u)

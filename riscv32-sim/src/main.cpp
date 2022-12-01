@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 
   while (!model.done()) {
     model.step();
-    std::cin.get();
+    //std::cin.get();
   }
 
   return 0;

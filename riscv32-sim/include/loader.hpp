@@ -1,7 +1,7 @@
 #ifndef RISCV32_SIM_LOADER_HPP
 #define RISCV32_SIM_LOADER_HPP
 
-#include "types.hpp"
+#include "common/types.hpp"
 #include <elfio/elfio.hpp>
 #include <string>
 
