@@ -1,11 +1,13 @@
 #include "iss_model.hpp"
 #include "rv32_isn.hpp"
 #include "sync_exception.hpp"
+#include <fmt/color.h>
 #include <fmt/format.h>
 
 void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
-  fmt::print("PC: {:#x}, Inst: {:#x}\n", PC, isn);
+  fmt::print("\n{:>#12x}\t", PC);
+  fmt::print("{:>#12x}\t", isn);
   op dec = decode(isn);
 
   try {
@@ -60,7 +62,8 @@ void iss_model::step() {
     auto     cause          = ex.cause();
     assert((to_int(cause) & consts::sign_bit_mask) == 0);
 
-    fmt::print("{}\n", ex.what());
+    //fmt::print(fg(fmt::color{0x333533}), "{} ", ex.what());
+    fmt::print(fg(fmt::color{0xCFDBD5}), "{} ", ex.what());
 
     cf.write(privilege_base | to_int(csr::ucause), to_int(cause));
     cf.write(privilege_base | to_int(csr::utval), 0);
@@ -92,7 +95,6 @@ void iss_model::step() {
 }
 
 void iss_model::exec(op &dec) {
-  fmt::print("[EXEC]\n");
   switch (dec.target) {
   case pipeline_target::alu:
     exec_alu(dec);
@@ -216,10 +218,7 @@ void iss_model::mem_phase(op &dec) {
   if (dec.target != pipeline_target::mem)
     return;
 
-  fmt::print("[MEM]\n");
-
   alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
-
 
   switch (std::get<mem_type>(dec.opt)) {
     using enum mem_type;
@@ -251,15 +250,13 @@ void iss_model::mem_phase(op &dec) {
 
   // crt: _exit() sets tohost to exit code
   if (alu_out == tohost_addr) {
-    fmt::print("Called _exit with return code: {}\n",
+    fmt::print(fg(fmt::color{0xCFDBD5}), "Called _exit with return code: {}\n",
                static_cast<int32_t>(rf.read(dec.rs2)));
     terminate = true;
   }
 }
 
 void iss_model::wb_retire_phase(op &dec) {
-  fmt::print("[WB / RETIRE]\n");
-
   switch (dec.target) {
   case pipeline_target::mem:
     wb_retire_ls(dec);
@@ -297,10 +294,6 @@ void iss_model::wb_retire_alu(op &dec) {
   case alu_type::_jalr:
     rf.write(dec.rd, PC + 4);
     PC = alu_out;
-    if (dec.rd != 0)
-      fmt::print("JUMP to {:#x}: Return Addr: {:#x}\n", PC, alu_out);
-    else
-      fmt::print("JUMP to {:#x}: Return Addr is discarded\n", PC);
     break;
   default:
     rf.write(dec.rd, alu_out);
@@ -310,7 +303,8 @@ void iss_model::wb_retire_alu(op &dec) {
 }
 
 void iss_model::csr(op &dec) {
-  fmt::print("[CSR]\n");
+  //fmt::print(fg(fmt::color{0x242423}), "csr");
+
   switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
   case csrrw: {
@@ -356,18 +350,15 @@ void iss_model::csr(op &dec) {
 void iss_model::handle_mret() {
   std::bitset<32> mstat{cf.read(to_int(csr::mstatus))};
   mstat[consts::status_mie] = mstat[consts::status_mpie];
-  privilege_level mode_tmp = static_cast<privilege_level>((mstat[consts::status_mpp + 1] << 1) |
-                                      mstat[consts::status_mpp]);
-  fmt::print("MRET: Changed privilege mode to: {}\n",
-             static_cast<uint8_t>(mode));
+  privilege_level mode_tmp  = static_cast<privilege_level>(
+      (mstat[consts::status_mpp + 1] << 1) | mstat[consts::status_mpp]);
+  fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
   mstat[consts::status_mpie]    = true;
   mstat[consts::status_mpp]     = true;
   mstat[consts::status_mpp + 1] = true;
   cf.write(to_int(csr::mstatus), mstat.to_ulong());
-  fmt::print("PC before: {:x}",PC);
-  PC = cf.read(to_int(csr::mepc));
+  PC   = cf.read(to_int(csr::mepc));
   mode = mode_tmp;
-  fmt::print(" after PC = EPC + 4: {:x}\n", PC);
 }
 
 void iss_model::handle_sret() {
@@ -375,14 +366,10 @@ void iss_model::handle_sret() {
   sstat[consts::status_sie] = sstat[consts::status_spie];
   mode                      = static_cast<privilege_level>(
       static_cast<uint8_t>(sstat[consts::status_spp]));
-  fmt::print("SRET: Changed privilege mode to: {}\n",
-             static_cast<uint8_t>(mode));
   sstat[consts::status_spie] = true;
   sstat[consts::status_spp]  = true;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
   PC = cf.read(to_int(csr::sepc));
-
-  fmt::print("SRET: returning to addr {}\n", PC);
 }
 
 void iss_model::tret(op &op) {
