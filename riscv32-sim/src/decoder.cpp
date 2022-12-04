@@ -311,8 +311,9 @@ static op decode_sys_other(uint32_t word) {
 
   switch (static_cast<other_sys>(RS2(word))) {
   case other_sys::ecall:
+    return op{true, 0, 0, 0, alu_type::_add, pipeline_target::alu, false, false, true};
   case other_sys::ebreak:
-    return make_NOP();
+    return op{true, 0, 0, 0, alu_type::_add, pipeline_target::alu, false, true, false};
   case other_sys::trap_ret:
     return decode_trap_return(word);
   case other_sys::interrupt_management:
