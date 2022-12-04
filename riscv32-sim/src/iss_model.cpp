@@ -91,10 +91,6 @@ void iss_model::step() {
    */
 }
 
-auto left_fill_sign_extend = [](uint32_t in, uint8_t shamt) {
-  return static_cast<uint32_t>(static_cast<int32_t>(in << shamt) >> shamt);
-};
-
 void iss_model::exec(op &dec) {
   fmt::print("[EXEC]\n");
   switch (dec.target) {
@@ -142,7 +138,7 @@ void iss_model::exec_alu(op &dec) {
     alu_out = opd1 >> opd2;
     break;
   case _sra:
-    alu_out = sign_extend_msb_only(opd1, opd2);
+    alu_out = static_cast<int32_t>(opd1) >> opd2;
     break;
   case _mul:
     alu_out = offset<0u, 31u>(static_cast<uint64_t>(
@@ -228,10 +224,10 @@ void iss_model::mem_phase(op &dec) {
   switch (std::get<mem_type>(dec.opt)) {
     using enum mem_type;
   case lb:
-    mem_out = left_fill_sign_extend(mem.read_byte(alu_out), 24);
+    mem_out = (static_cast<int32_t>(mem.read_byte(alu_out)) << 24) >> 24;
     break;
   case lh:
-    mem_out = left_fill_sign_extend(mem.read_half(alu_out), 16);
+    mem_out = (static_cast<int32_t>(mem.read_half(alu_out)) << 16) >> 16;
     break;
   case lw:
     mem_out = mem.read_word(alu_out);

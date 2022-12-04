@@ -331,7 +331,6 @@ static op decode_interrupt_management(uint32_t word) {
 
 #define RV32_TRAP_RETURN(name)                                                 \
   case trap_return::name: {                                                    \
-    rv32_##name isn{word};                                                     \
     return {false, 0, 0, 0, trap_ret_type::name, pipeline_target::tret, 0};    \
   }
 

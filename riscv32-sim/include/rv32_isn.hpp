@@ -14,11 +14,6 @@ constexpr auto to_int(Enum auto t) {
   return static_cast<std::underlying_type_t<decltype(t)>>(t);
 }
 
-constexpr auto sign_extend_msb_only(Integral auto x, Unsigned auto shamt) {
-  return static_cast<decltype(x)>(
-      static_cast<std::make_signed_t<decltype(x)>>(x) >> shamt);
-}
-
 constexpr uint32_t rv32_imm_i(uint32_t x) {
   return static_cast<int32_t>(x) >> 20;
 }
@@ -47,8 +42,6 @@ struct rv32_jal {
     rd  = RD(word);
     imm = rv32_imm_j(word);
   }
-  uint32_t pack() const {}
-           operator uint32_t() const { return pack(); }
 };
 
 #define RV32_REG_REG_INST(name, funct3, funct7)                                \
@@ -62,8 +55,6 @@ struct rv32_jal {
       rs1 = RS1(word);                                                         \
       rs2 = RS2(word);                                                         \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_REG_INST(sll, reg_reg::sll_mulh, 0x0)
@@ -99,8 +90,6 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
       rs  = RS1(word);                                                         \
       imm = rv32_imm_i(word);                                                  \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_INST(addi, reg_imm::addi, opcode::reg_imm)
@@ -131,8 +120,6 @@ RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
       rs  = RS1(word);                                                         \
       imm = RS2(word);                                                         \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_SH_INST(slli, reg_imm::slli, 0x0)
@@ -150,8 +137,6 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
       rd  = RD(word);                                                          \
       imm = rv32_imm_u(word);                                                  \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_REG_IMM_U_INST(lui, opcode::lui)
@@ -170,8 +155,6 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
       rs2 = RS2(word);                                                         \
       imm = rv32_imm_s(word);                                                  \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_STORE_INST(sb, store::sb)
@@ -191,8 +174,6 @@ RV32_STORE_INST(sw, store::sw)
       rs2 = RS2(word);                                                         \
       imm = rv32_imm_b(word);                                                  \
     }                                                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
   };
 
 RV32_BRANCH_INST(beq, branch::beq)
@@ -215,11 +196,6 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
       rs  = RS1(word);                                                         \
       csr = offset<20u, 31u>(word);                                            \
     }                                                                          \
-    uint32_t pack() const {                                                    \
-      return rd << 7 | to_int(funct3) << 12 | rs << 15 | csr << 20 |           \
-             to_int(opcode::sys);                                              \
-    }                                                                          \
-    operator uint32_t() const { return pack(); }                               \
   };
 
 RV32_CSR_INST(csrrw, sys::csrrw)
@@ -232,12 +208,7 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 #undef RV32_CSR_INST
 
 #define RV32_TRAP_ENV_INST(name, rs2, funct7)                                  \
-  struct rv32_##name {                                                         \
-    rv32_##name(uint32_t word) { unpack(word); }                               \
-    void     unpack(uint32_t word) {}                                          \
-    uint32_t pack() const {}                                                   \
-             operator uint32_t() const { return pack(); }                      \
-  };
+  struct rv32_##name {};
 
 RV32_TRAP_ENV_INST(ecall, other_sys::ecall, 0x0)
 RV32_TRAP_ENV_INST(ebreak, other_sys::ebreak, 0x0)
