@@ -1,4 +1,4 @@
-#include "riscv_test.h"
+#include <p/riscv_test.h>
 
 RVTEST_RV32M        # Define TVM used by program.
 

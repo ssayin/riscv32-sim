@@ -1,5 +1,4 @@
-project(riscv32-sim-build C)
-include(../cmake/riscv.cmake)
+include(riscv)
 
 # set(CMAKE_C_FLAGS "-Os -g -Wall -ffunction-sections")
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/serdar.ld")
