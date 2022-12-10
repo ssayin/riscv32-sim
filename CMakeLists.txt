@@ -22,6 +22,4 @@ option(BUILD_TESTS "" OFF)
 
 if (BUILD_TESTS)
 add_subdirectory(test)
-add_subdirectory(rvtest)
-add_subdirectory(runtime)
 endif()
