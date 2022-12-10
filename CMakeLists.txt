@@ -17,11 +17,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 add_subdirectory(external)
 add_subdirectory(riscv32-sim)
-add_subdirectory(runtime)
 
 option(BUILD_TESTS "" OFF)
 
 if (BUILD_TESTS)
 add_subdirectory(test)
 add_subdirectory(rvtest)
+add_subdirectory(runtime)
 endif()
