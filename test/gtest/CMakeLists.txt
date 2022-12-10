@@ -23,7 +23,8 @@ macro(add_unit_test TEST)
             GTest::gtest_main
             fmt::fmt
     )
-    target_include_directories(${TEST} PRIVATE ../riscv32-sim/include)
+
+    target_include_directories(${TEST} PRIVATE ${PROJECT_SOURCE_DIR}/riscv32-sim/include)
     gtest_discover_tests(${TEST})
 endmacro()
 
