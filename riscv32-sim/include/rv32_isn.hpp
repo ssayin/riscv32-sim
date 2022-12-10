@@ -14,22 +14,27 @@ constexpr auto to_int(Enum auto t) {
   return static_cast<std::underlying_type_t<decltype(t)>>(t);
 }
 
-constexpr uint32_t rv32_imm_i(uint32_t x) {
-  return static_cast<int32_t>(x) >> 20;
-}
+struct masks {
+  static constexpr uint32_t sign_bit   = 0x80000000;
+  static constexpr uint32_t msb_zero   = 0x7FFFFFFF;
+  static constexpr uint32_t tvec_type  = 0x00000002;
+  static constexpr uint32_t tvec_base  = 0xFFFFFFFC;
+  static constexpr uint32_t type_u_imm = 0xFFFFF000;
+};
 
-constexpr uint32_t rv32_imm_s(uint32_t x) {
+inline uint32_t rv32_imm_i(uint32_t x) { return static_cast<int32_t>(x) >> 20; }
+
+inline uint32_t rv32_imm_s(uint32_t x) {
   return (offset<7u, 11u>(x) | ((static_cast<int32_t>(x) >> 20) & 0xFFFFFFE0));
 }
 
-constexpr uint32_t rv32_imm_b(uint32_t x) {
+inline uint32_t rv32_imm_b(uint32_t x) {
   return ((rv32_imm_s(x) & 0xFFFFF7FF) | (offset<7u, 7u>(x) << 4)) & 0xFFFFFFFE;
 }
 
-constexpr uint32_t rv32_imm_u(uint32_t x) {
-  return x & consts::type_u_imm_mask;
-}
-constexpr uint32_t rv32_imm_j(uint32_t x) {
+inline uint32_t rv32_imm_u(uint32_t x) { return x & masks::type_u_imm; }
+
+inline uint32_t rv32_imm_j(uint32_t x) {
   return (rv32_imm_i(x) & 0xFFF007FE) | (offset<12u, 19u>(x) << 12) |
          (offset<20u, 20u>(x) << 11);
 }
@@ -206,16 +211,5 @@ RV32_CSR_INST(csrrsi, sys::csrrsi)
 RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
-
-#define RV32_TRAP_ENV_INST(name, rs2, funct7)                                  \
-  struct rv32_##name {};
-
-RV32_TRAP_ENV_INST(ecall, other_sys::ecall, 0x0)
-RV32_TRAP_ENV_INST(ebreak, other_sys::ebreak, 0x0)
-RV32_TRAP_ENV_INST(sret, other_sys::trap_ret, 0x8)
-RV32_TRAP_ENV_INST(mret, other_sys::trap_ret, 0x24)
-RV32_TRAP_ENV_INST(wfi, other_sys::interrupt_management, 0x8)
-
-#undef RV32_TRAP_ENV_INST
 
 #endif // RISCV32_SIM_RV32_ISN_HPP

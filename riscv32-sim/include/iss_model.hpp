@@ -39,6 +39,7 @@ class iss_model {
   void wb_retire_alu(op &dec);
 
   void csr(op &dec);
+  void trap_setup(trap_cause cause);
 
   void tret(op &dec);
   void handle_mret();

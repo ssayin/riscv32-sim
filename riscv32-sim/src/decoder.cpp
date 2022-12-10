@@ -9,19 +9,35 @@ static op decode_alu(uint32_t word);
 static op decode_sys(uint32_t word);
 static op decode_fence(uint32_t word);
 
-static op decode_sys_other(uint32_t word);
-static op decode_trap_return(uint32_t word);
-static op decode_interrupt_management(uint32_t word);
-
 constexpr op make_NOP() {
   return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
 }
 
-constexpr op make_illegal() {
-  return {false, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0, true};
-}
+constexpr op make_illegal() { return {{}, {}, {}, {}, {}, {}, {}, true}; }
 
 op decode(uint32_t word) {
+  switch (word) {
+    // ecall
+  case 0x73:
+    return {{}, {}, {}, {}, {}, {}, {}, false, false, true};
+
+    // ebreak
+  case 0x9002:
+    return {{}, {}, {}, {}, {}, {}, {}, false, true, false};
+
+    // mret
+  case 0x30200073:
+    return {false, 0, 0, 0, {}, pipeline_target::mret, 0};
+
+    // sret
+  case 0x10200073:
+    return make_NOP();
+
+    // wfi
+  case 0x10500073:
+    return make_NOP();
+  }
+
   switch (static_cast<opcode>(OPCODE(word))) {
     using enum opcode;
   case auipc: {
@@ -298,50 +314,9 @@ static op decode_sys(uint32_t word) {
     RV32_CSR(csrrwi)
     RV32_CSR(csrrsi)
     RV32_CSR(csrrci)
-  case sys::other:
-    return decode_sys_other(word);
   default:
     return make_illegal();
   }
 }
 
 #undef RV32_CSR
-
-static op decode_sys_other(uint32_t word) {
-
-  switch (static_cast<other_sys>(RS2(word))) {
-  case other_sys::ecall:
-    return op{true, 0, 0, 0, alu_type::_add, pipeline_target::alu, false, false, true};
-  case other_sys::ebreak:
-    return op{true, 0, 0, 0, alu_type::_add, pipeline_target::alu, false, true, false};
-  case other_sys::trap_ret:
-    return decode_trap_return(word);
-  case other_sys::interrupt_management:
-    return decode_interrupt_management(word);
-  default:
-    return make_illegal();
-  }
-}
-
-static op decode_interrupt_management(uint32_t word) {
-  switch (FUNCT7(word)) {
-  default:
-    return make_NOP();
-  }
-}
-
-#define RV32_TRAP_RETURN(name)                                                 \
-  case trap_return::name: {                                                    \
-    return {false, 0, 0, 0, trap_ret_type::name, pipeline_target::tret, 0};    \
-  }
-
-static op decode_trap_return(uint32_t word) {
-  switch (static_cast<trap_return>(FUNCT7(word))) {
-    RV32_TRAP_RETURN(sret)
-    RV32_TRAP_RETURN(mret)
-  default:
-    return make_NOP();
-  }
-}
-
-#undef RV32_TRAP_RETURN

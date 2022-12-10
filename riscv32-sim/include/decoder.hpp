@@ -9,7 +9,7 @@ enum class pipeline_target : uint8_t {
   alu,
   branch,
   csr,
-  tret,
+  mret
 };
 
 enum class alu_type : uint8_t {
@@ -65,13 +65,8 @@ enum class csr_type : uint8_t {
   csrrci,
 };
 
-enum class trap_ret_type : uint8_t {
-  mret,
-  sret
-};
-
 using op_type =
-    std::variant<alu_type, mem_type, branch_type, csr_type, trap_ret_type>;
+    std::variant<std::monostate, alu_type, mem_type, branch_type, csr_type>;
 
 struct op {
   uint32_t        imm;

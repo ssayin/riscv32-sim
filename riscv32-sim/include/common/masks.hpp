@@ -77,16 +77,4 @@ enum class sys : uint8_t {
   csrrci = 0b111,
 };
 
-enum class other_sys : uint8_t {
-  ecall                = 0x0,
-  ebreak               = 0x1,
-  trap_ret             = 0x2,
-  interrupt_management = 0x5
-};
-
-enum class trap_return : uint8_t {
-  sret = 0x8,
-  mret = 0x18
-};
-
 #endif // RISCV32_SIM_MASKS_HPP

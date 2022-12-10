@@ -4,6 +4,65 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 
+void iss_model::trap_setup(trap_cause cause)
+{
+  auto is_fatal = [](trap_cause cause) {
+    switch (cause) {
+    case trap_cause::exp_inst_access_fault:
+      return true;
+    default:
+      return false;
+    }
+  };
+
+  uint16_t   privilege_base = to_int(mode) << 8;
+  assert((to_int(cause) & consts::sign_bit_mask) == 0);
+
+  cf.write(privilege_base | to_int(csr::ucause), to_int(cause));
+  cf.write(privilege_base | to_int(csr::utval), 0);
+
+  if (is_fatal(cause))
+    throw std::runtime_error("exception is fatal");
+
+  cf.write(privilege_base | to_int(csr::uepc), PC + 4);
+
+  auto tvec = cf.read(privilege_base | to_int(csr::utvec));
+
+  PC = (tvec & consts::tvec_base_addr_mask);
+
+  /*
+     * syscall handler for testing
+   */
+  switch (cause) {
+  case trap_cause::exp_ecall_from_hs_mode:
+  case trap_cause::exp_ecall_from_m_mode:
+  case trap_cause::exp_ecall_from_vs_mode:
+  case trap_cause::exp_ecall_from_u_vu_mode:
+    if (rf.read(17) == 93) {
+      fmt::print(fg(fmt::color{0xCFDBD5}),
+                 "handling ecall, x17 is 93, x10 is {}. x2 is {}\n",
+                 static_cast<int32_t>(rf.read(10)),static_cast<int32_t>(rf.read(2)));
+      terminate = true;
+    }
+    break;
+  }
+
+  /* auto is_interrupt = [&cause]() -> bool { return to_int(cause) &
+consts::sign_bit_mask; }; enum { direct   = 0, vectored = 1,
+};
+
+  if (is_interrupt()){
+    uint8_t tvec_type = (tvec & consts::tvec_type_mask);
+    if (tvec_type == vectored) {
+      PC = (tvec & consts::tvec_base_addr_mask) + 4 * (to_int(cause) &
+                                                       consts::msb_zero_mask);
+    }
+  } else {
+    PC = (tvec & consts::tvec_base_addr_mask);
+  }
+  */
+}
+
 void iss_model::step() {
   uint32_t isn = mem.read_word(PC);
   fmt::print("\n{:>#12x}\t", PC);
@@ -13,8 +72,10 @@ void iss_model::step() {
   try {
     if (dec.is_illegal)
       throw sync_exception(trap_cause::exp_inst_illegal);
-    if (dec.is_breakpoint)
+    if (dec.is_breakpoint) {
+      fmt::print("\n\n{}\n\n", dec.rs2);
       throw sync_exception(trap_cause::exp_breakpoint);
+    }
     if (dec.is_ecall) {
       switch (mode) {
       case privilege_level::user:
@@ -31,67 +92,28 @@ void iss_model::step() {
     exec(dec);
 
     switch (dec.target) {
-    case pipeline_target::mem:
-      mem_phase(dec);
-      break;
-    case pipeline_target::alu:
-    case pipeline_target::branch:
-      break;
     case pipeline_target::csr:
       csr(dec);
       PC = PC + 4;
       break;
-    case pipeline_target::tret:
-      return;
+    case pipeline_target::mem:
+      mem_phase(dec);
+    case pipeline_target::alu:
+    case pipeline_target::branch:
+      break;
+    case pipeline_target::mret:
+      handle_mret();
     }
 
     wb_retire_phase(dec);
   }
 
   catch (sync_exception &ex) {
-    auto is_fatal = [](trap_cause cause) {
-      switch (cause) {
-      case trap_cause::exp_inst_access_fault:
-        return true;
-      default:
-        return false;
-      }
-    };
-
-    uint16_t privilege_base = to_int(mode) << 8;
-    auto     cause          = ex.cause();
-    assert((to_int(cause) & consts::sign_bit_mask) == 0);
-
-    //fmt::print(fg(fmt::color{0x333533}), "{} ", ex.what());
-    fmt::print(fg(fmt::color{0xCFDBD5}), "{} ", ex.what());
-
-    cf.write(privilege_base | to_int(csr::ucause), to_int(cause));
-    cf.write(privilege_base | to_int(csr::utval), 0);
-
-    if (is_fatal(cause))
-      throw std::runtime_error("exception is fatal");
-
-    cf.write(privilege_base | to_int(csr::uepc), PC + 4);
-
-    auto tvec = cf.read(privilege_base | to_int(csr::utvec));
-
-    PC = (tvec & consts::tvec_base_addr_mask);
+    fmt::print(fg(fmt::color{0xCFDBD5}), "{} ",
+               static_cast<uint32_t>(ex.cause()));
+    fmt::print(fg(fmt::color{0xCFDBD5}), " {} ", ex.what());
+    trap_setup(ex.cause());
   }
-
-  /* auto is_interrupt = [&cause]() -> bool { return to_int(cause) &
-  consts::sign_bit_mask; }; enum { direct   = 0, vectored = 1,
-  };
-
-   if (is_interrupt()){
-     uint8_t tvec_type = (tvec & consts::tvec_type_mask);
-     if (tvec_type == vectored) {
-       PC = (tvec & consts::tvec_base_addr_mask) + 4 * (to_int(cause) &
-  consts::msb_zero_mask);
-     }
-   } else {
-     PC = (tvec & consts::tvec_base_addr_mask);
-   }
-   */
 }
 
 void iss_model::exec(op &dec) {
@@ -99,13 +121,8 @@ void iss_model::exec(op &dec) {
   case pipeline_target::alu:
     exec_alu(dec);
     break;
-  case pipeline_target::mem:
-    break;
   case pipeline_target::branch:
     exec_alu_branch(dec);
-    break;
-  case pipeline_target::tret:
-    tret(dec);
     break;
   default:
     break;
@@ -303,7 +320,7 @@ void iss_model::wb_retire_alu(op &dec) {
 }
 
 void iss_model::csr(op &dec) {
-  //fmt::print(fg(fmt::color{0x242423}), "csr");
+  // fmt::print(fg(fmt::color{0x242423}), "csr");
 
   switch (std::get<csr_type>(dec.opt)) {
     using enum csr_type;
@@ -366,28 +383,16 @@ void iss_model::handle_sret() {
   sstat[consts::status_sie] = sstat[consts::status_spie];
   mode                      = static_cast<privilege_level>(
       static_cast<uint8_t>(sstat[consts::status_spp]));
-  sstat[consts::status_spie] = true;
-  sstat[consts::status_spp]  = true;
+  sstat[consts::status_spie] = false;
+  sstat[consts::status_spp]  = false;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
   PC = cf.read(to_int(csr::sepc));
 }
 
-void iss_model::tret(op &op) {
-  switch (std::get<trap_ret_type>(op.opt)) {
-    using enum trap_ret_type;
-  case mret:
-    handle_mret();
-    break;
-  case sret:
-    handle_sret();
-    break;
-  default:
-    break;
-  }
-}
-
 iss_model::iss_model(loader l, sparse_memory &mem)
     : mem(mem), tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
+
+  fmt::print("PC is set to {:x}\n", PC);
   // Set read-only CSRs
 
   // TODO: These CSRs may later be loaded during the boot process.
