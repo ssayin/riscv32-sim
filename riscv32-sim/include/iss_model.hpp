@@ -26,7 +26,6 @@ class iss_model {
 
   privilege_level mode = privilege_level::machine;
 
-  bool terminate = false;
 
   void exec(op &dec);
   void exec_alu(op &dec);
@@ -46,7 +45,7 @@ class iss_model {
   void handle_sret();
 
 public:
-  bool done() const { return terminate; }
+  int done() const { return mem.read_word(tohost_addr); }
   void step();
 
   iss_model(loader l, sparse_memory &mem);

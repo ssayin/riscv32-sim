@@ -42,7 +42,9 @@ void iss_model::trap_setup(trap_cause cause)
       fmt::print(fg(fmt::color{0xCFDBD5}),
                  "handling ecall, x17 is 93, x10 is {}. x2 is {}\n",
                  static_cast<int32_t>(rf.read(10)),static_cast<int32_t>(rf.read(2)));
-      terminate = true;
+
+      // no gp, tohost=0 does not exit, now a0 <= 100000 trouble
+      mem.write_word(tohost_addr, rf.read(10) - 100000);
     }
     break;
   }
@@ -263,13 +265,6 @@ void iss_model::mem_phase(op &dec) {
   case sw:
     mem.write_word(alu_out, rf.read(dec.rs2));
     break;
-  }
-
-  // crt: _exit() sets tohost to exit code
-  if (alu_out == tohost_addr) {
-    fmt::print(fg(fmt::color{0xCFDBD5}), "Called _exit with return code: {}\n",
-               static_cast<int32_t>(rf.read(dec.rs2)));
-    terminate = true;
   }
 }
 

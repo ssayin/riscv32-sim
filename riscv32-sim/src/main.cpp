@@ -11,11 +11,13 @@ int main(int argc, char **argv) {
 
   sparse_memory mem;
   iss_model     model{loader(argv[1], mem), mem};
+  int stat;
 
-  while (!model.done()) {
+  while (!(stat = model.done())) {
     model.step();
-    //std::cin.get();
   }
+
+  fmt::print("Exited with {}\n", stat + 100000);
 
   return 0;
 }
