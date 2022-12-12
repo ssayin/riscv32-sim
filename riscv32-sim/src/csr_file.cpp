@@ -21,7 +21,7 @@ void csr_file::write(uint32_t addr, uint32_t v) {
   if (is_readonly(addr) || (priv(addr) > to_int(mode)))
     throw sync_exception(trap_cause::exp_inst_illegal);
 
-  fmt::print("csr[{:#x}] <= {:#x}\t", addr, v); 
+  //fmt::print("csr[{:#x}] <= {:#x}\t", addr, v);
   csrs[addr] = v;
 }
 

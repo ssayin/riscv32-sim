@@ -9,6 +9,7 @@
 #include "loader.hpp"
 #include "reg_file.hpp"
 #include "sparse_memory.hpp"
+#include "program_counter.hpp"
 
 #include <array>
 #include <cstdint>
@@ -18,9 +19,11 @@ class iss_model {
   reg_file      rf{};
   csr_file      cf;
 
+  bool _done = false;
+
   const uint32_t tohost_addr;
 
-  uint32_t PC{0};
+  program_counter PC;
   uint32_t alu_out{};
   uint32_t mem_out{};
 
@@ -45,7 +48,8 @@ class iss_model {
   void handle_sret();
 
 public:
-  int done() const { return mem.read_word(tohost_addr); }
+  bool done() const { return _done; }
+  uint32_t tohost() const { return mem.read_word(tohost_addr); }
   void step();
 
   iss_model(loader l, sparse_memory &mem);

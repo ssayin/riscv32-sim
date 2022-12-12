@@ -4,6 +4,20 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 
+iss_model::iss_model(loader l, sparse_memory &mem)
+    : mem(mem), tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
+
+  mem.write_word(tohost_addr, 0);
+  fmt::print("PC is set to {:x}\n", static_cast<uint32_t>(PC));
+  // Set read-only CSRs
+
+  // TODO: These CSRs may later be loaded during the boot process.
+  cf.write(to_int(csr::misa), misa_value);
+  cf.write(to_int(csr::sstatus), 0b1 << 8);
+  cf.write(to_int(csr::mstatus), 0b11 << 11);
+}
+
+
 void iss_model::trap_setup(trap_cause cause)
 {
   auto is_fatal = [](trap_cause cause) {
@@ -24,11 +38,11 @@ void iss_model::trap_setup(trap_cause cause)
   if (is_fatal(cause))
     throw std::runtime_error("exception is fatal");
 
-  cf.write(privilege_base | to_int(csr::uepc), PC + 4);
+  cf.write(privilege_base | to_int(csr::uepc), PC);
 
   auto tvec = cf.read(privilege_base | to_int(csr::utvec));
 
-  PC = (tvec & consts::tvec_base_addr_mask);
+  PC.set((tvec & consts::tvec_base_addr_mask));
 
   /*
      * syscall handler for testing
@@ -43,8 +57,8 @@ void iss_model::trap_setup(trap_cause cause)
                  "handling ecall, x17 is 93, x10 is {}. x2 is {}\n",
                  static_cast<int32_t>(rf.read(10)),static_cast<int32_t>(rf.read(2)));
 
-      // no gp, tohost=0 does not exit, now a0 <= 100000 trouble
-      mem.write_word(tohost_addr, rf.read(10) - 100000);
+      mem.write_word(tohost_addr, rf.read(10));
+      _done = true;
     }
     break;
   }
@@ -66,8 +80,9 @@ consts::sign_bit_mask; }; enum { direct   = 0, vectored = 1,
 }
 
 void iss_model::step() {
+  PC.set(PC + 4);
   uint32_t isn = mem.read_word(PC);
-  fmt::print("\n{:>#12x}\t", PC);
+  fmt::print("\n{:>#12x}\t", static_cast<uint32_t>(PC));
   fmt::print("{:>#12x}\t", isn);
   op dec = decode(isn);
 
@@ -96,7 +111,6 @@ void iss_model::step() {
     switch (dec.target) {
     case pipeline_target::csr:
       csr(dec);
-      PC = PC + 4;
       break;
     case pipeline_target::mem:
       mem_phase(dec);
@@ -105,6 +119,7 @@ void iss_model::step() {
       break;
     case pipeline_target::mret:
       handle_mret();
+      break;
     }
 
     wb_retire_phase(dec);
@@ -116,6 +131,8 @@ void iss_model::step() {
     fmt::print(fg(fmt::color{0xCFDBD5}), " {} ", ex.what());
     trap_setup(ex.cause());
   }
+
+  PC.update();
 }
 
 void iss_model::exec(op &dec) {
@@ -266,19 +283,20 @@ void iss_model::mem_phase(op &dec) {
     mem.write_word(alu_out, rf.read(dec.rs2));
     break;
   }
+
+  _done = (alu_out == tohost_addr);
 }
 
 void iss_model::wb_retire_phase(op &dec) {
   switch (dec.target) {
   case pipeline_target::mem:
     wb_retire_ls(dec);
-    PC += 4;
     break;
   case pipeline_target::alu:
     wb_retire_alu(dec);
     break;
   case pipeline_target::branch:
-    PC = PC + (alu_out ? dec.imm : 4);
+    PC.set(PC + (alu_out ? dec.imm : 4));
     break;
   default:
     break;
@@ -305,11 +323,10 @@ void iss_model::wb_retire_alu(op &dec) {
   case alu_type::_jal:
   case alu_type::_jalr:
     rf.write(dec.rd, PC + 4);
-    PC = alu_out;
+    PC.set(alu_out);
     break;
   default:
     rf.write(dec.rd, alu_out);
-    PC = PC + 4;
     break;
   }
 }
@@ -369,8 +386,10 @@ void iss_model::handle_mret() {
   mstat[consts::status_mpp]     = true;
   mstat[consts::status_mpp + 1] = true;
   cf.write(to_int(csr::mstatus), mstat.to_ulong());
-  PC   = cf.read(to_int(csr::mepc));
+  PC.set(cf.read(to_int(csr::mepc)) + 4);
   mode = mode_tmp;
+
+  //fmt::print("\tReturning to {:x}", static_cast<uint32_t>(PC));
 }
 
 void iss_model::handle_sret() {
@@ -381,17 +400,5 @@ void iss_model::handle_sret() {
   sstat[consts::status_spie] = false;
   sstat[consts::status_spp]  = false;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
-  PC = cf.read(to_int(csr::sepc));
-}
-
-iss_model::iss_model(loader l, sparse_memory &mem)
-    : mem(mem), tohost_addr{l.symbol("tohost")}, PC{l.entry()}, cf{mode} {
-
-  fmt::print("PC is set to {:x}\n", PC);
-  // Set read-only CSRs
-
-  // TODO: These CSRs may later be loaded during the boot process.
-  cf.write(to_int(csr::misa), misa_value);
-  cf.write(to_int(csr::sstatus), 0b1 << 8);
-  cf.write(to_int(csr::mstatus), 0b11 << 11);
+  PC.set(cf.read(to_int(csr::sepc)) + 4);
 }
