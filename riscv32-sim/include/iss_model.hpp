@@ -1,34 +1,33 @@
 #ifndef RISCV32_SIM_ISS_MODEL_HPP
 #define RISCV32_SIM_ISS_MODEL_HPP
 
+#include "common/csr.hpp"
+#include "common/trap_cause.hpp"
 #include "config.hpp"
 #include "csr_file.hpp"
 #include "decoder.hpp"
-#include "common/csr.hpp"
-#include "common/trap_cause.hpp"
 #include "loader.hpp"
+#include "program_counter.hpp"
 #include "reg_file.hpp"
 #include "sparse_memory.hpp"
-#include "program_counter.hpp"
 
 #include <array>
 #include <cstdint>
 
 class iss_model {
-  sparse_memory& mem;
-  reg_file      rf{};
-  csr_file      cf;
+  sparse_memory &mem;
+  reg_file       rf{};
+  csr_file       cf;
 
   bool _done = false;
 
   const uint32_t tohost_addr;
 
   program_counter PC;
-  uint32_t alu_out{};
-  uint32_t mem_out{};
+  uint32_t        alu_out{};
+  uint32_t        mem_out{};
 
   privilege_level mode = privilege_level::machine;
-
 
   void exec(op &dec);
   void exec_alu(op &dec);
@@ -48,9 +47,9 @@ class iss_model {
   void handle_sret();
 
 public:
-  bool done() const { return _done; }
+  bool     done() const { return _done; }
   uint32_t tohost() const { return mem.read_word(tohost_addr); }
-  void step();
+  void     step();
 
   iss_model(loader l, sparse_memory &mem);
 };

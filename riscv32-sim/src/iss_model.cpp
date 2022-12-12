@@ -17,9 +17,7 @@ iss_model::iss_model(loader l, sparse_memory &mem)
   cf.write(to_int(csr::mstatus), 0b11 << 11);
 }
 
-
-void iss_model::trap_setup(trap_cause cause)
-{
+void iss_model::trap_setup(trap_cause cause) {
   auto is_fatal = [](trap_cause cause) {
     switch (cause) {
     case trap_cause::exp_inst_access_fault:
@@ -29,7 +27,7 @@ void iss_model::trap_setup(trap_cause cause)
     }
   };
 
-  uint16_t   privilege_base = to_int(mode) << 8;
+  uint16_t privilege_base = to_int(mode) << 8;
   assert((to_int(cause) & consts::sign_bit_mask) == 0);
 
   cf.write(privilege_base | to_int(csr::ucause), to_int(cause));
@@ -38,14 +36,15 @@ void iss_model::trap_setup(trap_cause cause)
   if (is_fatal(cause))
     throw std::runtime_error("exception is fatal");
 
-  cf.write(privilege_base | to_int(csr::uepc), PC);
+  cf.write(privilege_base | to_int(csr::uepc),
+           PC & consts::tvec_base_addr_mask);
 
   auto tvec = cf.read(privilege_base | to_int(csr::utvec));
 
-  PC.set((tvec & consts::tvec_base_addr_mask));
+  PC.set((tvec & consts::tvec_base_addr_mask) + 4);
 
   /*
-     * syscall handler for testing
+   * syscall handler for testing
    */
   switch (cause) {
   case trap_cause::exp_ecall_from_hs_mode:
@@ -55,7 +54,8 @@ void iss_model::trap_setup(trap_cause cause)
     if (rf.read(17) == 93) {
       fmt::print(fg(fmt::color{0xCFDBD5}),
                  "handling ecall, x17 is 93, x10 is {}. x2 is {}\n",
-                 static_cast<int32_t>(rf.read(10)),static_cast<int32_t>(rf.read(2)));
+                 static_cast<int32_t>(rf.read(10)),
+                 static_cast<int32_t>(rf.read(2)));
 
       mem.write_word(tohost_addr, rf.read(10));
       _done = true;
@@ -386,10 +386,10 @@ void iss_model::handle_mret() {
   mstat[consts::status_mpp]     = true;
   mstat[consts::status_mpp + 1] = true;
   cf.write(to_int(csr::mstatus), mstat.to_ulong());
-  PC.set(cf.read(to_int(csr::mepc)) + 4);
+  PC.set(cf.read(to_int(csr::mepc)));
   mode = mode_tmp;
 
-  //fmt::print("\tReturning to {:x}", static_cast<uint32_t>(PC));
+  // fmt::print("\tReturning to {:x}", static_cast<uint32_t>(PC));
 }
 
 void iss_model::handle_sret() {
@@ -400,5 +400,5 @@ void iss_model::handle_sret() {
   sstat[consts::status_spie] = false;
   sstat[consts::status_spp]  = false;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
-  PC.set(cf.read(to_int(csr::sepc)) + 4);
+  PC.set(cf.read(to_int(csr::sepc)));
 }

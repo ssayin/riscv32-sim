@@ -3,9 +3,9 @@
 
 #include "common/types.hpp"
 #include <elfio/elfio.hpp>
-#include <string>
-#include <fmt/printf.h>
 #include <elfio/elfio_dump.hpp>
+#include <fmt/printf.h>
+#include <string>
 
 class loader {
   ELFIO::elfio reader;
@@ -31,15 +31,15 @@ loader::loader(const std::string &file_name, MM &mem) {
   if (reader.segments.size() == 0)
     throw std::runtime_error("Loaded ELF has no segments");
 
-  ELFIO::dump::header( std::cout, reader );
-  ELFIO::dump::section_headers( std::cout, reader );
-  ELFIO::dump::segment_headers( std::cout, reader );
-  ELFIO::dump::symbol_tables( std::cout, reader );
-  ELFIO::dump::notes( std::cout, reader );
-  ELFIO::dump::modinfo( std::cout, reader );
-  ELFIO::dump::dynamic_tags( std::cout, reader );
-  ELFIO::dump::section_datas( std::cout, reader );
-  ELFIO::dump::segment_datas( std::cout, reader );
+  ELFIO::dump::header(std::cout, reader);
+  ELFIO::dump::section_headers(std::cout, reader);
+  ELFIO::dump::segment_headers(std::cout, reader);
+  ELFIO::dump::symbol_tables(std::cout, reader);
+  ELFIO::dump::notes(std::cout, reader);
+  ELFIO::dump::modinfo(std::cout, reader);
+  ELFIO::dump::dynamic_tags(std::cout, reader);
+  ELFIO::dump::section_datas(std::cout, reader);
+  ELFIO::dump::segment_datas(std::cout, reader);
 
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
@@ -49,16 +49,15 @@ loader::loader(const std::string &file_name, MM &mem) {
                   }
                 });
 
-  std::for_each(reader.sections.begin(), reader.sections.end(), [&](std::unique_ptr<ELFIO::section> &s) {
-    fmt::print("{} {}\n", s->get_name(), s->get_flags());
-  }
- );
+  std::for_each(reader.sections.begin(), reader.sections.end(),
+                [&](std::unique_ptr<ELFIO::section> &s) {
+                  fmt::print("{} {}\n", s->get_name(), s->get_flags());
+                });
 
   const ELFIO::section                *sec = reader.sections[".symtab"];
   ELFIO::const_symbol_section_accessor symbols(reader, sec);
 
   for (int i = 0; i < symbols.get_symbols_num(); ++i) {
-
   }
 }
 

@@ -28,7 +28,9 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (!page.contains(off & mask))
-    throw std::runtime_error(fmt::format("{} {} tried to read uninitialized memory {:x}", __FILE__, __LINE__, off));
+    throw std::runtime_error(
+        fmt::format("{} {} tried to read uninitialized memory {:x}", __FILE__,
+                    __LINE__, off));
   return page[off & mask].get()[offset<0u, 11u>(off)];
 }
 
