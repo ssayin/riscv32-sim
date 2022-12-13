@@ -9,7 +9,10 @@ enum class pipeline_target : uint8_t {
   alu,
   branch,
   csr,
-  mret
+  mret,
+  illegal,
+  ebreak,
+  ecall
 };
 
 enum class alu_type : uint8_t {
@@ -76,16 +79,12 @@ struct op {
   uint8_t         rs1;
   uint8_t         rs2;
   bool            has_imm;
-  bool            is_illegal;
-  bool            is_breakpoint;
-  bool            is_ecall;
 
   constexpr op(bool has_imm, uint8_t rd, uint8_t rs1, uint8_t rs2, op_type opt,
                pipeline_target target, uint32_t imm, bool is_illegal = false,
                bool is_breakpoint = false, bool is_ecall = false)
       : has_imm{has_imm}, rd{rd}, rs1{rs1}, rs2{rs2}, opt{opt}, target{target},
-        imm{imm}, is_illegal{is_illegal},
-        is_breakpoint{is_breakpoint}, is_ecall{is_ecall} {};
+        imm{imm} {}
 };
 
 op decode(uint32_t word);

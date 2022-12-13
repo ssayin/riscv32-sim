@@ -13,17 +13,17 @@ constexpr op make_NOP() {
   return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
 }
 
-constexpr op make_illegal() { return {{}, {}, {}, {}, {}, {}, {}, true}; }
+constexpr op make_illegal() { return {{}, {}, {}, {}, {}, {}, {}}; }
 
 op decode(uint32_t word) {
   switch (word) {
     // ecall
   case 0x73:
-    return {{}, {}, {}, {}, {}, {}, {}, false, false, true};
+    return {{}, {}, {}, {}, {}, pipeline_target::ecall, {}};
 
     // ebreak
   case 0x9002:
-    return {{}, {}, {}, {}, {}, {}, {}, false, true, false};
+    return {{}, {}, {}, {}, {}, pipeline_target::ebreak, {}};
 
     // mret
   case 0x30200073:

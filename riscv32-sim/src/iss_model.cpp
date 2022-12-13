@@ -87,13 +87,13 @@ void iss_model::step() {
   op dec = decode(isn);
 
   try {
-    if (dec.is_illegal)
+    if (dec.target == pipeline_target::illegal)
       throw sync_exception(trap_cause::exp_inst_illegal);
-    if (dec.is_breakpoint) {
+    if (dec.target == pipeline_target::ebreak) {
       fmt::print("\n\n{}\n\n", dec.rs2);
       throw sync_exception(trap_cause::exp_breakpoint);
     }
-    if (dec.is_ecall) {
+    if (dec.target == pipeline_target::ecall) {
       switch (mode) {
       case privilege_level::user:
         throw sync_exception(trap_cause::exp_ecall_from_u_vu_mode);
