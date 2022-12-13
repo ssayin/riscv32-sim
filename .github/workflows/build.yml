@@ -13,7 +13,7 @@ jobs:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-22.04
     env:
-      BUILD_TYPE: debug 
+      BUILD_TYPE: Debug 
       SONAR_SCANNER_VERSION: 4.6.1.2450 # Find the latest version in the "Linux" link on this page:
       RISCV32_TOOLCHAIN_GZIP: riscv32-embecosm-gcc-ubuntu2204-20221030
       # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
@@ -68,20 +68,13 @@ jobs:
           # make
           # make install
 
-      - name: Generate compilation database
+      - name: Build & Test 
         shell: bash
         run: |
-          mkdir build
+          mkdir ${{env.BUILD_TYPE}}
           cmake -DBUILD_TESTS=ON -S . -B ${{env.BUILD_TYPE}} 
-          cd ${{env.BUILD_TYPE}} 
-          make
-          cd ..
-
-      - name: Test
-        working-directory: ${{github.workspace}}/${{env.BUILD_TYPE}}
-        run: |
-          cd test
-          ctest
+          make -C ${{env.BUILD_TYPE}}
+          ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}/test
 
       - name: Cache SonarQube packages
         uses: actions/cache@v3

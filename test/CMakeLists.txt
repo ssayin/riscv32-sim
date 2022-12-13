@@ -1,2 +1,3 @@
-add_subdirectory(isa)
+enable_testing()
 add_subdirectory(gtest)
+add_subdirectory(isa)
