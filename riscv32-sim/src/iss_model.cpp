@@ -37,11 +37,11 @@ void iss_model::trap_setup(trap_cause cause) {
     throw std::runtime_error("exception is fatal");
 
   cf.write(privilege_base | to_int(csr::uepc),
-           PC & consts::tvec_base_addr_mask);
+           (PC + 4) & consts::tvec_base_addr_mask);
 
   auto tvec = cf.read(privilege_base | to_int(csr::utvec));
 
-  PC.set((tvec & consts::tvec_base_addr_mask) + 4);
+  PC.set(tvec & consts::tvec_base_addr_mask);
 
   /*
    * syscall handler for testing
@@ -87,13 +87,13 @@ void iss_model::step() {
   op dec = decode(isn);
 
   try {
-    if (dec.target == pipeline_target::illegal)
+    if (dec.tgt == target::illegal)
       throw sync_exception(trap_cause::exp_inst_illegal);
-    if (dec.target == pipeline_target::ebreak) {
+    if (dec.tgt == target::ebreak) {
       fmt::print("\n\n{}\n\n", dec.rs2);
       throw sync_exception(trap_cause::exp_breakpoint);
     }
-    if (dec.target == pipeline_target::ecall) {
+    if (dec.tgt == target::ecall) {
       switch (mode) {
       case privilege_level::user:
         throw sync_exception(trap_cause::exp_ecall_from_u_vu_mode);
@@ -108,17 +108,19 @@ void iss_model::step() {
 
     exec(dec);
 
-    switch (dec.target) {
-    case pipeline_target::csr:
+    switch (dec.tgt) {
+    case target::csr:
       csr(dec);
       break;
-    case pipeline_target::mem:
+    case target::mem:
       mem_phase(dec);
-    case pipeline_target::alu:
-    case pipeline_target::branch:
+    case target::alu:
+    case target::branch:
       break;
-    case pipeline_target::mret:
+    case target::mret:
       handle_mret();
+      break;
+    default:
       break;
     }
 
@@ -136,11 +138,11 @@ void iss_model::step() {
 }
 
 void iss_model::exec(op &dec) {
-  switch (dec.target) {
-  case pipeline_target::alu:
+  switch (dec.tgt) {
+  case target::alu:
     exec_alu(dec);
     break;
-  case pipeline_target::branch:
+  case target::branch:
     exec_alu_branch(dec);
     break;
   default:
@@ -152,8 +154,8 @@ void iss_model::exec_alu(op &dec) {
   uint32_t opd1 = rf.read(dec.rs1);
   uint32_t opd2 = dec.has_imm ? dec.imm : rf.read(dec.rs2);
 
-  switch (std::get<alu_type>(dec.opt)) {
-    using enum alu_type;
+  switch (std::get<alu>(dec.opt)) {
+    using enum alu;
   case _or:
     alu_out = opd1 | opd2;
     break;
@@ -251,7 +253,7 @@ void iss_model::exec_alu_branch(op &dec) {
 }
 
 void iss_model::mem_phase(op &dec) {
-  if (dec.target != pipeline_target::mem)
+  if (dec.tgt != target::mem)
     return;
 
   alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
@@ -296,14 +298,14 @@ void iss_model::mem_phase(op &dec) {
 }
 
 void iss_model::wb_retire_phase(op &dec) {
-  switch (dec.target) {
-  case pipeline_target::mem:
+  switch (dec.tgt) {
+  case target::mem:
     wb_retire_ls(dec);
     break;
-  case pipeline_target::alu:
+  case target::alu:
     wb_retire_alu(dec);
     break;
-  case pipeline_target::branch:
+  case target::branch:
     PC.set(PC + (alu_out ? dec.imm : 4));
     break;
   default:
@@ -318,9 +320,9 @@ void iss_model::wb_retire_ls(op &dec) {
 }
 
 void iss_model::wb_retire_alu(op &dec) {
-  switch (std::get<alu_type>(dec.opt)) {
-  case alu_type::_jal:
-  case alu_type::_jalr:
+  switch (std::get<alu>(dec.opt)) {
+  case alu::_jal:
+  case alu::_jalr:
     rf.write(dec.rd, PC + 4);
     PC.set(alu_out);
     break;

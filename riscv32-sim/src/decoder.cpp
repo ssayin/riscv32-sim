@@ -9,25 +9,25 @@ static op decode_alu(uint32_t word);
 static op decode_sys(uint32_t word);
 static op decode_fence(uint32_t word);
 
-constexpr op make_NOP() {
-  return {true, 0, 0, 0, alu_type::_add, pipeline_target::alu, 0};
-}
+constexpr op make_NOP() { return op{0, alu::_add, target::alu, 0, 0, 0, true}; }
 
-constexpr op make_illegal() { return {{}, {}, {}, {}, {}, {}, {}}; }
+constexpr op make_illegal() {
+  return op{0, {}, target::illegal, 0, 0, 0, false};
+}
 
 op decode(uint32_t word) {
   switch (word) {
     // ecall
   case 0x73:
-    return {{}, {}, {}, {}, {}, pipeline_target::ecall, {}};
+    return op{0, {}, target::ecall, 0, 0, 0, false};
 
     // ebreak
   case 0x9002:
-    return {{}, {}, {}, {}, {}, pipeline_target::ebreak, {}};
+    return op{0, {}, target::ebreak, 0, 0, 0, false};
 
     // mret
   case 0x30200073:
-    return {false, 0, 0, 0, {}, pipeline_target::mret, 0};
+    return op{0, {}, target::mret, 0, 0, 0, false};
 
     // sret
   case 0x10200073:
@@ -42,21 +42,19 @@ op decode(uint32_t word) {
     using enum opcode;
   case auipc: {
     rv32_auipc isn{word};
-    return {true,   isn.rd, 0, 0, alu_type::_auipc, pipeline_target::alu,
-            isn.imm};
+    return op{isn.imm, alu::_auipc, target::alu, isn.rd, 0, 0, true};
   }
   case lui: {
     rv32_lui isn{word};
-    return {true, isn.rd, 0, 0, alu_type::_add, pipeline_target::alu, isn.imm};
+    return op{isn.imm, alu::_add, target::alu, isn.rd, 0, 0, true};
   }
   case jal: {
     rv32_jal isn{word};
-    return {true, isn.rd, 0, 0, alu_type::_jal, pipeline_target::alu, isn.imm};
+    return op{isn.imm, alu::_jal, target::alu, isn.rd, 0, 0, true};
   }
   case jalr: {
     rv32_jalr isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::_jalr, pipeline_target::alu,
-            isn.imm};
+    return op{isn.imm, alu::_jalr, target::alu, isn.rd, isn.rs, 0, true};
   }
   case load:
     return decode_load(word);
@@ -80,8 +78,7 @@ op decode(uint32_t word) {
 #define RV32_LOAD(name)                                                        \
   case load::name: {                                                           \
     rv32_##name isn{word};                                                     \
-    return {                                                                   \
-        true, isn.rd, isn.rs, 0, load::name, pipeline_target::mem, isn.imm};   \
+    return op{isn.imm, load::name, target::mem, isn.rd, isn.rs, 0, true};      \
   }
 
 static op decode_load(uint32_t word) {
@@ -101,8 +98,7 @@ static op decode_load(uint32_t word) {
 #define RV32_STORE(name)                                                       \
   case store::name: {                                                          \
     rv32_##name isn{word};                                                     \
-    return {true,   0, isn.rs1, isn.rs2, store::name, pipeline_target::mem,    \
-            isn.imm};                                                          \
+    return op{isn.imm, store::name, target::mem, 0, isn.rs1, isn.rs2, true};   \
   }
 
 op decode_store(uint32_t word) {
@@ -120,13 +116,7 @@ op decode_store(uint32_t word) {
 #define RV32_REG_REG(name, funct7)                                             \
   case funct7: {                                                               \
     rv32_##name isn{word};                                                     \
-    return {false,                                                             \
-            isn.rd,                                                            \
-            isn.rs1,                                                           \
-            isn.rs2,                                                           \
-            alu_type::_##name,                                                 \
-            pipeline_target::alu,                                              \
-            0};                                                                \
+    return op{0, alu::_##name, target::alu, isn.rd, isn.rs1, isn.rs2, false};  \
   }
 
 static op decode_alu_and_remu(uint32_t word) {
@@ -232,9 +222,7 @@ static op decode_alu(uint32_t word) {
 #define RV32_REG_IMM(name)                                                     \
   case name##i: {                                                              \
     rv32_##name##i isn{word};                                                  \
-    return {                                                                   \
-        true,   isn.rd, isn.rs, 0, alu_type::_##name, pipeline_target::alu,    \
-        isn.imm};                                                              \
+    return op{isn.imm, alu::_##name, target::alu, isn.rd, isn.rs, 0, true};    \
   }
 
 static op decode_reg_imm(uint32_t word) {
@@ -260,8 +248,7 @@ static op decode_reg_imm(uint32_t word) {
 
   case sltiu: {
     rv32_sltiu isn{word};
-    return {true,   isn.rd, isn.rs, 0, alu_type::_sltu, pipeline_target::alu,
-            isn.imm};
+    return op{isn.imm, alu::_sltu, target::alu, isn.rd, isn.rs, 0, true};
   }
   default:
     return make_illegal();
@@ -273,9 +260,8 @@ static op decode_reg_imm(uint32_t word) {
 #define RV32_BRANCH(name)                                                      \
   case branch::name: {                                                         \
     rv32_##name isn{word};                                                     \
-    return {                                                                   \
-        true,   0, isn.rs1, isn.rs2, branch::name, pipeline_target::branch,    \
-        isn.imm};                                                              \
+    return op{                                                                 \
+        isn.imm, branch::name, target::branch, 0, isn.rs1, isn.rs2, true};     \
   }
 
 static op decode_branch(uint32_t word) {
@@ -298,8 +284,7 @@ static op decode_fence(uint32_t word) { return make_NOP(); }
 #define RV32_CSR(name)                                                         \
   case sys::name: {                                                            \
     rv32_##name isn{word};                                                     \
-    return {                                                                   \
-        true, isn.rd, isn.rs, 0, sys::name, pipeline_target::csr, isn.csr};    \
+    return op{isn.csr, sys::name, target::csr, isn.rd, isn.rs, 0, true};       \
   }
 
 static op decode_sys(uint32_t word) {
