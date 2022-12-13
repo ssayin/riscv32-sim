@@ -3,7 +3,7 @@ include(riscv_test_env)
 
 set(SOURCES test1.S)
 
-set(SIM_BUILD_DIR "${PROJECT_SOURCE_DIR}/build/riscv32-sim")
+set(SIM_BUILD_DIR "${PROJECT_BINARY_DIR}/riscv32-sim")
 set(SIM_PROGRAM "${SIM_BUILD_DIR}/riscv32-sim")
 
 foreach(SRC ${SOURCES})

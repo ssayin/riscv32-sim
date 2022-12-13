@@ -1,14 +1,12 @@
 include(riscv)
 
-enable_testing()
-
 # set(CMAKE_C_FLAGS "-Os -g -Wall -ffunction-sections")
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/serdar.ld")
 set(CMAKE_EXE_LINKER_FLAGS
     "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -nodefaultlibs -fno-exceptions -T ${LINKER_SCRIPT}"
 )
 
-set(SIM_BUILD_DIR "${PROJECT_SOURCE_DIR}/build/riscv32-sim")
+set(SIM_BUILD_DIR "${PROJECT_BINARY_DIR}/riscv32-sim")
 set(SIM_PROGRAM "${SIM_BUILD_DIR}/riscv32-sim")
 
 add_library(serdar STATIC crt/crt.c)
