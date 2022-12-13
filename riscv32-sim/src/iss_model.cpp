@@ -227,8 +227,8 @@ void iss_model::exec_alu_branch(op &dec) {
   uint32_t opd1 = rf.read(dec.rs1);
   uint32_t opd2 = rf.read(dec.rs2);
 
-  switch (std::get<branch_type>(dec.opt)) {
-    using enum branch_type;
+  switch (std::get<branch>(dec.opt)) {
+    using enum branch;
   case beq:
     alu_out = opd1 == opd2;
     break;
@@ -256,35 +256,43 @@ void iss_model::mem_phase(op &dec) {
 
   alu_out = rf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
 
-  switch (std::get<mem_type>(dec.opt)) {
-    using enum mem_type;
-  case lb:
-    mem_out = (static_cast<int32_t>(mem.read_byte(alu_out)) << 24) >> 24;
-    break;
-  case lh:
-    mem_out = (static_cast<int32_t>(mem.read_half(alu_out)) << 16) >> 16;
-    break;
-  case lw:
-    mem_out = mem.read_word(alu_out);
-    break;
-  case lbu:
-    mem_out = mem.read_byte(alu_out);
-    break;
-  case lhu:
-    mem_out = mem.read_half(alu_out);
-    break;
-  case sb:
-    mem.write_byte(alu_out, rf.read(dec.rs2));
-    break;
-  case sh:
-    mem.write_half(alu_out, rf.read(dec.rs2));
-    break;
-  case sw:
-    mem.write_word(alu_out, rf.read(dec.rs2));
-    break;
+  if (std::holds_alternative<load>(dec.opt)) {
+    switch (std::get<load>(dec.opt)) {
+      using enum load;
+    case lb:
+      mem_out = (static_cast<int32_t>(mem.read_byte(alu_out)) << 24) >> 24;
+      break;
+    case lh:
+      mem_out = (static_cast<int32_t>(mem.read_half(alu_out)) << 16) >> 16;
+      break;
+    case lw:
+      mem_out = mem.read_word(alu_out);
+      break;
+    case lbu:
+      mem_out = mem.read_byte(alu_out);
+      break;
+    case lhu:
+      mem_out = mem.read_half(alu_out);
+      break;
+    }
   }
 
-  _done = (alu_out == tohost_addr);
+  if (std::holds_alternative<store>(dec.opt)) {
+    switch (std::get<store>(dec.opt)) {
+      using enum store;
+    case sb:
+      mem.write_byte(alu_out, rf.read(dec.rs2));
+      break;
+    case sh:
+      mem.write_half(alu_out, rf.read(dec.rs2));
+      break;
+    case sw:
+      mem.write_word(alu_out, rf.read(dec.rs2));
+      break;
+    }
+
+    _done = (alu_out == tohost_addr);
+  }
 }
 
 void iss_model::wb_retire_phase(op &dec) {
@@ -304,17 +312,8 @@ void iss_model::wb_retire_phase(op &dec) {
 }
 
 void iss_model::wb_retire_ls(op &dec) {
-  switch (std::get<mem_type>(dec.opt)) {
-    using enum mem_type;
-  case lb:
-  case lh:
-  case lw:
-  case lbu:
-  case lhu:
+  if (std::holds_alternative<load>(dec.opt)) {
     rf.write(dec.rd, mem_out);
-    break;
-  default:
-    break;
   }
 }
 
@@ -334,8 +333,8 @@ void iss_model::wb_retire_alu(op &dec) {
 void iss_model::csr(op &dec) {
   // fmt::print(fg(fmt::color{0x242423}), "csr");
 
-  switch (std::get<csr_type>(dec.opt)) {
-    using enum csr_type;
+  switch (std::get<sys>(dec.opt)) {
+    using enum sys;
   case csrrw: {
     uint32_t tmp = cf.read(dec.imm);
     cf.write(dec.imm, rf.read(dec.rs1));
@@ -373,6 +372,10 @@ void iss_model::csr(op &dec) {
     cf.write(dec.imm, (!dec.rs1) & tmp);
     rf.write(dec.rd, tmp);
   } break;
+
+  case other:
+    // how did I end up here?
+    break;
   }
 }
 

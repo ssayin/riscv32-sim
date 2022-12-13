@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <variant>
 
+#include "common/masks.hpp"
+
 enum class pipeline_target : uint8_t {
   mem,
   alu,
@@ -39,37 +41,8 @@ enum class alu_type : uint8_t {
   _jalr,
 };
 
-enum class mem_type : uint8_t {
-  lb,
-  lh,
-  lw,
-  lbu,
-  lhu,
-  sb,
-  sh,
-  sw,
-};
-
-enum class branch_type : uint8_t {
-  beq,
-  bne,
-  blt,
-  bltu,
-  bge,
-  bgeu,
-};
-
-enum class csr_type : uint8_t {
-  csrrw,
-  csrrs,
-  csrrc,
-  csrrwi,
-  csrrsi,
-  csrrci,
-};
-
 using op_type =
-    std::variant<std::monostate, alu_type, mem_type, branch_type, csr_type>;
+    std::variant<std::monostate, alu_type, load, store, branch, sys>;
 
 struct op {
   uint32_t        imm;

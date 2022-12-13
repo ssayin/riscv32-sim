@@ -80,8 +80,8 @@ op decode(uint32_t word) {
 #define RV32_LOAD(name)                                                        \
   case load::name: {                                                           \
     rv32_##name isn{word};                                                     \
-    return {true,   isn.rd, isn.rs, 0, mem_type::name, pipeline_target::mem,   \
-            isn.imm};                                                          \
+    return {                                                                   \
+        true, isn.rd, isn.rs, 0, load::name, pipeline_target::mem, isn.imm};   \
   }
 
 static op decode_load(uint32_t word) {
@@ -101,7 +101,7 @@ static op decode_load(uint32_t word) {
 #define RV32_STORE(name)                                                       \
   case store::name: {                                                          \
     rv32_##name isn{word};                                                     \
-    return {true,   0, isn.rs1, isn.rs2, mem_type::name, pipeline_target::mem, \
+    return {true,   0, isn.rs1, isn.rs2, store::name, pipeline_target::mem,    \
             isn.imm};                                                          \
   }
 
@@ -273,13 +273,9 @@ static op decode_reg_imm(uint32_t word) {
 #define RV32_BRANCH(name)                                                      \
   case branch::name: {                                                         \
     rv32_##name isn{word};                                                     \
-    return {true,                                                              \
-            0,                                                                 \
-            isn.rs1,                                                           \
-            isn.rs2,                                                           \
-            branch_type::name,                                                 \
-            pipeline_target::branch,                                           \
-            isn.imm};                                                          \
+    return {                                                                   \
+        true,   0, isn.rs1, isn.rs2, branch::name, pipeline_target::branch,    \
+        isn.imm};                                                              \
   }
 
 static op decode_branch(uint32_t word) {
@@ -302,8 +298,8 @@ static op decode_fence(uint32_t word) { return make_NOP(); }
 #define RV32_CSR(name)                                                         \
   case sys::name: {                                                            \
     rv32_##name isn{word};                                                     \
-    return {true,   isn.rd, isn.rs, 0, csr_type::name, pipeline_target::csr,   \
-            isn.csr};                                                          \
+    return {                                                                   \
+        true, isn.rd, isn.rs, 0, sys::name, pipeline_target::csr, isn.csr};    \
   }
 
 static op decode_sys(uint32_t word) {
@@ -315,6 +311,7 @@ static op decode_sys(uint32_t word) {
     RV32_CSR(csrrsi)
     RV32_CSR(csrrci)
   default:
+    // those are covered in decode(...), this is an unimplemented system instr
     return make_illegal();
   }
 }
