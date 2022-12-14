@@ -13,6 +13,8 @@ consteval uint32_t operator"" _MISA(const char *isa, size_t) {
   return std::accumulate(str.begin(), str.end(), 0x0, sel);
 }
 
-constexpr uint32_t RV32 = (1 << 30);
+constexpr static uint32_t RV32 = (1 << 30);
+
+constinit static uint32_t misa_value = "IMS"_MISA | RV32;
 
 #endif // RISCV32_SIM_MISA_HPP

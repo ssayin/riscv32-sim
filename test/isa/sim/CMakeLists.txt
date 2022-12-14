@@ -25,5 +25,6 @@ foreach(SRC ${SOURCES})
   target_link_libraries(${TARGET} PRIVATE serdar)
   add_test(NAME ${TARGET} COMMAND ${SIM_PROGRAM} $<TARGET_FILE:${TARGET}>)
   list(GET ${SRC} 0 EXPECTED)
-  set_tests_properties(${TARGET} PROPERTIES PASS_REGULAR_EXPRESSION "Exited with ${EXPECTED}")
+  set_tests_properties(${TARGET} PROPERTIES PASS_REGULAR_EXPRESSION
+                                            "Exited with ${EXPECTED}")
 endforeach()

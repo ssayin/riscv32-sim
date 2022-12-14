@@ -1,20 +1,28 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.23.2)
 
 project(riscv32-sim LANGUAGES CXX C ASM)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  option(BUILD_TESTS "" OFF)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+  set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+  if(BUILD_TESTS)
+    include(CTest)
+  endif()
+endif()
 
 add_subdirectory(external)
 add_subdirectory(riscv32-sim)
 
-option(BUILD_TESTS "" OFF)
-
-if(BUILD_TESTS)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTS)
   add_subdirectory(test)
 endif()

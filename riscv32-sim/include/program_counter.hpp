@@ -13,8 +13,9 @@ public:
   program_counter(const program_counter &)       = delete;
   program_counter &operator=(program_counter &&) = delete;
   program_counter &operator=(program_counter &)  = delete;
+  ~program_counter()                             = default;
 
-  operator uint32_t() { return pc; }
+  operator uint32_t() const { return pc; }
 
 private:
   uint32_t pc_next = 0;

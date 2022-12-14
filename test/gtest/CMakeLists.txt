@@ -2,8 +2,7 @@ include(FetchContent)
 
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
-      DOWNLOAD_EXTRACT_TIMESTAMP true)
+  URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip)
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt
     ON
@@ -24,4 +23,4 @@ macro(add_unit_test TEST)
 endmacro()
 
 add_unit_test(sparse_memory_test sparse_memory_test.cc
-              ${PROJECT_SOURCE_DIR}/riscv32-sim/src/sparse_memory.cpp)
+              ${PROJECT_SOURCE_DIR}/riscv32-sim/src/memory/sparse_memory.cpp)

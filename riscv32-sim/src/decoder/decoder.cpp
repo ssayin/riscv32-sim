@@ -1,5 +1,5 @@
-#include "decoder.hpp"
-#include "rv32_isn.hpp"
+#include "decoder/decoder.hpp"
+#include "instr/rv32_isn.hpp"
 
 static op decode_load(uint32_t word);
 static op decode_store(uint32_t word);
@@ -17,20 +17,13 @@ constexpr op make_illegal() {
 
 op decode(uint32_t word) {
   switch (word) {
-    // ecall
-  case 0x73:
+  case ecall:
     return op{0, {}, target::ecall, 0, 0, 0, false};
-
-    // ebreak
-  case 0x9002:
+  case ebreak:
     return op{0, {}, target::ebreak, 0, 0, 0, false};
-
-    // mret
-  case 0x30200073:
+  case mret:
     return op{0, {}, target::mret, 0, 0, 0, false};
-
-    // sret
-  case 0x10200073:
+  case sret:
     return make_NOP();
 
     // wfi
@@ -82,7 +75,7 @@ op decode(uint32_t word) {
   }
 
 static op decode_load(uint32_t word) {
-  switch (static_cast<load>(FUNCT3(word))) {
+  switch (static_cast<load>(FUNCT_3(word))) {
     RV32_LOAD(lb)
     RV32_LOAD(lh)
     RV32_LOAD(lw)
@@ -102,7 +95,7 @@ static op decode_load(uint32_t word) {
   }
 
 op decode_store(uint32_t word) {
-  switch (static_cast<store>(FUNCT3(word))) {
+  switch (static_cast<store>(FUNCT_3(word))) {
     RV32_STORE(sb)
     RV32_STORE(sh)
     RV32_STORE(sw)
@@ -120,7 +113,7 @@ op decode_store(uint32_t word) {
   }
 
 static op decode_alu_and_remu(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(and, 0x0)
     RV32_REG_REG(remu, 0x1)
   default:
@@ -129,7 +122,7 @@ static op decode_alu_and_remu(uint32_t word) {
 }
 
 static op decode_alu_or_rem(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(or, 0x0)
     RV32_REG_REG(rem, 0x1)
   default:
@@ -138,7 +131,7 @@ static op decode_alu_or_rem(uint32_t word) {
 }
 
 static op decode_alu_xor_div(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(xor, 0x0)
     RV32_REG_REG(div, 0x1)
   default:
@@ -147,7 +140,7 @@ static op decode_alu_xor_div(uint32_t word) {
 }
 
 static op decode_alu_add_sub_mul(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(add, 0x0)
     RV32_REG_REG(mul, 0x1)
     RV32_REG_REG(sub, 0x20)
@@ -157,7 +150,7 @@ static op decode_alu_add_sub_mul(uint32_t word) {
 }
 
 static op decode_alu_sll_mulh(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(sll, 0x0)
     RV32_REG_REG(mulh, 0x1)
   default:
@@ -166,7 +159,7 @@ static op decode_alu_sll_mulh(uint32_t word) {
 }
 
 static op decode_alu_srl_sra_divu(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(srl, 0x0)
     RV32_REG_REG(divu, 0x1)
     RV32_REG_REG(sra, 0x20)
@@ -176,7 +169,7 @@ static op decode_alu_srl_sra_divu(uint32_t word) {
 }
 
 static op decode_alu_slt_mulhsu(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(slt, 0x0)
     RV32_REG_REG(mulhsu, 0x1)
   default:
@@ -185,7 +178,7 @@ static op decode_alu_slt_mulhsu(uint32_t word) {
 }
 
 static op decode_alu_sltu_mulhu(uint32_t word) {
-  switch (FUNCT7(word)) {
+  switch (FUNCT_7(word)) {
     RV32_REG_REG(sltu, 0x0)
     RV32_REG_REG(mulhu, 0x1)
   default:
@@ -196,7 +189,7 @@ static op decode_alu_sltu_mulhu(uint32_t word) {
 #undef RV32_REG_REG
 
 static op decode_alu(uint32_t word) {
-  switch (static_cast<reg_reg>(FUNCT3(word))) {
+  switch (static_cast<reg_reg>(FUNCT_3(word))) {
     using enum reg_reg;
   case and_remu:
     return decode_alu_and_remu(word);
@@ -226,7 +219,7 @@ static op decode_alu(uint32_t word) {
   }
 
 static op decode_reg_imm(uint32_t word) {
-  switch (static_cast<reg_imm>(FUNCT3(word))) {
+  switch (static_cast<reg_imm>(FUNCT_3(word))) {
     using enum reg_imm;
     RV32_REG_IMM(add)
     RV32_REG_IMM(slt)
@@ -238,7 +231,7 @@ static op decode_reg_imm(uint32_t word) {
   case srli_srai: {
     constexpr int srli = 0x0;
     constexpr int srai = 0x20;
-    switch (FUNCT7(word)) {
+    switch (FUNCT_7(word)) {
       RV32_REG_IMM(srl)
       RV32_REG_IMM(sra)
     default:
@@ -265,7 +258,7 @@ static op decode_reg_imm(uint32_t word) {
   }
 
 static op decode_branch(uint32_t word) {
-  switch (static_cast<branch>(FUNCT3(word))) {
+  switch (static_cast<branch>(FUNCT_3(word))) {
     RV32_BRANCH(beq)
     RV32_BRANCH(bne)
     RV32_BRANCH(blt)
@@ -288,7 +281,7 @@ static op decode_fence(uint32_t word) { return make_NOP(); }
   }
 
 static op decode_sys(uint32_t word) {
-  switch (static_cast<sys>(FUNCT3(word))) {
+  switch (static_cast<sys>(FUNCT_3(word))) {
     RV32_CSR(csrrw)
     RV32_CSR(csrrs)
     RV32_CSR(csrrc)

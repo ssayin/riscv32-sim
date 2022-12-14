@@ -1,11 +1,11 @@
 #include "iss_model.hpp"
 #include "loader.hpp"
-#include "sparse_memory.hpp"
+#include "memory/sparse_memory.hpp"
 #include <cstdio>
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    printf("Usage: riscv32-sim <file_name>\n");
+    fmt::print("Usage: riscv32-sim <file_name>\n");
     return 1;
   }
 

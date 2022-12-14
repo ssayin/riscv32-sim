@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 extern void _start() __attribute__ ((noreturn));
-extern void _exit(int exit_code) __attribute__ ((noreturn,noinline));
+extern void _exit(int exit_code) __attribute__ ((naked,noreturn,noinline));
 
 extern int  main();
 

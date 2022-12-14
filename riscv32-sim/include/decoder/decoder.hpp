@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <variant>
 
-#include "common/masks.hpp"
+#include "instr/rv32_isn.hpp"
 
 enum class target : uint8_t {
   mem,
@@ -46,6 +46,10 @@ enum class alu : uint8_t {
   _jal,
   _jalr,
 };
+static constexpr uint32_t ecall  = 0x73U;
+static constexpr uint32_t ebreak = 0x9002U;
+static constexpr uint32_t mret   = 0x30200073U;
+static constexpr uint32_t sret   = 0x10200073U;
 
 using op_type = std::variant<std::monostate, alu, load, store, branch, sys>;
 

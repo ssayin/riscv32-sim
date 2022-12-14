@@ -1,6 +1,7 @@
-#include "sparse_memory.hpp"
-#include "rv32_isn.hpp"
-#include <fmt/format.h>
+#include "memory/sparse_memory.hpp"
+#include "fmt/format.h"
+#include "instr/rv32_isn.hpp"
+#include "zicsr/sync_exception.hpp"
 
 static void *write_block(uint8_t *page_offset, void *ptr,
                          uint32_t size_in_bytes) {
@@ -18,7 +19,7 @@ uint32_t sparse_memory::ensure_page_exists(uint32_t addr) {
 void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
   while (size_in_bytes > 0) {
     uint32_t key      = ensure_page_exists(virt_addr);
-    uint32_t off      = offset<0u, 11u>(virt_addr);
+    uint32_t off      = offset<0U, 11U>(virt_addr);
     uint32_t page_end = page_size - off;
     ptr               = write_block(&page[key].get()[off], ptr, page_end);
     size_in_bytes -= page_end;
@@ -28,10 +29,8 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (!page.contains(off & mask))
-    throw std::runtime_error(
-        fmt::format("{} {} tried to read uninitialized memory {:x}", __FILE__,
-                    __LINE__, off));
-  return page[off & mask].get()[offset<0u, 11u>(off)];
+    throw sync_exception(trap_cause::exp_inst_access_fault);
+  return page[off & mask].get()[offset<0U, 11U>(off)];
 }
 
 uint16_t sparse_memory::read_half(uint32_t off) {
@@ -44,15 +43,15 @@ uint32_t sparse_memory::read_word(uint32_t off) {
 
 void sparse_memory::write_byte(uint32_t off, uint8_t b) {
   uint32_t key                          = ensure_page_exists(off);
-  page[key].get()[offset<0u, 11u>(off)] = b;
+  page[key].get()[offset<0U, 11U>(off)] = b;
 }
 
 void sparse_memory::write_half(uint32_t off, uint16_t h) {
-  write_byte(off, offset<0u, 7u>(h));
-  write_byte(off + 1, offset<8u, 15u>(h));
+  write_byte(off, offset<0U, 7U>(h));
+  write_byte(off + 1, offset<8U, 15U>(h));
 }
 
 void sparse_memory::write_word(uint32_t off, uint32_t w) {
-  write_half(off, offset<0u, 15u>(w));
-  write_half(off + 2, offset<16u, 31u>(w));
+  write_half(off, offset<0U, 15U>(w));
+  write_half(off + 2, offset<16U, 31U>(w));
 }
