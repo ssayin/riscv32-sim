@@ -3,11 +3,13 @@
 
 #include "common/privilege_level.hpp"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 class csr_file {
-  std::array<uint32_t, 4096> csrs{};
-  const privilege_level     &mode;
+  static constexpr size_t         csr_count = 4096U;
+  std::array<uint32_t, csr_count> csrs{};
+  const privilege_level          &mode;
 
 public:
   explicit csr_file(const privilege_level &mode) : mode(mode) {}

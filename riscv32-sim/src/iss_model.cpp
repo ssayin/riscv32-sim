@@ -383,13 +383,13 @@ void iss_model::csr(op &dec) {
 
 void iss_model::handle_mret() {
   std::bitset<32> mstat{cf.read(to_int(csr::mstatus))};
-  mstat[consts::status_mie] = mstat[consts::status_mpie];
+  mstat[consts::status::mie] = mstat[consts::status::mpie];
   privilege_level mode_tmp  = static_cast<privilege_level>(
-      (mstat[consts::status_mpp + 1] << 1) | mstat[consts::status_mpp]);
+      (mstat[consts::status::mpp + 1] << 1) | mstat[consts::status::mpp]);
   fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
-  mstat[consts::status_mpie]    = true;
-  mstat[consts::status_mpp]     = true;
-  mstat[consts::status_mpp + 1] = true;
+  mstat[consts::status::mpie]    = true;
+  mstat[consts::status::mpp]     = true;
+  mstat[consts::status::mpp + 1] = true;
   cf.write(to_int(csr::mstatus), mstat.to_ulong());
   PC.set(cf.read(to_int(csr::mepc)));
   mode = mode_tmp;
@@ -399,11 +399,11 @@ void iss_model::handle_mret() {
 
 void iss_model::handle_sret() {
   std::bitset<32> sstat{cf.read(to_int(csr::sstatus))};
-  sstat[consts::status_sie] = sstat[consts::status_spie];
+  sstat[consts::status::sie] = sstat[consts::status::spie];
   mode                      = static_cast<privilege_level>(
-      static_cast<uint8_t>(sstat[consts::status_spp]));
-  sstat[consts::status_spie] = false;
-  sstat[consts::status_spp]  = false;
+      static_cast<uint8_t>(sstat[consts::status::spp]));
+  sstat[consts::status::spie] = false;
+  sstat[consts::status::spp]  = false;
   cf.write(to_int(csr::sstatus), sstat.to_ulong());
   PC.set(cf.read(to_int(csr::sepc)));
 }
