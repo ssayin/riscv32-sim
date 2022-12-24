@@ -60,20 +60,24 @@ jobs:
         run: |
           git clone --recurse-submodules https://github.com/riscv-software-src/riscv-tests.git; cd riscv-tests
           git submodule update --init --recursive
+
+          # Patch Makefile.in
+          git clone https://gist.github.com/b5c1b033143cbdce51afa0c1280970a8.git
+          patch < b5c1b033143cbdce51afa0c1280970a8/patch1.diff
+
+          # Configure and Make
           autoupdate
           autoconf
           mkdir build; cd build
-          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV --with-xlen=32
-          make isa
-          BASEDIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}
-          install -d $BASEDIR/share/riscv-tests/isa
-          install -p -m 644 `find isa -maxdepth 1 -type f` $BASEDIR/share/riscv-tests/isa
+          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} 
+          ../configure --prefix=$RISCV --with-xlen=32
+          make install
 
       - name: Build & Test 
         shell: bash
         run: |
           mkdir ${{env.BUILD_TYPE}}
-          cmake -DBUILD_TESTS=ON -S . -B ${{env.BUILD_TYPE}} 
+          cmake -DBUILD_TESTS=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}}
           make -C ${{env.BUILD_TYPE}}
           ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}/test
 
