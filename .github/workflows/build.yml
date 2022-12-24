@@ -46,27 +46,28 @@ jobs:
         run: echo "$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/bin" >> $GITHUB_PATH
 
 
-          #- name: Cache riscv-tests 
-          # id: cache-riscv-tests
-          # uses: actions/cache@v3
-          # with:
-          # path: ~/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share
-          # key: ${{ runner.os }}-riscv-tests
-          # restore-keys: ${{ runner.os }}-riscv-tests
+      - name: Cache riscv-tests 
+        id: cache-riscv-tests
+        uses: actions/cache@v3
+        with:
+          path: ~/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share
+          key: ${{ runner.os }}-riscv-tests
+          restore-keys: ${{ runner.os }}-riscv-tests
 
-
-          # - name: Set-up riscv-tests
-          # if: steps.cache-riscv-tests.outputs.cache-hit != 'true'
-          # shell: bash
-          # run: |
-          # git clone --recurse-submodules https://github.com/ssayin/riscv-tests; cd riscv-tests
-          # git submodule update --init --recursive
-          # autoupdate
-          # autoconf
-          # mkdir build; cd build
-          # RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV --with-xlen=32
-          # make
-          # make install
+      - name: Set-up riscv-tests
+        if: steps.cache-riscv-tests.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          git clone --recurse-submodules https://github.com/riscv-software-src/riscv-tests.git; cd riscv-tests
+          git submodule update --init --recursive
+          autoupdate
+          autoconf
+          mkdir build; cd build
+          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} ../configure --prefix=$RISCV --with-xlen=32
+          make isa
+          BASEDIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}
+          install -d $BASEDIR/share/riscv-tests/isa
+          install -p -m 644 `find isa -maxdepth 1 -type f` $BASEDIR/share/riscv-tests/isa
 
       - name: Build & Test 
         shell: bash
