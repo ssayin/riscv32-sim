@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_SYNC_EXCEPTION_HPP
-#define RISCV32_SIM_SYNC_EXCEPTION_HPP
+#ifndef ZICSR_SYNC_EXCEPTION_HPP
+#define ZICSR_SYNC_EXCEPTION_HPP
 
 #include "zicsr/trap_cause.hpp"
 #include <cstdint>
@@ -16,4 +16,4 @@ private:
   trap_cause tc;
 };
 
-#endif // RISCV32_SIM_SYNC_EXCEPTION_HPP
+#endif // ZICSR_SYNC_EXCEPTION_HPP

@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_REG_FILE_HPP
-#define RISCV32_SIM_REG_FILE_HPP
+#ifndef REG_FILE_HPP
+#define REG_FILE_HPP
 
 #include <array>
 #include <cstddef>
@@ -18,4 +18,4 @@ private:
   void      print(uint8_t index) const;
 };
 
-#endif // RISCV32_SIM_REG_FILE_HPP
+#endif // REG_FILE_HPP

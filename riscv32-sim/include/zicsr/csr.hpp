@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_CSR_HPP
-#define RISCV32_SIM_CSR_HPP
+#ifndef ZICSR_CSR_HPP
+#define ZICSR_CSR_HPP
 
 #include <cstdint>
 
@@ -89,4 +89,4 @@ enum class csr : uint16_t {
   dscratch = 0x7B2,
 };
 
-#endif // RISCV32_SIM_CSR_HPP
+#endif // ZICSR_CSR_HPP

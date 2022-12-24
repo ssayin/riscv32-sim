@@ -1,5 +1,4 @@
 #include "memory/sparse_memory.hpp"
-#include "fmt/format.h"
 #include "instr/rv32_isn.hpp"
 #include "zicsr/sync_exception.hpp"
 
@@ -28,8 +27,9 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 }
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
-  if (!page.contains(off & mask))
+  if (!page.contains(off & mask)) {
     throw sync_exception(trap_cause::exp_inst_access_fault);
+  }
   return page[off & mask].get()[offset<0U, 11U>(off)];
 }
 

@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_RV32_ISN_HPP
-#define RISCV32_SIM_RV32_ISN_HPP
+#ifndef INSTR_RV32_ISN_HPP
+#define INSTR_RV32_ISN_HPP
 
 #include "common/consts.hpp"
 #include "common/offset.hpp"
@@ -88,11 +88,14 @@ enum class sys : uint8_t {
 inline uint32_t rv32_imm_i(uint32_t x) { return static_cast<int32_t>(x) >> 20; }
 
 inline uint32_t rv32_imm_s(uint32_t x) {
-  return (offset<7U, 11U>(x) | ((static_cast<int32_t>(x) >> 20) & 0xFFFFFFE0));
+  return (offset<7U, 11U>(x) | ((static_cast<int32_t>(x & 0xFE000000) >> 20)));
 }
 
 inline uint32_t rv32_imm_b(uint32_t x) {
-  return ((rv32_imm_s(x) & 0xFFFFF7FF) | (offset<7U, 7U>(x) << 4)) & 0xFFFFFFFE;
+  return ((offset<8U, 11U>(x) << 1) | (offset<25U, 30U>(x) << 5) |
+          (offset<7U, 7U>(x) << 11) |
+          (static_cast<int32_t>(x & masks::sign_bit) >> 19)) &
+         0xFFFFFFFE;
 }
 
 inline uint32_t rv32_imm_u(uint32_t x) { return x & masks::type_u_imm; }
@@ -107,7 +110,7 @@ struct rv32_jal {
   uint32_t imm;
   rv32_jal(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
-    rd  = RD(word);
+    rd  = off::rd(word);
     imm = rv32_imm_j(word);
   }
 };
@@ -119,9 +122,9 @@ struct rv32_jal {
     uint8_t rs2;                                                               \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = RD(word);                                                          \
-      rs1 = RS_1(word);                                                        \
-      rs2 = RS_2(word);                                                        \
+      rd  = off::rd(word);                                                     \
+      rs1 = off::rs1(word);                                                    \
+      rs2 = off::rs2(word);                                                    \
     }                                                                          \
   };
 
@@ -156,8 +159,8 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
     uint32_t imm;                                                              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = RD(word);                                                          \
-      rs  = RS_1(word);                                                        \
+      rd  = off::rd(word);                                                     \
+      rs  = off::rs1(word);                                                    \
       imm = rv32_imm_i(word);                                                  \
     }                                                                          \
   };
@@ -181,14 +184,14 @@ RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
 
 #define RV32_REG_IMM_SH_INST(name, funct3, funct7)                             \
   struct rv32_##name {                                                         \
-    uint8_t  rd;                                                               \
-    uint8_t  rs;                                                               \
-    uint32_t imm;                                                              \
+    uint8_t rd;                                                                \
+    uint8_t rs;                                                                \
+    uint8_t imm;                                                               \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = RD(word);                                                          \
-      rs  = RS_1(word);                                                        \
-      imm = RS_2(word);                                                        \
+      rd  = off::rd(word);                                                     \
+      rs  = off::rs1(word);                                                    \
+      imm = off::rs2(word);                                                    \
     }                                                                          \
   };
 
@@ -204,7 +207,7 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
     uint32_t imm;                                                              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = RD(word);                                                          \
+      rd  = off::rd(word);                                                     \
       imm = rv32_imm_u(word);                                                  \
     }                                                                          \
   };
@@ -221,8 +224,8 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
     uint32_t imm;                                                              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rs1 = RS_1(word);                                                        \
-      rs2 = RS_2(word);                                                        \
+      rs1 = off::rs1(word);                                                    \
+      rs2 = off::rs2(word);                                                    \
       imm = rv32_imm_s(word);                                                  \
     }                                                                          \
   };
@@ -240,8 +243,8 @@ RV32_STORE_INST(sw, store::sw)
     uint32_t imm;                                                              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rs1 = RS_1(word);                                                        \
-      rs2 = RS_2(word);                                                        \
+      rs1 = off::rs1(word);                                                    \
+      rs2 = off::rs2(word);                                                    \
       imm = rv32_imm_b(word);                                                  \
     }                                                                          \
   };
@@ -262,8 +265,8 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
     uint32_t csr;                                                              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = RD(word);                                                          \
-      rs  = RS_1(word);                                                        \
+      rd  = off::rd(word);                                                     \
+      rs  = off::rs1(word);                                                    \
       csr = offset<20u, 31u>(word);                                            \
     }                                                                          \
   };
@@ -277,4 +280,4 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
 
-#endif // RISCV32_SIM_RV32_ISN_HPP
+#endif // INSTR_RV32_ISN_HPP

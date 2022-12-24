@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_DECODER_HPP
-#define RISCV32_SIM_DECODER_HPP
+#ifndef DECODER_DECODER_HPP
+#define DECODER_DECODER_HPP
 
 #include <cstdint>
 #include <variant>
@@ -7,7 +7,8 @@
 #include "instr/rv32_isn.hpp"
 
 enum class target : uint8_t {
-  mem,
+  load,
+  store,
   alu,
   branch,
   csr,
@@ -65,4 +66,4 @@ struct op {
 
 op decode(uint32_t word);
 
-#endif // RISCV32_SIM_DECODER_HPP
+#endif // DECODER_DECODER_HPP

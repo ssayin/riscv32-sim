@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_TYPES_HPP
-#define RISCV32_SIM_TYPES_HPP
+#ifndef COMMON_TYPES_HPP
+#define COMMON_TYPES_HPP
 
 #include <cstdint>
 #include <type_traits>
@@ -12,7 +12,7 @@ concept Enum = std::is_enum<T>::value;
 
 template <typename T>
 concept Memory_Model = requires(T mem, uint32_t addr, void *ptr, int64_t size) {
-                         mem.load(addr, ptr, size);
-                       };
+  mem.load(addr, ptr, size);
+};
 
-#endif // RISCV32_SIM_TYPES_HPP
+#endif // COMMON_TYPES_HPP

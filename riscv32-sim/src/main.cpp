@@ -1,7 +1,6 @@
 #include "iss_model.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
-#include <cstdio>
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -16,7 +15,8 @@ int main(int argc, char **argv) {
     model.step();
   }
 
-  fmt::print("Exited with {}\n", model.tohost());
+  fmt::print("Exited with 0x{:X} ({})\n", model.tohost(),
+             static_cast<int32_t>(model.tohost()));
 
   return 0;
 }

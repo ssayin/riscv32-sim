@@ -8,7 +8,7 @@ set(SRC_FILES
     include/decoder/decoder.hpp
     include/iss_model.hpp
     include/loader.hpp
-        include/zicsr/misa.hpp
+    include/zicsr/misa.hpp
     include/instr/rv32_isn.hpp
     include/memory/sparse_memory.hpp
     include/common/types.hpp

@@ -1,9 +1,9 @@
-#ifndef RISCV32_SIM_OFFSET_HPP
-#define RISCV32_SIM_OFFSET_HPP
+#ifndef COMMON_OFFSET_HPP
+#define COMMON_OFFSET_HPP
 
 #include "common/types.hpp"
 
-consteval auto fillbits(Unsigned auto bitcount) {
+constexpr auto fillbits(Unsigned auto bitcount) {
   auto sum = 1U;
   while (--bitcount) {
     sum = (sum << 1U) | 1U;
@@ -23,11 +23,13 @@ constexpr auto to_int(Enum auto val) {
   return static_cast<std::underlying_type_t<decltype(val)>>(val);
 }
 
-#define FUNCT_7(word) offset<25U, 31U>(word)
-#define RS_2(word)    offset<20U, 24U>(word)
-#define RS_1(word)    offset<15U, 19U>(word)
-#define FUNCT_3(word) offset<12U, 14U>(word)
-#define RD(word)      offset<7U, 11U>(word)
-#define OPCODE(word)  offset<0U, 6U>(word)
+namespace off {
+constexpr uint8_t funct7(uint32_t w) { return offset<25U, 31U>(w); }
+constexpr uint8_t funct3(uint32_t w) { return offset<12U, 14U>(w); }
+constexpr uint8_t rs2(uint32_t w) { return offset<20U, 24U>(w); }
+constexpr uint8_t rs1(uint32_t w) { return offset<15U, 19U>(w); }
+constexpr uint8_t opc(uint32_t w) { return offset<0U, 6u>(w); }
+constexpr uint8_t rd(uint32_t w) { return offset<7U, 11U>(w); }
+}; // namespace off
 
-#endif // RISCV32_SIM_OFFSET_HPP
+#endif // COMMON_OFFSET_HPP

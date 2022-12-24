@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_TRAP_CAUSE_HPP
-#define RISCV32_SIM_TRAP_CAUSE_HPP
+#ifndef ZICSR_TRAP_CAUSE_HPP
+#define ZICSR_TRAP_CAUSE_HPP
 
 #include <cstdint>
 #include <string_view>
@@ -102,4 +102,4 @@ static constexpr std::string_view str_trap_cause(trap_cause cause) {
   }
 }
 
-#endif // RISCV32_SIM_TRAP_CAUSE_HPP
+#endif // ZICSR_TRAP_CAUSE_HPP

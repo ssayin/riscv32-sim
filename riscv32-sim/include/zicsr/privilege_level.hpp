@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_PRIVILEGE_LEVEL_HPP
-#define RISCV32_SIM_PRIVILEGE_LEVEL_HPP
+#ifndef ZICSR_PRIVILEGE_LEVEL_HPP
+#define ZICSR_PRIVILEGE_LEVEL_HPP
 
 enum class privilege_level {
   user       = 0b00,
@@ -8,4 +8,4 @@ enum class privilege_level {
   machine    = 0b11
 };
 
-#endif // RISCV32_SIM_PRIVILEGE_LEVEL_HPP
+#endif // ZICSR_PRIVILEGE_LEVEL_HPP

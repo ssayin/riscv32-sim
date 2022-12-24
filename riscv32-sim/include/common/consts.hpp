@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_CONSTS_HPP
-#define RISCV32_SIM_CONSTS_HPP
+#ifndef COMMON_CONSTS_HPP
+#define COMMON_CONSTS_HPP
 
 #include <cstdint>
 
@@ -14,4 +14,4 @@ struct masks {
   static constexpr uint32_t type_u_imm = 0xFFFFF000U;
 };
 
-#endif // RISCV32_SIM_CONSTS_HPP
+#endif // COMMON_CONSTS_HPP

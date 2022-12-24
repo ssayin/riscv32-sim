@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_LOADER_HPP
-#define RISCV32_SIM_LOADER_HPP
+#ifndef LOADER_HPP
+#define LOADER_HPP
 
 #include "common/types.hpp"
 #include <elfio/elfio.hpp>
@@ -31,6 +31,7 @@ loader::loader(const std::string &file_name, MM &mem) {
   if (reader.segments.size() == 0)
     throw std::runtime_error("Loaded ELF has no segments");
 
+  /*
   ELFIO::dump::header(std::cout, reader);
   ELFIO::dump::section_headers(std::cout, reader);
   ELFIO::dump::segment_headers(std::cout, reader);
@@ -40,6 +41,7 @@ loader::loader(const std::string &file_name, MM &mem) {
   ELFIO::dump::dynamic_tags(std::cout, reader);
   ELFIO::dump::section_datas(std::cout, reader);
   ELFIO::dump::segment_datas(std::cout, reader);
+  */
 
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
@@ -49,6 +51,7 @@ loader::loader(const std::string &file_name, MM &mem) {
                   }
                 });
 
+  /*
   std::for_each(reader.sections.begin(), reader.sections.end(),
                 [&](std::unique_ptr<ELFIO::section> &s) {
                   fmt::print("{} {}\n", s->get_name(), s->get_flags());
@@ -59,6 +62,7 @@ loader::loader(const std::string &file_name, MM &mem) {
 
   for (int i = 0; i < symbols.get_symbols_num(); ++i) {
   }
+  */
 }
 
-#endif // RISCV32_SIM_LOADER_HPP
+#endif // LOADER_HPP

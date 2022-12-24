@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_CSR_FILE_HPP
-#define RISCV32_SIM_CSR_FILE_HPP
+#ifndef ZICSR_CSR_FILE_HPP
+#define ZICSR_CSR_FILE_HPP
 
 #include "privilege_level.hpp"
 #include <array>
@@ -27,4 +27,4 @@ public:
   void     write(uint32_t addr, uint32_t v);
 };
 
-#endif // RISCV32_SIM_CSR_FILE_HPP
+#endif // ZICSR_CSR_FILE_HPP

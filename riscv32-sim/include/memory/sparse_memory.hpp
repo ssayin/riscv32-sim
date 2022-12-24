@@ -1,5 +1,5 @@
-#ifndef RISCV32_SIM_SPARSE_MEMORY_HPP
-#define RISCV32_SIM_SPARSE_MEMORY_HPP
+#ifndef MEMORY_SPARSE_MEMORY_HPP
+#define MEMORY_SPARSE_MEMORY_HPP
 
 #include <cassert>
 #include <cstring>
@@ -23,4 +23,4 @@ public:
   void     write_word(uint32_t off, uint32_t w);
 };
 
-#endif // RISCV32_SIM_SPARSE_MEMORY_HPP
+#endif // MEMORY_SPARSE_MEMORY_HPP
