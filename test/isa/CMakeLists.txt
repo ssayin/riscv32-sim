@@ -9,7 +9,7 @@ if(NOT DEFINED ISA_TESTS_DIR)
     message(STATUS "Skip adding riscv-tests")
   else()
     set(ISA_TESTS_DIR
-        "$ENV{RISCV}/share"
+        "$ENV{RISCV}/share/riscv-tests/isa"
         CACHE PATH "Set riscv-tests build PATH")
 
     message(STATUS "Set ISA_TESTS_DIR to ${ISA_TESTS_DIR}")
