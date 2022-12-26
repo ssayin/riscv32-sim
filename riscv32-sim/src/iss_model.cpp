@@ -1,6 +1,5 @@
 #include "iss_model.hpp"
 #include "arith.hpp"
-#include "common/SafeInt.hpp"
 #include "decoder/decoder.hpp"
 #include "instr/rv32_isn.hpp"
 #include "memory/sparse_memory.hpp"
