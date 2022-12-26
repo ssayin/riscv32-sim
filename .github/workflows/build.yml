@@ -23,6 +23,10 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Install Ninja
+        run: |
+          sudo apt update
+          sudo apt install ninja-build
 
       - name: Cache RV32 GCC Toolchain
         id: cache-riscv-toolchain
