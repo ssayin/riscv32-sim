@@ -5,13 +5,14 @@
 #include <type_traits>
 
 template <class T>
-concept Unsigned = std::is_unsigned<T>::value;
+concept UnsignedIntegral =
+    std::is_unsigned<T>::value && std::is_integral<T>::value;
 
 template <typename T>
 concept Enum = std::is_enum<T>::value;
 
 template <typename T>
-concept Memory_Model = requires(T mem, uint32_t addr, void *ptr, int64_t size) {
+concept MemoryModel = requires(T mem, uint32_t addr, void *ptr, int64_t size) {
   mem.load(addr, ptr, size);
 };
 

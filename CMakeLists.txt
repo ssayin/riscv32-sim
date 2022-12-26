@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.23.2)
 
+if(${CMAKE_VERSION} VERSION_GREATER 3.24)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 project(riscv32-sim LANGUAGES CXX C ASM)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   option(BUILD_TESTS "" OFF)
+  option(COVERAGE "" OFF)
 
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)

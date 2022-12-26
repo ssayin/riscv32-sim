@@ -76,10 +76,10 @@ jobs:
       - name: Build & Test 
         shell: bash
         run: |
-          mkdir ${{env.BUILD_TYPE}}
-          cmake -DBUILD_TESTS=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}}
-          make -C ${{env.BUILD_TYPE}}
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}} -GNinja
+          ninja -C ${{env.BUILD_TYPE}}
           ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}/test
+          gcovr -e external > coverage.xml
 
       - name: Cache SonarQube packages
         uses: actions/cache@v3

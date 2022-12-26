@@ -1,10 +1,9 @@
 #ifndef DECODER_DECODER_HPP
 #define DECODER_DECODER_HPP
 
+#include "instr/rv32_isn.hpp"
 #include <cstdint>
 #include <variant>
-
-#include "instr/rv32_isn.hpp"
 
 enum class target : uint8_t {
   load,

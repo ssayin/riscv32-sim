@@ -3,7 +3,7 @@
 
 #include "common/types.hpp"
 
-constexpr auto fillbits(Unsigned auto bitcount) {
+constexpr auto fillbits(UnsignedIntegral auto bitcount) {
   auto sum = 1U;
   while (--bitcount) {
     sum = (sum << 1U) | 1U;
@@ -11,11 +11,11 @@ constexpr auto fillbits(Unsigned auto bitcount) {
   return sum;
 }
 
-template <Unsigned auto low, Unsigned auto high>
+template <UnsignedIntegral auto low, UnsignedIntegral auto high>
 using diff = std::integral_constant<decltype(high - low + 1U), high - low + 1U>;
 
-template <Unsigned auto low, Unsigned auto high>
-constexpr decltype(auto) offset(Unsigned auto inst) {
+template <UnsignedIntegral auto low, UnsignedIntegral auto high>
+constexpr decltype(auto) offset(UnsignedIntegral auto inst) {
   return (inst >> low) & fillbits(diff<low, high>::value);
 }
 

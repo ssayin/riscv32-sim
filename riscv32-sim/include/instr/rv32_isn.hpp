@@ -9,8 +9,6 @@
 #include <numeric>
 #include <utility>
 
-#include <cstdint>
-
 enum class opcode : uint8_t {
   branch   = 0b1100011,
   load     = 0b0000011,

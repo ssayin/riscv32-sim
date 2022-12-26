@@ -11,14 +11,15 @@ class loader {
   ELFIO::elfio reader;
 
 public:
-  template <Memory_Model MM>
-  explicit loader(const std::string &file_name, MM &mem);
+  template <MemoryModel Model>
+  explicit loader(const std::string &file_name, Model &mem);
+
   uint32_t symbol(const std::string &str);
   uint32_t entry() { return reader.get_entry(); }
 };
 
-template <Memory_Model MM>
-loader::loader(const std::string &file_name, MM &mem) {
+template <MemoryModel Model>
+loader::loader(const std::string &file_name, Model &mem) {
   if (!reader.load(file_name))
     throw std::runtime_error("File is not found or it is not an ELF file\n");
 

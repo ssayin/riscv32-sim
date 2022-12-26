@@ -8,7 +8,6 @@
 #include "zicsr/privilege_level.hpp"
 #include "zicsr/sync_exception.hpp"
 #include "zicsr/trap_cause.hpp"
-
 #include <fmt/color.h>
 #include <stdexcept>
 

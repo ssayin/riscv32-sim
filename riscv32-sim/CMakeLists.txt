@@ -25,5 +25,13 @@ set(SRC_FILES
 
 add_executable(riscv32-sim ${SRC_FILES})
 
-target_link_libraries(riscv32-sim elfio fmt::fmt)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME
+   AND BUILD_TESTS
+   AND COVERAGE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+  endif()
+endif()
+
+target_link_libraries(riscv32-sim PRIVATE elfio fmt::fmt)
 target_include_directories(riscv32-sim PRIVATE include)

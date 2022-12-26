@@ -2,8 +2,7 @@
 #include "common/offset.hpp"
 #include "zicsr/sync_exception.hpp"
 #include "zicsr/trap_cause.hpp"
-
-#include "fmt/printf.h"
+#include <fmt/printf.h>
 
 uint8_t priv(uint32_t addr) { return offset<8U, 9U>(addr); };
 
