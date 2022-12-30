@@ -36,8 +36,8 @@ static bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
 }
 
 iss_model::iss_model(loader l, sparse_memory &mem)
-    : is_done{false}, mem{mem}, pc{l.entry()}, tohost_addr{l.symbol("tohost")},
-      csrf(mode) {}
+    : tohost_addr{l.symbol("tohost")}, mem{mem}, pc{l.entry()},
+      csrf(mode), is_done{false} {}
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + 4);

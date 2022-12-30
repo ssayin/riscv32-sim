@@ -83,16 +83,20 @@ enum class sys : uint8_t {
   csrrci = 0b111,
 };
 
-inline uint32_t rv32_imm_i(uint32_t x) { return static_cast<int32_t>(x) >> 20; }
+inline uint32_t rv32_imm_i(uint32_t x) {
+  return static_cast<uint32_t>(static_cast<int32_t>(x) >> 20);
+}
 
 inline uint32_t rv32_imm_s(uint32_t x) {
-  return (offset<7U, 11U>(x) | ((static_cast<int32_t>(x & 0xFE000000) >> 20)));
+  return (offset<7U, 11U>(x) |
+          static_cast<uint32_t>(static_cast<int32_t>(x & 0xFE000000) >> 20));
 }
 
 inline uint32_t rv32_imm_b(uint32_t x) {
   return ((offset<8U, 11U>(x) << 1) | (offset<25U, 30U>(x) << 5) |
           (offset<7U, 7U>(x) << 11) |
-          (static_cast<int32_t>(x & masks::sign_bit) >> 19)) &
+          static_cast<uint32_t>(static_cast<int32_t>(x & masks::sign_bit) >>
+                                19)) &
          0xFFFFFFFE;
 }
 

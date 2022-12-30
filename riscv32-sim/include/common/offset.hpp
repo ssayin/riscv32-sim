@@ -24,12 +24,24 @@ constexpr auto to_int(Enum auto val) {
 }
 
 namespace off {
-constexpr uint8_t funct7(uint32_t w) { return offset<25U, 31U>(w); }
-constexpr uint8_t funct3(uint32_t w) { return offset<12U, 14U>(w); }
-constexpr uint8_t rs2(uint32_t w) { return offset<20U, 24U>(w); }
-constexpr uint8_t rs1(uint32_t w) { return offset<15U, 19U>(w); }
-constexpr uint8_t opc(uint32_t w) { return offset<0U, 6u>(w); }
-constexpr uint8_t rd(uint32_t w) { return offset<7U, 11U>(w); }
+constexpr uint8_t funct7(uint32_t w) {
+  return static_cast<uint8_t>(offset<25U, 31U>(w));
+}
+constexpr uint8_t funct3(uint32_t w) {
+  return static_cast<uint8_t>(offset<12U, 14U>(w));
+}
+constexpr uint8_t rs2(uint32_t w) {
+  return static_cast<uint8_t>(offset<20U, 24U>(w));
+}
+constexpr uint8_t rs1(uint32_t w) {
+  return static_cast<uint8_t>(offset<15U, 19U>(w));
+}
+constexpr uint8_t opc(uint32_t w) {
+  return static_cast<uint8_t>(offset<0U, 6u>(w));
+}
+constexpr uint8_t rd(uint32_t w) {
+  return static_cast<uint8_t>(offset<7U, 11U>(w));
+}
 }; // namespace off
 
 #endif // COMMON_OFFSET_HPP

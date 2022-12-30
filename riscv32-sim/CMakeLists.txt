@@ -33,5 +33,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME
   endif()
 endif()
 
+set(CMAKE_CXX_FLAGS
+    "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Werror")
+
 target_link_libraries(riscv32-sim PRIVATE elfio fmt::fmt)
 target_include_directories(riscv32-sim PRIVATE include)
