@@ -4,19 +4,12 @@
 #include "common/types.hpp"
 
 constexpr auto fillbits(UnsignedIntegral auto bitcount) {
-  auto sum = 1U;
-  while (--bitcount) {
-    sum = (sum << 1U) | 1U;
-  }
-  return sum;
+  return (1U << bitcount) - 1U;
 }
 
-template <UnsignedIntegral auto low, UnsignedIntegral auto high>
-using diff = std::integral_constant<decltype(high - low + 1U), high - low + 1U>;
-
-template <UnsignedIntegral auto low, UnsignedIntegral auto high>
-constexpr decltype(auto) offset(UnsignedIntegral auto inst) {
-  return (inst >> low) & fillbits(diff<low, high>::value);
+constexpr auto offset(UnsignedIntegral auto inst, UnsignedIntegral auto low,
+                      UnsignedIntegral auto high) {
+  return (inst >> low) & fillbits(high - low + 1U);
 }
 
 constexpr auto to_int(Enum auto val) {
@@ -25,22 +18,22 @@ constexpr auto to_int(Enum auto val) {
 
 namespace off {
 constexpr uint8_t funct7(uint32_t w) {
-  return static_cast<uint8_t>(offset<25U, 31U>(w));
+  return static_cast<uint8_t>(offset(w, 25U, 31U));
 }
 constexpr uint8_t funct3(uint32_t w) {
-  return static_cast<uint8_t>(offset<12U, 14U>(w));
+  return static_cast<uint8_t>(offset(w, 12U, 14U));
 }
 constexpr uint8_t rs2(uint32_t w) {
-  return static_cast<uint8_t>(offset<20U, 24U>(w));
+  return static_cast<uint8_t>(offset(w, 20U, 24U));
 }
 constexpr uint8_t rs1(uint32_t w) {
-  return static_cast<uint8_t>(offset<15U, 19U>(w));
+  return static_cast<uint8_t>(offset(w, 15U, 19U));
 }
 constexpr uint8_t opc(uint32_t w) {
-  return static_cast<uint8_t>(offset<0U, 6u>(w));
+  return static_cast<uint8_t>(offset(w, 0U, 6U));
 }
 constexpr uint8_t rd(uint32_t w) {
-  return static_cast<uint8_t>(offset<7U, 11U>(w));
+  return static_cast<uint8_t>(offset(w, 7U, 11U));
 }
 }; // namespace off
 
