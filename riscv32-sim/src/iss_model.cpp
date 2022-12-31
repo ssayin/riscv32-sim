@@ -104,6 +104,8 @@ void iss_model::step() {
   } catch (sync_exception &ex) {
     auto cause = ex.cause();
 
+    fmt::print("{}", cause);
+
     throw_on_fatal(cause);
 
     assert((to_int(cause) & masks::sign_bit) == 0);
@@ -342,6 +344,7 @@ void iss_model::handle_sys_exit() {
     // write to tohost_addr then halt
     mem.write_word(tohost_addr, regf.read(10));
     is_done = true;
+    fmt::print("\n");
   }
 }
 

@@ -16,7 +16,7 @@ riscv32-sim ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.ym
 -->
 
 <p align="center" width="100%">
-  <img width="33%" src="misc/images/screenshot.svg">
+  <img width="50%" src="misc/images/screenshot.svg">
 </p>
 
 An easy-to-use, still-in-development RISC-V 32-bit simulator.

@@ -2,6 +2,8 @@
 #define ZICSR_TRAP_CAUSE_HPP
 
 #include <cstdint>
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <string_view>
 
 enum class trap_cause : uint32_t {
@@ -101,5 +103,12 @@ static constexpr std::string_view str_trap_cause(trap_cause cause) {
     return "unknown";
   }
 }
+
+template <>
+struct fmt::formatter<trap_cause> : fmt::formatter<std::string_view> {
+  auto format(trap_cause tc, fmt::format_context &ctx) const {
+    return fmt::formatter<std::string_view>::format(str_trap_cause(tc), ctx);
+  }
+};
 
 #endif // ZICSR_TRAP_CAUSE_HPP
