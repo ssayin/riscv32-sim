@@ -33,8 +33,11 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME
   endif()
 endif()
 
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Werror")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Werror")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # change later
+endif()
 
 target_link_libraries(riscv32-sim PRIVATE elfio fmt::fmt)
 target_include_directories(riscv32-sim PRIVATE include)
