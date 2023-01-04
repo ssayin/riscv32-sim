@@ -1,7 +1,7 @@
 #ifndef ZICSR_PRIVILEGE_LEVEL_HPP
 #define ZICSR_PRIVILEGE_LEVEL_HPP
 
-enum class privilege_level {
+enum class privilege {
   user       = 0b00,
   supervisor = 0b01,
   hypervisor = 0b10,

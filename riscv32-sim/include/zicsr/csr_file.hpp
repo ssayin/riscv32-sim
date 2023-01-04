@@ -1,7 +1,7 @@
 #ifndef ZICSR_CSR_FILE_HPP
 #define ZICSR_CSR_FILE_HPP
 
-#include "privilege_level.hpp"
+#include "privilege.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -19,10 +19,10 @@ struct status {
 class csr_file {
   static constexpr size_t         csr_count = 4096U;
   std::array<uint32_t, csr_count> csrs{};
-  const privilege_level          &mode;
+  const privilege                &mode;
 
 public:
-  explicit csr_file(const privilege_level &mode) : mode{mode} {}
+  explicit csr_file(const privilege &mode) : mode{mode} {}
   uint32_t read(uint32_t addr);
   void     write(uint32_t addr, uint32_t v);
 };

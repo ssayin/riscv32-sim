@@ -6,40 +6,43 @@
 #include "memory/sparse_memory.hpp"
 #include "program_counter.hpp"
 #include "reg_file.hpp"
+#include "zicsr/csr.hpp"
 #include "zicsr/csr_file.hpp"
-#include "zicsr/privilege_level.hpp"
+#include "zicsr/privilege.hpp"
+#include "zicsr/sync_exception.hpp"
 
 class iss_model {
 public:
   iss_model(loader l, sparse_memory &mem);
-
-  void step();
-
-  bool done() const { return is_done; }
-
+  void     step();
   uint32_t tohost() { return mem.read_word(tohost_addr); }
+  bool     done() const { return is_done; }
 
-  const uint32_t tohost_addr;
+  uint16_t priv_base() const {
+    return static_cast<uint16_t>(to_int(mode) << 8);
+  }
 
-  privilege_level mode = privilege_level::machine;
+  uint16_t priv_csr(enum csr c) const { return priv_base() | to_int(c); }
 
 private:
-  void     csr(op &dec);
+  uint32_t alu(op &dec);
   uint32_t load(op &dec);
   void     store(op &dec);
-  uint32_t alu(op &dec);
+  void     csr(op &dec);
 
   void handle_mret();
   void handle_sret();
-
+  void handle_sync_exception(sync_exception &ex);
   void handle_sys_exit();
+
+  const uint32_t tohost_addr;
 
   sparse_memory  &mem;
   program_counter pc;
+  privilege       mode;
   reg_file        regf;
   csr_file        csrf;
-
-  bool is_done = false;
+  bool            is_done;
 };
 
 #endif

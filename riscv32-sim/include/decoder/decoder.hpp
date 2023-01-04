@@ -46,6 +46,7 @@ enum class alu : uint8_t {
   _jal,
   _jalr,
 };
+
 static constexpr uint32_t ecall  = 0x73U;
 static constexpr uint32_t ebreak = 0x9002U;
 static constexpr uint32_t mret   = 0x30200073U;

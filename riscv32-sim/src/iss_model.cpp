@@ -4,16 +4,11 @@
 #include "instr/rv32_isn.hpp"
 #include "memory/sparse_memory.hpp"
 #include "zicsr/csr.hpp"
-#include "zicsr/privilege_level.hpp"
+#include "zicsr/privilege.hpp"
 #include "zicsr/sync_exception.hpp"
 #include "zicsr/trap_cause.hpp"
 #include <fmt/color.h>
 #include <stdexcept>
-
-inline void throw_on_fatal(trap_cause cause) {
-  if (cause == trap_cause::exp_inst_access_fault)
-    throw std::runtime_error("fatal");
-}
 
 static bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
   switch (b_type) {
@@ -37,7 +32,7 @@ static bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
 
 iss_model::iss_model(loader l, sparse_memory &mem)
     : tohost_addr{l.symbol("tohost")}, mem{mem}, pc{l.entry()},
-      csrf(mode), is_done{false} {}
+      mode{privilege::machine}, csrf(mode), is_done{false} {}
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + 4);
@@ -46,19 +41,20 @@ void iss_model::step() {
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
   try {
     if (dec.tgt == target::ecall) {
-      /*switch (mode) {
-      case privilege_level::user:
+      switch (mode) {
+      case privilege::user:
         throw sync_exception(trap_cause::exp_ecall_from_u_vu_mode);
-      case privilege_level::supervisor:
-        throw sync_exception(trap_cause::exp_ecall_from_vs_mode);
-      case privilege_level::hypervisor:
-        throw sync_exception(trap_cause::exp_ecall_from_hs_mode);
-      case privilege_level::machine:
+      case privilege::supervisor:
+        break;
+        // throw sync_exception(trap_cause::exp_ecall_from_vs_mode);
+      case privilege::hypervisor:
+        break;
+        // throw sync_exception(trap_cause::exp_ecall_from_hs_mode);
+      case privilege::machine:
         throw sync_exception(trap_cause::exp_ecall_from_m_mode);
       }
-      */
 
-      throw sync_exception(trap_cause::exp_ecall_from_m_mode);
+      // throw sync_exception(trap_cause::exp_ecall_from_m_mode);
     }
 
     switch (dec.tgt) {
@@ -102,41 +98,48 @@ void iss_model::step() {
       break;
     }
   } catch (sync_exception &ex) {
-    auto cause = ex.cause();
-
-    fmt::print("{}", cause);
-
-    throw_on_fatal(cause);
-
-    assert((to_int(cause) & masks::sign_bit) == 0);
-
-    uint16_t privilege_base = to_int(mode) << 8;
-    csrf.write(privilege_base | to_int(csr::ucause), to_int(cause));
-    csrf.write(privilege_base | to_int(csr::utval), 0);
-
-    csrf.write(privilege_base | to_int(csr::uepc),
-               (static_cast<uint32_t>(pc) + 4) & masks::tvec::base_addr);
-
-    auto tvec = csrf.read(privilege_base | to_int(csr::utvec));
-
-    pc.set(tvec & masks::tvec::base_addr);
-
-    /*
-     * syscall handler for testing
-     */
-    switch (cause) {
-    case trap_cause::exp_ecall_from_hs_mode:
-    case trap_cause::exp_ecall_from_m_mode:
-    case trap_cause::exp_ecall_from_vs_mode:
-    case trap_cause::exp_ecall_from_u_vu_mode:
-      handle_sys_exit();
-      break;
-    default:
-      break;
-    }
+    handle_sync_exception(ex);
   }
 
   pc.update();
+}
+void iss_model::handle_sync_exception(sync_exception &ex) {
+  auto cause = ex.cause();
+
+  fmt::print("{}", cause);
+
+  if (cause == trap_cause::exp_inst_access_fault)
+    throw std::runtime_error("fatal");
+
+  assert((to_int(cause) & masks::sign_bit) == 0);
+
+  // all sync exceptions are taken to machine mode for the time being
+  mode = privilege::machine;
+
+  csrf.write(priv_csr(csr::ucause), to_int(cause));
+  csrf.write(priv_csr(csr::utval), 0);
+  auto tvec = csrf.read(priv_csr(csr::utvec));
+
+  pc.set(tvec & masks::tvec::base_addr);
+
+  auto epc = static_cast<uint32_t>(pc) & masks::tvec::base_addr;
+
+  switch (cause) {
+  case trap_cause::exp_ecall_from_hs_mode:
+  case trap_cause::exp_ecall_from_m_mode:
+  case trap_cause::exp_ecall_from_vs_mode:
+  case trap_cause::exp_ecall_from_u_vu_mode:
+    csrf.write(priv_csr(csr::uepc), epc);
+    // syscall handler for testing
+    handle_sys_exit();
+    break;
+  case trap_cause::exp_breakpoint:
+    csrf.write(priv_csr(csr::uepc), epc);
+    break;
+  default:
+    csrf.write(priv_csr(csr::uepc), (epc + 4) & masks::tvec::base_addr);
+    break;
+  }
 }
 
 uint32_t iss_model::alu(op &dec) {
@@ -350,9 +353,9 @@ void iss_model::handle_sys_exit() {
 
 void iss_model::handle_mret() {
   std::bitset<32> mstat{csrf.read(to_int(csr::mstatus))};
-  mstat[status::mie]       = mstat[status::mpie];
-  privilege_level mode_tmp = static_cast<privilege_level>(
-      (mstat[status::mpp + 1] << 1) | mstat[status::mpp]);
+  mstat[status::mie] = mstat[status::mpie];
+  privilege mode_tmp = static_cast<privilege>((mstat[status::mpp + 1] << 1) |
+                                              mstat[status::mpp]);
   fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
   mstat[status::mpie]    = true;
   mstat[status::mpp]     = false;
@@ -365,7 +368,7 @@ void iss_model::handle_mret() {
 void iss_model::handle_sret() {
   std::bitset<32> sstat{csrf.read(to_int(csr::sstatus))};
   sstat[status::sie] = sstat[status::spie];
-  mode = static_cast<privilege_level>(static_cast<uint8_t>(sstat[status::spp]));
+  mode = static_cast<privilege>(static_cast<uint8_t>(sstat[status::spp]));
   sstat[status::spie] = false;
   sstat[status::spp]  = false;
   csrf.write(to_int(csr::sstatus), sstat.to_ulong());

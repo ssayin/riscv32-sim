@@ -20,7 +20,7 @@ set(SRC_FILES
     include/zicsr/csr_file.hpp
     src/zicsr/csr_file.cpp
     include/zicsr/sync_exception.hpp
-    include/zicsr/privilege_level.hpp
+    include/zicsr/privilege.hpp
     src/zicsr/csr_file.cpp)
 
 add_executable(riscv32-sim ${SRC_FILES})
