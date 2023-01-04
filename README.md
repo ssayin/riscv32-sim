@@ -58,8 +58,8 @@ The executable binary will end up in ``build/riscv32-sim`` unless you specify a 
 ## Using
 
 ```sh
-# with the executable in your path (either local or ENV path)
-riscv32-sim <your_elf_binary>
+# with the executable in working directory
+./riscv32-sim <your_elf_binary>
 ```
 
 ## Built With
