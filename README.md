@@ -16,12 +16,53 @@ riscv32-sim ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.ym
 -->
 
 <p align="center" width="100%">
-  <img width="50%" src="misc/images/screenshot.svg">
+  <img width="60%" src="misc/images/screenshot.svg">
 </p>
 
 An easy-to-use, still-in-development RISC-V 32-bit simulator.
 
-### Built With
+## Getting Started
+
+### Build Requirements
+
+- a [compiler with C++20 support](https://en.cppreference.com/w/cpp/compiler_support) - required features: [consteval, concepts]
+- [git](https://git-scm.com/downloads)
+- [cmake](https://cmake.org/download/) >= 3.23.2
+- a [cmake supported native build system](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#manual:cmake-generators(7))
+### Building on Linux
+Fire up your favorite terminal and run those programs in shell:
+```sh
+# clone the repo with submodules
+git clone --recurse-submodules https://github.com/ssayin/riscv32-sim.git
+
+# cd to local repo
+cd riscv32-sim
+
+# update submodules
+git submodule update --init --recursive
+
+# configure and generate
+# see cmake documentation for other generators
+# and how to configure them
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+
+# build using GNU Make
+make -C build
+```
+The executable binary will end up in ``build/riscv32-sim`` unless you specify a custom binary directory during configuration.
+
+*I do not recommend installing the binary in your system path.*
+
+### Building and Running Tests [Optional]
+
+## Using
+
+```sh
+# with the executable in your path (either local or ENV path)
+riscv32-sim <your_elf_binary>
+```
+
+## Built With
 
 * [ELFIO](https://github.com/serge1/ELFIO) - A header-only C++ library intended for reading and generating files in the ELF binary format.
 * [{fmt}](https://github.com/fmtlib/fmt) - An open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams.
