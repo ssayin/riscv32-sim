@@ -8,6 +8,7 @@ project(riscv32-sim LANGUAGES CXX C ASM)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   option(BUILD_TESTS "" OFF)
+  option(BUILD_RUNTIME "" OFF)
   option(COVERAGE "" OFF)
 
   set(CMAKE_CXX_STANDARD 20)
@@ -20,14 +21,26 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+  if(COVERAGE)
+    if(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+      message(
+        WARNING
+          "Coverage analysis in ${CMAKE_BUILD_TYPE} builds may not produce accurate results."
+          " Specify -DCMAKE_BUILD_TYPE=Debug to configure the build type as Debug."
+      )
+    endif()
+  endif()
+
   if(BUILD_TESTS)
     include(CTest)
+    enable_testing()
   endif()
-endif()
 
-add_subdirectory(external)
-add_subdirectory(riscv32-sim)
+  add_subdirectory(external)
+  add_subdirectory(riscv32-sim)
+  add_subdirectory(riscv-tests)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTS)
-  add_subdirectory(test)
+  if(BUILD_RUNTIME)
+    add_subdirectory(runtime)
+  endif()
 endif()

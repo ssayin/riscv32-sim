@@ -23,21 +23,25 @@ set(SRC_FILES
     include/zicsr/privilege.hpp
     src/zicsr/csr_file.cpp)
 
-add_executable(riscv32-sim ${SRC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt)
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME
-   AND BUILD_TESTS
-   AND COVERAGE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")
+  target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:-O2>")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+
+endif()
+
+if(COVERAGE)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+    target_compile_options(${PROJECT_NAME}
+                           PRIVATE "-fprofile-arcs;-ftest-coverage")
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-lgcov")
   endif()
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Werror")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # change later
+if(BUILD_TESTS)
+  add_subdirectory(unittest)
 endif()
-
-target_link_libraries(riscv32-sim PRIVATE elfio fmt::fmt)
-target_include_directories(riscv32-sim PRIVATE include)
