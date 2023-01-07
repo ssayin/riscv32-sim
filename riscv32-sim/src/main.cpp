@@ -8,15 +8,20 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  sparse_memory mem;
-  iss_model     model{loader(argv[1], mem), mem};
+  try {
+    sparse_memory mem;
+    iss_model     model{loader(argv[1], mem), mem};
 
-  while (!model.done()) {
-    model.step();
+    while (!model.done()) {
+      model.step();
+    }
+    fmt::print("{} Exited with 0x{:X} ({})\n", argv[1], model.tohost(),
+               static_cast<int32_t>(model.tohost()));
+
+  } catch (std::exception &ex) {
+    fmt::print("{}", ex.what());
+    fmt::print("{}\n", argv[1]);
   }
-
-  fmt::print("{} Exited with 0x{:X} ({})\n", argv[1], model.tohost(),
-             static_cast<int32_t>(model.tohost()));
 
   return 0;
 }
