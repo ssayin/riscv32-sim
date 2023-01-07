@@ -1,5 +1,9 @@
 #include "decoder/decoder.hpp"
 #include "instr/rv32_isn.hpp"
+#include <fmt/ostream.h>
+#include <fmt/os.h>
+
+static fmt::ostream out{fmt::output_file("trace.log")};
 
 static op decode_load(uint32_t word);
 static op decode_store(uint32_t word);
@@ -35,18 +39,22 @@ op decode(uint32_t word) {
     using enum opcode;
   case auipc: {
     rv32_auipc isn{word};
+    out.print("{}\n", isn);
     return op{isn.imm, alu::_auipc, target::alu, isn.rd, 0, 0, true};
   }
   case lui: {
     rv32_lui isn{word};
+    out.print("{}\n", isn);
     return op{isn.imm, alu::_add, target::alu, isn.rd, 0, 0, true};
   }
   case jal: {
     rv32_jal isn{word};
+    out.print("{}\n", isn);
     return op{isn.imm, alu::_jal, target::alu, isn.rd, 0, 0, true};
   }
   case jalr: {
     rv32_jalr isn{word};
+    out.print("{}\n", isn);
     return op{isn.imm, alu::_jalr, target::alu, isn.rd, isn.rs, 0, true};
   }
   case load:
@@ -71,6 +79,7 @@ op decode(uint32_t word) {
 #define RV32_LOAD(name)                                                        \
   case load::name: {                                                           \
     rv32_##name isn{word};                                                     \
+    out.print("{}\n", isn);                                                     \
     return op{isn.imm, load::name, target::load, isn.rd, isn.rs, 0, true};     \
   }
 
@@ -91,6 +100,7 @@ static op decode_load(uint32_t word) {
 #define RV32_STORE(name)                                                       \
   case store::name: {                                                          \
     rv32_##name isn{word};                                                     \
+    out.print("{}\n", isn);                                                     \
     return op{isn.imm, store::name, target::store, 0, isn.rs1, isn.rs2, true}; \
   }
 
@@ -109,6 +119,7 @@ op decode_store(uint32_t word) {
 #define RV32_REG_REG(name, funct7)                                             \
   case funct7: {                                                               \
     rv32_##name isn{word};                                                     \
+    out.print("{}\n", isn);                                                     \
     return op{0, alu::_##name, target::alu, isn.rd, isn.rs1, isn.rs2, false};  \
   }
 
@@ -215,6 +226,7 @@ static op decode_alu(uint32_t word) {
 #define RV32_REG_IMM(name)                                                     \
   case name##i: {                                                              \
     rv32_##name##i isn{word};                                                  \
+    out.print("{}\n", isn);                                                     \
     return op{isn.imm, alu::_##name, target::alu, isn.rd, isn.rs, 0, true};    \
   }
 
@@ -241,6 +253,7 @@ static op decode_reg_imm(uint32_t word) {
 
   case sltiu: {
     rv32_sltiu isn{word};
+    out.print("{}\n", isn);
     return op{isn.imm, alu::_sltu, target::alu, isn.rd, isn.rs, 0, true};
   }
   default:
@@ -253,6 +266,7 @@ static op decode_reg_imm(uint32_t word) {
 #define RV32_BRANCH(name)                                                      \
   case branch::name: {                                                         \
     rv32_##name isn{word};                                                     \
+    out.print("{}\n", isn);                                                     \
     return op{                                                                 \
         isn.imm, branch::name, target::branch, 0, isn.rs1, isn.rs2, true};     \
   }
@@ -277,6 +291,7 @@ static op decode_fence(uint32_t word) { return make_nop(); }
 #define RV32_CSR(name)                                                         \
   case sys::name: {                                                            \
     rv32_##name isn{word};                                                     \
+    out.print("{}\n", isn);                                                     \
     return op{isn.csr, sys::name, target::csr, isn.rd, isn.rs, 0, true};       \
   }
 

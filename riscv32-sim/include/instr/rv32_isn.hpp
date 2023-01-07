@@ -6,6 +6,8 @@
 #include "common/types.hpp"
 #include <bitset>
 #include <cstdint>
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <numeric>
 #include <utility>
 
@@ -108,8 +110,9 @@ inline uint32_t rv32_imm_j(uint32_t x) {
 }
 
 struct rv32_jal {
-  uint8_t  rd;
-  uint32_t imm;
+  uint8_t                           rd;
+  uint32_t                          imm;
+  static constexpr std::string_view str() { return "jal"; };
   rv32_jal(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
     rd  = off::rd(word);
@@ -119,9 +122,10 @@ struct rv32_jal {
 
 #define RV32_REG_REG_INST(name, funct3, funct7)                                \
   struct rv32_##name {                                                         \
-    uint8_t rd;                                                                \
-    uint8_t rs1;                                                               \
-    uint8_t rs2;                                                               \
+    uint8_t                           rd;                                      \
+    uint8_t                           rs1;                                     \
+    uint8_t                           rs2;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rd  = off::rd(word);                                                     \
@@ -156,9 +160,10 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
 
 #define RV32_REG_IMM_INST(name, funct3, opc)                                   \
   struct rv32_##name {                                                         \
-    uint8_t  rd;                                                               \
-    uint8_t  rs;                                                               \
-    uint32_t imm;                                                              \
+    uint8_t                           rd;                                      \
+    uint8_t                           rs;                                      \
+    uint32_t                          imm;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rd  = off::rd(word);                                                     \
@@ -186,9 +191,10 @@ RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
 
 #define RV32_REG_IMM_SH_INST(name, funct3, funct7)                             \
   struct rv32_##name {                                                         \
-    uint8_t rd;                                                                \
-    uint8_t rs;                                                                \
-    uint8_t imm;                                                               \
+    uint8_t                           rd;                                      \
+    uint8_t                           rs;                                      \
+    uint8_t                           imm;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rd  = off::rd(word);                                                     \
@@ -205,8 +211,9 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
 
 #define RV32_REG_IMM_U_INST(name, opc)                                         \
   struct rv32_##name {                                                         \
-    uint8_t  rd;                                                               \
-    uint32_t imm;                                                              \
+    uint8_t                           rd;                                      \
+    uint32_t                          imm;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rd  = off::rd(word);                                                     \
@@ -221,9 +228,10 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
 
 #define RV32_STORE_INST(name, funct3)                                          \
   struct rv32_##name {                                                         \
-    uint8_t  rs1;                                                              \
-    uint8_t  rs2;                                                              \
-    uint32_t imm;                                                              \
+    uint8_t                           rs1;                                     \
+    uint8_t                           rs2;                                     \
+    uint32_t                          imm;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rs1 = off::rs1(word);                                                    \
@@ -240,9 +248,10 @@ RV32_STORE_INST(sw, store::sw)
 
 #define RV32_BRANCH_INST(name, funct3)                                         \
   struct rv32_##name {                                                         \
-    uint8_t  rs1;                                                              \
-    uint8_t  rs2;                                                              \
-    uint32_t imm;                                                              \
+    uint8_t                           rs1;                                     \
+    uint8_t                           rs2;                                     \
+    uint32_t                          imm;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rs1 = off::rs1(word);                                                    \
@@ -262,9 +271,10 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
 
 #define RV32_CSR_INST(name, funct3)                                            \
   struct rv32_##name {                                                         \
-    uint8_t  rd;                                                               \
-    uint8_t  rs;                                                               \
-    uint32_t csr;                                                              \
+    uint8_t                           rd;                                      \
+    uint8_t                           rs;                                      \
+    uint32_t                          csr;                                     \
+    static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
       rd  = off::rd(word);                                                     \
@@ -281,5 +291,91 @@ RV32_CSR_INST(csrrsi, sys::csrrsi)
 RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
+
+template <typename T>
+concept HasImm = requires(T a) { a.imm; };
+
+template <typename T>
+concept HasStr = requires(T a) { a.str; };
+
+template <typename T>
+concept HasRd = requires(T a) { a.rd; };
+
+template <typename T>
+concept HasRs1 = requires(T a) { a.rs1; };
+
+template <typename T>
+concept HasRs2 = requires(T a) { a.rs2; };
+
+template <typename T>
+concept HasRs = requires(T a) { a.rs; };
+
+template <typename T>
+concept HasCsr = requires(T a) { a.csr; };
+
+template <typename T>
+concept RegReg = HasStr<T> && HasRd<T> && HasRs1<T> && HasRs2<T>;
+
+template <typename T>
+concept RdImm = !HasRs<T> &&HasStr<T> &&HasRd<T> &&HasImm<T>;
+
+template <typename T>
+concept RegImm = HasStr<T> && HasRd<T> && HasRs<T> && HasImm<T>;
+
+template <typename T>
+concept RsRsImm = HasStr<T> && HasRs1<T> && HasRs2<T> && HasImm<T>;
+
+template <typename T>
+concept Csr = HasStr<T> && HasRd<T> && HasRs<T> && HasCsr<T>;
+
+template <RegReg T> struct fmt::formatter<T> {
+  static constexpr auto parse(fmt::format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+    return fmt::format_to(ctx.out(), "{}\tx{},x{},x{}", isn.str(), isn.rd,
+                          isn.rs1, isn.rs2);
+  }
+};
+
+template <RdImm T> struct fmt::formatter<T> {
+  static constexpr auto parse(fmt::format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+    return fmt::format_to(ctx.out(), "{}\tx{},{:x}", isn.str(), isn.rd,
+                          isn.imm);
+  }
+};
+
+template <RegImm T> struct fmt::formatter<T> {
+  static constexpr auto parse(fmt::format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+    return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
+                          isn.rs, static_cast<int32_t>(isn.imm));
+  }
+};
+
+template <RsRsImm T> struct fmt::formatter<T> {
+  static constexpr auto parse(fmt::format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+    return fmt::format_to(ctx.out(), "{}\tx{},{}(x{})", isn.str(), isn.rs1,
+                          static_cast<int32_t>(isn.imm), isn.rs2);
+  }
+};
+
+template <Csr T> struct fmt::formatter<T> {
+  static constexpr auto parse(fmt::format_parse_context &ctx) {
+    return ctx.begin();
+  }
+  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+    return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
+                          isn.rs, isn.csr);
+  }
+};
 
 #endif // INSTR_RV32_ISN_HPP

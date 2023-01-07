@@ -4,6 +4,7 @@
 #include "instr/rv32_isn.hpp"
 #include <cstdint>
 #include <variant>
+#include <fmt/core.h>
 
 enum class target : uint8_t {
   load,
