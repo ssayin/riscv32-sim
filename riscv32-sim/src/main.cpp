@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     model.step();
   }
 
-  fmt::print("{} Exited with 0x{:X} ({})\n", argv[0], model.tohost(),
+  fmt::print("{} Exited with 0x{:X} ({})\n", argv[1], model.tohost(),
              static_cast<int32_t>(model.tohost()));
 
   return 0;
