@@ -23,6 +23,19 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Get GCC Version
+        shell: bash
+        run: |
+          gcc --version > gcc-ver.txt
+
+      - name: Upload GCC Version
+        uses: actions/upload-artifact@v3
+        with:
+          name: gcc-ver
+          path: gcc-ver.txt
+          retention-days: 1
+
       - name: Install Ninja
         run: |
           sudo apt-get update -y
