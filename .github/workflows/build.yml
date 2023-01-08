@@ -26,7 +26,9 @@ jobs:
 
       - name: Update GCC
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc g++
+          sudo apt-get update
+          sudo apt install gcc-12 g++-12
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
 
       - name: Get GCC Version
         shell: bash
