@@ -8,6 +8,9 @@
 #include "zicsr/sync_exception.hpp"
 #include "zicsr/trap_cause.hpp"
 #include <fmt/color.h>
+extern "C" {
+#include <riscv-disas.h>
+}
 #include <stdexcept>
 
 static bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
@@ -39,6 +42,10 @@ void iss_model::step() {
   auto instr = mem.read_word(static_cast<uint32_t>(pc));
   op   dec   = decode(instr);
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
+
+  char buf[128] = {0};
+  disasm_inst(buf, sizeof(buf), rv32, static_cast<uint32_t>(pc), instr);
+
   try {
     if (dec.tgt == target::ecall) {
       switch (mode) {

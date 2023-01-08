@@ -292,6 +292,7 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
 
+/*
 template <typename T>
 concept HasImm = requires(T a) { a.imm; };
 
@@ -329,53 +330,54 @@ template <typename T>
 concept Csr = HasStr<T> && HasRd<T> && HasRs<T> && HasCsr<T>;
 
 template <RegReg T> struct fmt::formatter<T> {
-  static constexpr auto parse(fmt::format_parse_context &ctx) {
-    return ctx.begin();
-  }
-  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
-    return fmt::format_to(ctx.out(), "{}\tx{},x{},x{}", isn.str(), isn.rd,
-                          isn.rs1, isn.rs2);
-  }
+static constexpr auto parse(fmt::format_parse_context &ctx) {
+  return ctx.begin();
+}
+template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+  return fmt::format_to(ctx.out(), "{}\tx{},x{},x{}", isn.str(), isn.rd,
+                        isn.rs1, isn.rs2);
+}
 };
 
 template <RdImm T> struct fmt::formatter<T> {
-  static constexpr auto parse(fmt::format_parse_context &ctx) {
-    return ctx.begin();
-  }
-  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
-    return fmt::format_to(ctx.out(), "{}\tx{},{:x}", isn.str(), isn.rd,
-                          isn.imm);
-  }
+static constexpr auto parse(fmt::format_parse_context &ctx) {
+  return ctx.begin();
+}
+template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+  return fmt::format_to(ctx.out(), "{}\tx{},{:x}", isn.str(), isn.rd,
+                        isn.imm);
+}
 };
 
 template <RegImm T> struct fmt::formatter<T> {
-  static constexpr auto parse(fmt::format_parse_context &ctx) {
-    return ctx.begin();
-  }
-  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
-    return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
-                          isn.rs, static_cast<int32_t>(isn.imm));
-  }
+static constexpr auto parse(fmt::format_parse_context &ctx) {
+  return ctx.begin();
+}
+template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+  return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
+                        isn.rs, static_cast<int32_t>(isn.imm));
+}
 };
 
 template <RsRsImm T> struct fmt::formatter<T> {
-  static constexpr auto parse(fmt::format_parse_context &ctx) {
-    return ctx.begin();
-  }
-  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
-    return fmt::format_to(ctx.out(), "{}\tx{},{}(x{})", isn.str(), isn.rs1,
-                          static_cast<int32_t>(isn.imm), isn.rs2);
-  }
+static constexpr auto parse(fmt::format_parse_context &ctx) {
+  return ctx.begin();
+}
+template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+  return fmt::format_to(ctx.out(), "{}\tx{},{}(x{})", isn.str(), isn.rs1,
+                        static_cast<int32_t>(isn.imm), isn.rs2);
+}
 };
 
 template <Csr T> struct fmt::formatter<T> {
-  static constexpr auto parse(fmt::format_parse_context &ctx) {
-    return ctx.begin();
-  }
-  template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
-    return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
-                          isn.rs, isn.csr);
-  }
+static constexpr auto parse(fmt::format_parse_context &ctx) {
+  return ctx.begin();
+}
+template <typename Ctx> auto format(T const &isn, Ctx &ctx) {
+  return fmt::format_to(ctx.out(), "{}\tx{},x{},{}", isn.str(), isn.rd,
+                        isn.rs, isn.csr);
+}
 };
+*/
 
 #endif // INSTR_RV32_ISN_HPP

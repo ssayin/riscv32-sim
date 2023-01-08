@@ -10,6 +10,8 @@
 #include "zicsr/csr_file.hpp"
 #include "zicsr/privilege.hpp"
 #include "zicsr/sync_exception.hpp"
+#include <fmt/os.h>
+#include <fmt/ostream.h>
 
 class iss_model {
 public:
@@ -25,6 +27,8 @@ public:
   uint16_t priv_csr(enum csr c) const { return priv_base() | to_int(c); }
 
 private:
+  fmt::ostream out{fmt::output_file("trace.log")};
+
   uint32_t alu(op &dec);
   uint32_t load(op &dec);
   void     store(op &dec);

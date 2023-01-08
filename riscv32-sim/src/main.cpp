@@ -2,7 +2,7 @@
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
   if (argc != 2) {
     fmt::print("Usage: riscv32-sim <file_name>\n");
     return 1;
