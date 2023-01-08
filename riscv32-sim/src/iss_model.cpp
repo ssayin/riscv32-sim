@@ -45,6 +45,7 @@ void iss_model::step() {
 
   char buf[128] = {0};
   disasm_inst(buf, sizeof(buf), rv32, static_cast<uint32_t>(pc), instr);
+  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf);
 
   try {
     if (dec.tgt == target::ecall) {
