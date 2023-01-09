@@ -70,9 +70,9 @@ The executable binary will end up in ``build/riscv32-sim`` unless you specify a 
 ### How does the simulator determine when to halt?
 
 The simulator can be instructed to stop in the following ways:
-1. Create a symbol in your linker script called "tohost." If this is something you have never done before, you can look at the documentation on this website: https://doc.ecoscentric.com/gnutools/doc/ld/Scripts.html#Scripts.
+1. Create a symbol in your linker script called "tohost." If this is something you have never done before, you can look at the documentation on this website: https://doc.ecoscentric.com/gnutools/doc/ld/Scripts.html#Scripts. Writing to `tohost` terminates the program.
 
-2. Declare a function with *\_\_naked\_\_* attribute. In function definition, set `register a7 (x17)` to `93`. Then `ecall`. You can also set the other argument registers `a0, a1, a2, a3, a4, a5, a6`. The value in the `a0` register will be reported as the exit code. For more information on how the linux kernel implements syscalls, visit https://github.com/torvalds/linux/blob/master/arch/riscv/kernel/sbi.c.
+2. Declare a function with *\_\_naked\_\_* attribute. In function definition, set `register a7 (x17)` to `93`. Then `ecall`. Call this function in your `__exit(int)` routine. You can also set the other argument registers `a0, a1, a2, a3, a4, a5, a6`. The value in the `a0` register will be reported as the exit code. For more information on how the linux kernel implements syscalls, visit https://github.com/torvalds/linux/blob/master/arch/riscv/kernel/sbi.c.
 
 **Note:** `syscall(93)` is handled by the simulator despite SBI not yet being implemented.
 ## Built With
