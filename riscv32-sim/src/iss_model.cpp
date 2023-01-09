@@ -33,19 +33,18 @@ static bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
   return false;
 }
 
-iss_model::iss_model(loader l, sparse_memory &mem)
-    : tohost_addr{l.symbol("tohost")}, mem{mem}, pc{l.entry()},
-      mode{privilege::machine}, csrf(mode), is_done{false} {}
+void iss_model::trace(fmt::ostream &out) {
+  char buf[128] = {0};
+  disasm_inst(buf, sizeof(buf), rv32, static_cast<uint32_t>(pc),
+              mem.read_word(static_cast<uint32_t>(pc)));
+  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf);
+}
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + 4);
   auto instr = mem.read_word(static_cast<uint32_t>(pc));
   op   dec   = decode(instr);
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
-
-  char buf[128] = {0};
-  disasm_inst(buf, sizeof(buf), rv32, static_cast<uint32_t>(pc), instr);
-  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf);
 
   try {
     if (dec.tgt == target::ecall) {

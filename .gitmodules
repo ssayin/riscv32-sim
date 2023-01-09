@@ -7,3 +7,6 @@
 [submodule "external/riscv-test-env"]
 	path = external/riscv-test-env
 	url = https://github.com/riscv/riscv-test-env.git
+[submodule "external/CLI11"]
+	path = external/CLI11
+	url = https://github.com/CLIUtils/CLI11.git

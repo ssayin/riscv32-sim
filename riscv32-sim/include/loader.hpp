@@ -21,7 +21,7 @@ public:
 template <MemoryModel Model>
 loader::loader(const std::string &file_name, Model &mem) {
   if (!reader.load(file_name))
-    throw std::runtime_error("File is not found or it is not an ELF file\n");
+    throw std::runtime_error("File is not found or it is not an ELF file");
 
   if (reader.get_class() != ELFIO::ELFCLASS32)
     throw std::runtime_error("Only 32-bit binaries are supported");

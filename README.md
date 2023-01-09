@@ -62,7 +62,22 @@ The executable binary will end up in ``build/riscv32-sim`` unless you specify a 
 ./riscv32-sim <your_elf_binary>
 ```
 
+### CLI Options and Flags
+`--trace` Enable disasm trace, logged to `trace.log`.
+
+`--tohost <sym>` Customize the tohost symbol. In order to use your own __start() and __exit(int) routines, you can tell the simulator to use this symbol instead. Be sure to define it in your linker script.
+
+### How does the simulator determine when to halt?
+
+The simulator can be instructed to stop in the following ways:
+1. Create a symbol in your linker script called "tohost." If this is something you have never done before, you can look at the documentation on this website: https://doc.ecoscentric.com/gnutools/doc/ld/Scripts.html#Scripts.
+
+2. Declare a function with *\_\_naked\_\_* attribute. In function definition, set `register a7 (x17)` to `93`. Then `ecall`. You can also set the other argument registers `a0, a1, a2, a3, a4, a5, a6`. The value in the `a0` register will be reported as the exit code. For more information on how the linux kernel implements syscalls, visit https://github.com/torvalds/linux/blob/master/arch/riscv/kernel/sbi.c.
+
+**Note:** `syscall(93)` is handled by the simulator despite SBI not yet being implemented.
 ## Built With
 
+* [CLI11](https://github.com/CLIUtils/CLI11) - CLI11 is a command line parser for C++11 and beyond that provides a rich feature set with a simple and intuitive interface.
 * [ELFIO](https://github.com/serge1/ELFIO) - A header-only C++ library intended for reading and generating files in the ELF binary format.
 * [{fmt}](https://github.com/fmtlib/fmt) - An open-source formatting library providing a fast and safe alternative to C stdio and C++ iostreams.
+* [riscv-disassembler](https://github.com/michaeljclark/riscv-disassembler) - RISC-V Disassembler with support for RV32/RV64/RV128 IMAFDC

@@ -13,12 +13,21 @@
 #include <fmt/os.h>
 #include <fmt/ostream.h>
 
+struct iss_model_opts {
+  std::string tohost_sym = "tohost";
+  bool        trace      = false;
+};
+
 class iss_model {
 public:
-  iss_model(loader l, sparse_memory &mem);
+  iss_model(iss_model_opts &opts, loader l, sparse_memory &mem)
+      : tohost_addr{l.symbol(opts.tohost_sym)}, opts{opts}, mem{mem},
+        pc{l.entry()}, csrf(mode) {}
+
   void     step();
   uint32_t tohost() { return mem.read_word(tohost_addr); }
   bool     done() const { return is_done; }
+  void     trace(fmt::ostream &out);
 
   uint16_t priv_base() const {
     return static_cast<uint16_t>(to_int(mode) << 8);
@@ -27,8 +36,6 @@ public:
   uint16_t priv_csr(enum csr c) const { return priv_base() | to_int(c); }
 
 private:
-  fmt::ostream out{fmt::output_file("trace.log")};
-
   uint32_t alu(op &dec);
   uint32_t load(op &dec);
   void     store(op &dec);
@@ -41,12 +48,14 @@ private:
 
   const uint32_t tohost_addr;
 
+  const iss_model_opts &opts;
+
   sparse_memory  &mem;
   program_counter pc;
-  privilege       mode;
+  privilege       mode{privilege::machine};
   reg_file        regf;
   csr_file        csrf;
-  bool            is_done;
+  bool            is_done = false;
 };
 
 #endif
