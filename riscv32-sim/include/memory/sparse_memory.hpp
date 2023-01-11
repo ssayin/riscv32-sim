@@ -11,8 +11,8 @@ class sparse_memory {
   uint32_t ensure_page_exists(uint32_t addr);
 
 public:
-  constexpr static uint32_t page_size = 4096;
-  constexpr static uint32_t mask      = 0xFFFFF000;
+  constexpr static uint32_t page_size = 4096U;
+  constexpr static uint32_t mask      = 0xFFFFF000U;
 
   void     load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes);
   uint8_t  read_byte(uint32_t off);

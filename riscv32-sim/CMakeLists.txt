@@ -24,7 +24,7 @@ set(SRC_FILES
     src/zicsr/csr_file.cpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt RISCV_DISAS CLI11)
+target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas)
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

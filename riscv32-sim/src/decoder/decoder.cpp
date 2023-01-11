@@ -3,19 +3,75 @@
 #include <fmt/os.h>
 #include <fmt/ostream.h>
 
-static op decode_load(uint32_t word);
-static op decode_store(uint32_t word);
-static op decode_branch(uint32_t word);
-static op decode_reg_imm(uint32_t word);
-static op decode_alu(uint32_t word);
-static op decode_sys(uint32_t word);
-static op decode_fence(uint32_t word);
+#define RV32_LOAD(name)                                                        \
+  case load::name:                                                             \
+    return make_load<rv32_##name>(word, load::name);
 
-constexpr op make_nop() { return op{0, alu::_add, target::alu, 0, 0, 0, true}; }
+#define RV32_STORE(name)                                                       \
+  case store::name:                                                            \
+    return make_store<rv32_##name>(word, store::name);
 
-constexpr op make_illegal() {
+#define RV32_CSR(name)                                                         \
+  case sys::name:                                                              \
+    return make_csr<rv32_##name>(word, sys::name);
+
+#define RV32_REG_IMM(name)                                                     \
+  case name##i:                                                                \
+    return make_reg_imm<rv32_##name##i>(word, alu::_##name);
+
+#define RV32_BRANCH(name)                                                      \
+  case branch::name:                                                           \
+    return make_branch<rv32_##name>(word, branch::name);
+
+#define RV32_REG_REG(name, funct7)                                             \
+  case funct7: {                                                               \
+    rv32_##name isn{word};                                                     \
+    return op{0, alu::_##name, target::alu, isn.rd, isn.rs1, isn.rs2, false};  \
+  }
+
+namespace {
+template <typename T> inline op make_store(uint32_t word, store type) {
+  T isn{word};
+  return op{isn.imm, type, target::store, 0, isn.rs1, isn.rs2, true};
+}
+
+template <typename T> inline op make_load(uint32_t word, load type) {
+  T isn{word};
+  return op{isn.imm, type, target::load, isn.rd, isn.rs, 0, true};
+}
+
+template <typename T> inline op make_csr(uint32_t word, sys type) {
+  T isn{word};
+  return op{isn.csr, type, target::csr, isn.rd, isn.rs, 0, true};
+}
+
+template <typename T> inline op make_branch(uint32_t word, branch type) {
+  T isn{word};
+  return op{isn.imm, type, target::branch, 0, isn.rs1, isn.rs2, true};
+}
+
+template <typename T> inline op make_reg_imm(uint32_t word, alu type) {
+  T isn{word};
+  return op{isn.imm, type, target::alu, isn.rd, isn.rs, 0, true};
+}
+
+constexpr inline op make_nop() {
+  return op{0, alu::_add, target::alu, 0, 0, 0, true};
+}
+
+constexpr inline op make_illegal() {
   return op{0, {}, target::illegal, 0, 0, 0, false};
 }
+
+op decode_load(uint32_t word);
+op decode_store(uint32_t word);
+op decode_branch(uint32_t word);
+op decode_reg_imm(uint32_t word);
+op decode_alu(uint32_t word);
+op decode_sys(uint32_t word);
+op decode_fence(uint32_t word);
+
+} // namespace
 
 op decode(uint32_t word) {
   switch (word) {
@@ -27,32 +83,26 @@ op decode(uint32_t word) {
     return op{0, {}, target::mret, 0, 0, 0, false};
   case sret:
     return make_nop();
-
-    // wfi
-  case 0x10500073:
+  case wfi:
     return make_nop();
   }
 
-  switch (static_cast<opcode>(off::opc(word))) {
+  switch (opcode{off::opc(word)}) {
     using enum opcode;
   case auipc: {
     rv32_auipc isn{word};
-
-    return op{isn.imm, alu::_auipc, target::alu, isn.rd, 0, 0, true};
+    return op{isn.imm, alu::_auipc, target::alu, isn.rd, 0, 0, true, true};
   }
   case lui: {
     rv32_lui isn{word};
-
     return op{isn.imm, alu::_add, target::alu, isn.rd, 0, 0, true};
   }
   case jal: {
     rv32_jal isn{word};
-
-    return op{isn.imm, alu::_jal, target::alu, isn.rd, 0, 0, true};
+    return op{isn.imm, alu::_jal, target::alu, isn.rd, 0, 0, true, true};
   }
   case jalr: {
     rv32_jalr isn{word};
-
     return op{isn.imm, alu::_jalr, target::alu, isn.rd, isn.rs, 0, true};
   }
   case load:
@@ -74,15 +124,10 @@ op decode(uint32_t word) {
   }
 }
 
-#define RV32_LOAD(name)                                                        \
-  case load::name: {                                                           \
-    rv32_##name isn{word};                                                     \
-                                                                               \
-    return op{isn.imm, load::name, target::load, isn.rd, isn.rs, 0, true};     \
-  }
+namespace {
 
-static op decode_load(uint32_t word) {
-  switch (static_cast<load>(off::funct3(word))) {
+op decode_load(uint32_t word) {
+  switch (load{off::funct3(word)}) {
     RV32_LOAD(lb)
     RV32_LOAD(lh)
     RV32_LOAD(lw)
@@ -93,17 +138,8 @@ static op decode_load(uint32_t word) {
   }
 }
 
-#undef RV32_LOAD
-
-#define RV32_STORE(name)                                                       \
-  case store::name: {                                                          \
-    rv32_##name isn{word};                                                     \
-                                                                               \
-    return op{isn.imm, store::name, target::store, 0, isn.rs1, isn.rs2, true}; \
-  }
-
 op decode_store(uint32_t word) {
-  switch (static_cast<store>(off::funct3(word))) {
+  switch (store{off::funct3(word)}) {
     RV32_STORE(sb)
     RV32_STORE(sh)
     RV32_STORE(sw)
@@ -112,16 +148,7 @@ op decode_store(uint32_t word) {
   }
 }
 
-#undef RV32_STORE
-
-#define RV32_REG_REG(name, funct7)                                             \
-  case funct7: {                                                               \
-    rv32_##name isn{word};                                                     \
-                                                                               \
-    return op{0, alu::_##name, target::alu, isn.rd, isn.rs1, isn.rs2, false};  \
-  }
-
-static op decode_alu_and_remu(uint32_t word) {
+op decode_alu_and_remu(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(and, 0x0)
     RV32_REG_REG(remu, 0x1)
@@ -130,7 +157,7 @@ static op decode_alu_and_remu(uint32_t word) {
   }
 }
 
-static op decode_alu_or_rem(uint32_t word) {
+op decode_alu_or_rem(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(or, 0x0)
     RV32_REG_REG(rem, 0x1)
@@ -139,7 +166,7 @@ static op decode_alu_or_rem(uint32_t word) {
   }
 }
 
-static op decode_alu_xor_div(uint32_t word) {
+op decode_alu_xor_div(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(xor, 0x0)
     RV32_REG_REG(div, 0x1)
@@ -148,7 +175,7 @@ static op decode_alu_xor_div(uint32_t word) {
   }
 }
 
-static op decode_alu_add_sub_mul(uint32_t word) {
+op decode_alu_add_sub_mul(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(add, 0x0)
     RV32_REG_REG(mul, 0x1)
@@ -158,7 +185,7 @@ static op decode_alu_add_sub_mul(uint32_t word) {
   }
 }
 
-static op decode_alu_sll_mulh(uint32_t word) {
+op decode_alu_sll_mulh(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(sll, 0x0)
     RV32_REG_REG(mulh, 0x1)
@@ -167,7 +194,7 @@ static op decode_alu_sll_mulh(uint32_t word) {
   }
 }
 
-static op decode_alu_srl_sra_divu(uint32_t word) {
+op decode_alu_srl_sra_divu(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(srl, 0x0)
     RV32_REG_REG(divu, 0x1)
@@ -177,7 +204,7 @@ static op decode_alu_srl_sra_divu(uint32_t word) {
   }
 }
 
-static op decode_alu_slt_mulhsu(uint32_t word) {
+op decode_alu_slt_mulhsu(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(slt, 0x0)
     RV32_REG_REG(mulhsu, 0x1)
@@ -186,7 +213,7 @@ static op decode_alu_slt_mulhsu(uint32_t word) {
   }
 }
 
-static op decode_alu_sltu_mulhu(uint32_t word) {
+op decode_alu_sltu_mulhu(uint32_t word) {
   switch (off::funct7(word)) {
     RV32_REG_REG(sltu, 0x0)
     RV32_REG_REG(mulhu, 0x1)
@@ -195,10 +222,8 @@ static op decode_alu_sltu_mulhu(uint32_t word) {
   }
 }
 
-#undef RV32_REG_REG
-
-static op decode_alu(uint32_t word) {
-  switch (static_cast<reg_reg>(off::funct3(word))) {
+op decode_alu(uint32_t word) {
+  switch (reg_reg{off::funct3(word)}) {
     using enum reg_reg;
   case and_remu:
     return decode_alu_and_remu(word);
@@ -221,15 +246,8 @@ static op decode_alu(uint32_t word) {
   }
 }
 
-#define RV32_REG_IMM(name)                                                     \
-  case name##i: {                                                              \
-    rv32_##name##i isn{word};                                                  \
-                                                                               \
-    return op{isn.imm, alu::_##name, target::alu, isn.rd, isn.rs, 0, true};    \
-  }
-
-static op decode_reg_imm(uint32_t word) {
-  switch (static_cast<reg_imm>(off::funct3(word))) {
+op decode_reg_imm(uint32_t word) {
+  switch (reg_imm{off::funct3(word)}) {
     using enum reg_imm;
     RV32_REG_IMM(add)
     RV32_REG_IMM(slt)
@@ -251,7 +269,6 @@ static op decode_reg_imm(uint32_t word) {
 
   case sltiu: {
     rv32_sltiu isn{word};
-
     return op{isn.imm, alu::_sltu, target::alu, isn.rd, isn.rs, 0, true};
   }
   default:
@@ -259,18 +276,8 @@ static op decode_reg_imm(uint32_t word) {
   }
 }
 
-#undef RV32_REG_IMM
-
-#define RV32_BRANCH(name)                                                      \
-  case branch::name: {                                                         \
-    rv32_##name isn{word};                                                     \
-                                                                               \
-    return op{                                                                 \
-        isn.imm, branch::name, target::branch, 0, isn.rs1, isn.rs2, true};     \
-  }
-
-static op decode_branch(uint32_t word) {
-  switch (static_cast<branch>(off::funct3(word))) {
+op decode_branch(uint32_t word) {
+  switch (branch{off::funct3(word)}) {
     RV32_BRANCH(beq)
     RV32_BRANCH(bne)
     RV32_BRANCH(blt)
@@ -282,19 +289,10 @@ static op decode_branch(uint32_t word) {
   }
 }
 
-#undef RV32_BRANCH
+op decode_fence(uint32_t word) { return make_nop(); }
 
-static op decode_fence(uint32_t word) { return make_nop(); }
-
-#define RV32_CSR(name)                                                         \
-  case sys::name: {                                                            \
-    rv32_##name isn{word};                                                     \
-                                                                               \
-    return op{isn.csr, sys::name, target::csr, isn.rd, isn.rs, 0, true};       \
-  }
-
-static op decode_sys(uint32_t word) {
-  switch (static_cast<sys>(off::funct3(word))) {
+op decode_sys(uint32_t word) {
+  switch (sys{off::funct3(word)}) {
     RV32_CSR(csrrw)
     RV32_CSR(csrrs)
     RV32_CSR(csrrc)
@@ -302,9 +300,14 @@ static op decode_sys(uint32_t word) {
     RV32_CSR(csrrsi)
     RV32_CSR(csrrci)
   default:
-    // those are covered in decode(...), this is an unimplemented system instr
     return make_illegal();
   }
 }
+} // namespace
 
+#undef RV32_REG_REG
+#undef RV32_LOAD
+#undef RV32_STORE
+#undef RV32_REG_IMM
+#undef RV32_BRANCH
 #undef RV32_CSR

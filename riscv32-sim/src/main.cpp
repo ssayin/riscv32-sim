@@ -22,6 +22,11 @@ int main(int argc, char **argv) {
 
   try {
     app.parse(argc, argv);
+  } catch (const CLI::ParseError &e) {
+    return app.exit(e);
+  }
+
+  try {
     sparse_memory mem;
     iss_model     model{opts, loader(target, mem), mem};
 
@@ -42,8 +47,7 @@ int main(int argc, char **argv) {
     fmt::print("{} Exited with 0x{:X} ({})\n", target, model.tohost(),
                static_cast<int32_t>(model.tohost()));
 
-  } catch (const CLI::ParseError &e) {
-    return app.exit(e);
+
   } catch (const std::exception &ex) {
     fmt::print("{}\n{}\n", ex.what(), target);
   }

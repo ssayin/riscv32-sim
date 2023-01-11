@@ -12,10 +12,10 @@ class reg_file {
 public:
   uint32_t read(uint8_t index);
   void     write(uint8_t index, uint32_t data);
+  void     trace(uint8_t index) const;
 
 private:
   file_type x{};
-  void      print(uint8_t index) const;
 };
 
 #endif // REG_FILE_HPP

@@ -25,25 +25,26 @@ public:
         pc{l.entry()}, csrf(mode) {}
 
   void     step();
-  uint32_t tohost() { return mem.read_word(tohost_addr); }
-  bool     done() const { return is_done; }
   void     trace(fmt::ostream &out);
 
-  uint16_t priv_base() const {
-    return static_cast<uint16_t>(to_int(mode) << 8);
-  }
-
-  uint16_t priv_csr(enum csr c) const { return priv_base() | to_int(c); }
+  uint32_t tohost() { return mem.read_word(tohost_addr); }
+  bool     done() const { return is_done; }
 
 private:
-  uint32_t alu(op &dec);
   uint32_t load(op &dec);
   void     store(op &dec);
   void     csr(op &dec);
+  void     exec(op &dec);
+  op       next_op();
+
+  void     dispatch_ecall() const;
+  void     handle_alu(op &dec);
+  void     handle_load(op &dec);
+  void     handle_branch(const op &dec);
 
   void handle_mret();
   void handle_sret();
-  void handle_sync_exception(sync_exception &ex);
+  void handle(sync_exception &ex);
   void handle_sys_exit();
 
   const uint32_t tohost_addr;
@@ -56,6 +57,7 @@ private:
   reg_file        regf;
   csr_file        csrf;
   bool            is_done = false;
+  void            save_pc(const trap_cause &cause);
 };
 
 #endif

@@ -13,7 +13,11 @@ concept Enum = std::is_enum<T>::value;
 
 template <typename T>
 concept MemoryModel = requires(T mem, uint32_t addr, void *ptr, int64_t size) {
-  mem.load(addr, ptr, size);
-};
+                        mem.load(addr, ptr, size);
+                      };
+
+constexpr auto to_int(Enum auto val) {
+  return static_cast<std::underlying_type_t<decltype(val)>>(val);
+}
 
 #endif // COMMON_TYPES_HPP

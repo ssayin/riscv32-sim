@@ -12,10 +12,10 @@ void reg_file::write(uint8_t index, uint32_t data) {
   assert(index < 32U);
   if (index == 0) return;
   x[index] = data;
-  print(index);
+  trace(index);
 }
 
-void reg_file::print(uint8_t index) const {
+void reg_file::trace(uint8_t index) const {
   auto data = x.at(index);
   fmt::print(fg(fmt::color{0xE8EDDF}), "x{}", index);
   fmt::print(" <= ");

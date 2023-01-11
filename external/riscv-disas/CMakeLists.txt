@@ -1,4 +1,4 @@
-add_library(RISCV_DISAS STATIC)
+add_library(riscv_disas STATIC)
 
-target_sources(RISCV_DISAS PRIVATE riscv-disas.c)
-target_include_directories(RISCV_DISAS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_sources(riscv_disas PRIVATE riscv-disas.c)
+target_include_directories(riscv_disas PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
