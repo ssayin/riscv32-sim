@@ -1,7 +1,7 @@
-#include "iss_model.hpp"
 #include "arith.hpp"
 #include "decoder/decoder.hpp"
 #include "instr/rv32_isn.hpp"
+#include "iss_model.hpp"
 #include "memory/sparse_memory.hpp"
 #include "zicsr/csr.hpp"
 #include "zicsr/privilege.hpp"
@@ -11,6 +11,7 @@
 extern "C" {
 #include <riscv-disas.h>
 }
+#include <cstdint>
 #include <stdexcept>
 
 namespace {
@@ -19,14 +20,14 @@ bool     should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type);
 } // namespace
 
 void iss_model::trace(fmt::ostream &out) {
-  char buf[128] = {0};
-  disasm_inst(buf, sizeof(buf), rv32, static_cast<uint32_t>(pc),
+  std::array<char, 128> buf{};
+  disasm_inst(buf.data(), buf.size(), rv32, static_cast<uint32_t>(pc),
               mem.read_word(static_cast<uint32_t>(pc)));
-  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf);
+  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
 }
 
 void iss_model::step() {
-  pc.set(static_cast<uint32_t>(pc) + 4);
+  pc.set(static_cast<uint32_t>(pc) + instr_alignment);
 
   try {
     auto dec = next_op();
@@ -95,7 +96,7 @@ void iss_model::handle_alu(op &dec) {
   switch (std::get<enum alu>(dec.opt)) {
   case alu::_jal:
   case alu::_jalr:
-    regf.write(dec.rd, static_cast<uint32_t>(pc) + 4);
+    regf.write(dec.rd, static_cast<uint32_t>(pc) + instr_alignment);
     pc.set(res);
     break;
   default:
@@ -155,7 +156,7 @@ void iss_model::save_pc(const trap_cause &cause) {
     csrf.write(csrf.priv_csr(csr::uepc), epc);
     break;
   default:
-    csrf.write(csrf.priv_csr(csr::uepc), (epc + 4) & masks::tvec::base_addr);
+    csrf.write(csrf.priv_csr(csr::uepc), (epc + instr_alignment) & masks::tvec::base_addr);
     break;
   }
 }
@@ -304,6 +305,10 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
   return false;
 }
 
+bool is_overflow(int32_t dividend, int32_t divisor) {
+  return (dividend == -2147483648) && (divisor == -1);
+}
+
 uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2) {
   switch (opt) {
 
@@ -388,10 +393,10 @@ clang-format on
  */
 
   case alu::_div: {
-    auto dividend = static_cast<int32_t>(opd_1);
-    auto divisor  = static_cast<int32_t>(opd_2);
+    int32_t dividend = static_cast<int32_t>(opd_1);
+    int32_t divisor  = static_cast<int32_t>(opd_2);
     if (divisor == 0) return -1;
-    if ((dividend == -2147483648) && (divisor == -1)) return dividend;
+    if (is_overflow(dividend, divisor)) return dividend;
     return dividend / divisor;
   }
 
@@ -399,7 +404,7 @@ clang-format on
     auto dividend = static_cast<int32_t>(opd_1);
     auto divisor  = static_cast<int32_t>(opd_2);
     if (divisor == 0) return dividend;
-    if ((dividend == -2147483648) && (divisor == -1)) return 0;
+    if (is_overflow(dividend, divisor)) return 0;
     return dividend % divisor;
   }
   default:

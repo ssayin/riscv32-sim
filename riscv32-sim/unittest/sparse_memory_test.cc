@@ -1,6 +1,5 @@
 #include "memory/sparse_memory.hpp"
 #include "zicsr/sync_exception.hpp"
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 TEST(SparseMemoryTest, UninitializedMemory) {

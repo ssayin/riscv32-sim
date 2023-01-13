@@ -1,7 +1,6 @@
 #include "decoder/decoder.hpp"
 #include "instr/rv32_isn.hpp"
 #include <fmt/os.h>
-#include <fmt/ostream.h>
 
 #define RV32_LOAD(name)                                                        \
   case load::name:                                                             \

@@ -9,13 +9,13 @@
 #include <cstdint>
 
 struct status {
+  static constexpr uint8_t sie  = 1U;
   static constexpr uint8_t mie  = 3U;
+  static constexpr uint8_t spie = 5U;
+  static constexpr uint8_t spp  = 8U;
   static constexpr uint8_t mpie = 7U;
   static constexpr uint8_t mpp  = 11U;
   static constexpr uint8_t mprv = 17U;
-  static constexpr uint8_t sie  = 1U;
-  static constexpr uint8_t spie = 5U;
-  static constexpr uint8_t spp  = 8U;
 };
 
 class csr_file {

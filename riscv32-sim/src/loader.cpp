@@ -18,3 +18,15 @@ uint32_t loader::symbol(const std::string &str) {
   }
   return value;
 }
+
+void loader::dump(std::ostream &out) {
+  ELFIO::dump::header(out, reader);
+  ELFIO::dump::section_headers(out, reader);
+  ELFIO::dump::segment_headers(out, reader);
+  ELFIO::dump::symbol_tables(out, reader);
+  ELFIO::dump::notes(out, reader);
+  ELFIO::dump::modinfo(out, reader);
+  ELFIO::dump::dynamic_tags(out, reader);
+  ELFIO::dump::section_datas(out, reader);
+  ELFIO::dump::segment_datas(out, reader);
+}
