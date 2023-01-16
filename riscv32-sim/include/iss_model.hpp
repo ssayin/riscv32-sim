@@ -38,9 +38,9 @@ private:
   op       next_op();
 
   trap_cause handle_ecall() const;
-  void handle_alu(op &dec);
-  void handle_load(op &dec);
-  void handle_branch(const op &dec);
+  void       handle_alu(op &dec);
+  void       handle_load(op &dec);
+  void       handle_branch(const op &dec);
 
   void handle_mret();
   void handle_sret();
@@ -56,12 +56,10 @@ private:
 
   sparse_memory  &mem;
   program_counter pc;
-  privileged_mode       mode{privilege::machine};
+  privileged_mode mode{privilege::machine};
   reg_file        regf;
   csr_file        csrf;
   bool            is_done = false;
-
-
 };
 
 #endif

@@ -27,20 +27,16 @@ void iss_model::trace(fmt::ostream &out) {
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + instr_alignment);
-  try {
   op dec = next_op();
-  exec(dec);}
-  catch (const std::exception &ex) {
-    handle(trap_cause::exp_inst_access_fault);
-  }
+  exec(dec);
   pc.update();
 }
 
 op iss_model::next_op() {
-  op dec;
-    auto instr = mem.read_word(static_cast<uint32_t>(pc));
-    dec        = decode(instr);
-    fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
+  op   dec;
+  auto instr = mem.read_word(static_cast<uint32_t>(pc));
+  dec        = decode(instr);
+  fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
 
   return dec;
 }
@@ -186,7 +182,7 @@ void iss_model::csr(op &dec) {
         I = tmp & !I;
       }
 
-      if(mode.is_write_legal_csr(dec.imm)) {
+      if (mode.is_write_legal_csr(dec.imm)) {
         csrf.write(dec.imm, I);
       } else {
         handle(trap_cause::exp_inst_illegal);
@@ -196,7 +192,6 @@ void iss_model::csr(op &dec) {
       handle(trap_cause::exp_inst_illegal);
       return;
     }
-
   }
 
   if (Sys == sys::csrrwi || Sys == sys::csrrsi || Sys == sys::csrrci) {
@@ -209,7 +204,7 @@ void iss_model::csr(op &dec) {
       I = (!I) & tmp;
     }
 
-    if(mode.is_write_legal_csr(dec.imm)) {
+    if (mode.is_write_legal_csr(dec.imm)) {
       csrf.write(dec.imm, I);
     } else {
       handle(trap_cause::exp_inst_illegal);
@@ -225,16 +220,21 @@ uint32_t iss_model::load(op &dec) {
   auto addr = regf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
 
   switch (std::get<enum load>(dec.opt)) {
-  case load::lb:
+  case load::lb: {
     return (static_cast<int32_t>(mem.read_byte(addr)) << 24) >> 24;
-  case load::lh:
+  }
+  case load::lh: {
     return (static_cast<int32_t>(mem.read_half(addr)) << 16) >> 16;
-  case load::lw:
+  }
+  case load::lw: {
     return mem.read_word(addr);
-  case load::lbu:
+  }
+  case load::lbu: {
     return mem.read_byte(addr);
-  case load::lhu:
+  }
+  case load::lhu: {
     return mem.read_half(addr);
+  }
   default:
     throw std::runtime_error(""); // illegal
   }

@@ -8,6 +8,7 @@
 #include <string>
 
 class loader {
+private:
   ELFIO::elfio reader;
 
 public:
@@ -38,8 +39,9 @@ loader::loader(const std::string &file_name, Model &mem) {
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
                   if (s->get_type() == ELFIO::PT_LOAD) {
-                    mem.load(s->get_virtual_address(), (void *)s->get_data(),
-                             s->get_file_size());
+                    auto addr = s->get_virtual_address();
+                    auto size = s->get_file_size();
+                    mem.load(addr, (void *)s->get_data(), size);
                   }
                 });
 }

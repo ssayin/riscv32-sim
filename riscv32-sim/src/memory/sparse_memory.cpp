@@ -28,7 +28,7 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (!page.contains(off & mask)) {
-    throw std::runtime_error("");
+    return 0U;
   }
   return page[off & mask].get()[offset(off, 0U, 11U)];
 }
