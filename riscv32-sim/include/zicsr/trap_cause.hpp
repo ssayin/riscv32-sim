@@ -38,8 +38,7 @@ enum class trap_cause : uint32_t {
   int_external_s_guest       = 0x80000012
 };
 
-// switch-case is a better hint for optimization?
-static constexpr std::string_view str_trap_cause(trap_cause cause) {
+constexpr std::string_view str_trap_cause(trap_cause cause) {
   switch (cause) {
   case trap_cause::exp_inst_addr_misaligned:
     return "misaligned instruction address";

@@ -9,7 +9,7 @@
 #include "zicsr/csr.hpp"
 #include "zicsr/csr_file.hpp"
 #include "zicsr/privilege.hpp"
-#include "zicsr/sync_exception.hpp"
+#include "zicsr/trap_cause.hpp"
 #include <fmt/os.h>
 #include <fmt/ostream.h>
 
@@ -22,7 +22,7 @@ public:
 
   iss_model(opts &opt, loader l, sparse_memory &mem)
       : tohost_addr{l.symbol(opt.tohost_sym)}, opt{opt}, mem{mem},
-        pc{l.entry()}, csrf(mode) {}
+        pc{l.entry()} {}
 
   void step();
   void trace(fmt::ostream &out);
@@ -37,17 +37,17 @@ private:
   void     exec(op &dec);
   op       next_op();
 
-  void dispatch_ecall() const;
+  trap_cause handle_ecall() const;
   void handle_alu(op &dec);
   void handle_load(op &dec);
   void handle_branch(const op &dec);
 
   void handle_mret();
   void handle_sret();
-  void handle(sync_exception &ex);
   void handle_sys_exit();
-
   void save_pc(const trap_cause &cause);
+
+  void handle(trap_cause cause);
 
   const uint32_t tohost_addr;
   const opts    &opt;
@@ -56,10 +56,12 @@ private:
 
   sparse_memory  &mem;
   program_counter pc;
-  privilege       mode{privilege::machine};
+  privileged_mode       mode{privilege::machine};
   reg_file        regf;
   csr_file        csrf;
   bool            is_done = false;
+
+
 };
 
 #endif

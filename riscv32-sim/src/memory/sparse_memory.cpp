@@ -1,6 +1,6 @@
 #include "memory/sparse_memory.hpp"
 #include "instr/rv32_isn.hpp"
-#include "zicsr/sync_exception.hpp"
+#include <optional>
 
 static void *write_block(uint8_t *page_offset, void *ptr,
                          uint32_t size_in_bytes) {
@@ -28,7 +28,7 @@ void sparse_memory::load(uint32_t virt_addr, void *ptr, int64_t size_in_bytes) {
 
 uint8_t sparse_memory::read_byte(uint32_t off) {
   if (!page.contains(off & mask)) {
-    throw sync_exception(trap_cause::exp_inst_access_fault);
+    throw std::runtime_error("");
   }
   return page[off & mask].get()[offset(off, 0U, 11U)];
 }

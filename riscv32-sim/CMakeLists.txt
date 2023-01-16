@@ -18,10 +18,7 @@ set(SRC_FILES
     include/reg_file.hpp
     include/common/consts.hpp
     include/zicsr/csr_file.hpp
-    src/zicsr/csr_file.cpp
-    include/zicsr/sync_exception.hpp
-    include/zicsr/privilege.hpp
-    src/zicsr/csr_file.cpp)
+    include/zicsr/privilege.hpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas)

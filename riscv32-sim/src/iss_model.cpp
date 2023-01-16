@@ -1,11 +1,10 @@
+#include "iss_model.hpp"
 #include "arith.hpp"
 #include "decoder/decoder.hpp"
 #include "instr/rv32_isn.hpp"
-#include "iss_model.hpp"
 #include "memory/sparse_memory.hpp"
 #include "zicsr/csr.hpp"
 #include "zicsr/privilege.hpp"
-#include "zicsr/sync_exception.hpp"
 #include "zicsr/trap_cause.hpp"
 #include <fmt/color.h>
 extern "C" {
@@ -28,21 +27,21 @@ void iss_model::trace(fmt::ostream &out) {
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + instr_alignment);
-
   try {
-    auto dec = next_op();
-    exec(dec);
-  } catch (sync_exception &ex) {
-    handle(ex);
+  op dec = next_op();
+  exec(dec);}
+  catch (const std::exception &ex) {
+    handle(trap_cause::exp_inst_access_fault);
   }
-
   pc.update();
 }
 
 op iss_model::next_op() {
-  auto instr = mem.read_word(static_cast<uint32_t>(pc));
-  op   dec   = decode(instr);
-  fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
+  op dec;
+    auto instr = mem.read_word(static_cast<uint32_t>(pc));
+    dec        = decode(instr);
+    fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
+
   return dec;
 }
 
@@ -67,12 +66,14 @@ void iss_model::exec(op &dec) {
     handle_mret();
     break;
   case target::ecall:
-    dispatch_ecall();
+    handle(handle_ecall());
     break;
   case target::illegal:
-    throw sync_exception(trap_cause::exp_inst_illegal);
+    handle(trap_cause::exp_inst_illegal);
+    break;
   case target::ebreak:
-    throw sync_exception(trap_cause::exp_breakpoint);
+    handle(trap_cause::exp_breakpoint);
+    break;
   }
 }
 
@@ -104,22 +105,21 @@ void iss_model::handle_alu(op &dec) {
     break;
   }
 }
-void iss_model::dispatch_ecall() const {
-  switch (mode) {
+trap_cause iss_model::handle_ecall() const {
+  switch (mode.mode) {
   case privilege::user:
-    throw sync_exception(trap_cause::exp_ecall_from_u_vu_mode);
+    return trap_cause::exp_ecall_from_u_vu_mode;
   case privilege::supervisor:
-    throw sync_exception(trap_cause::exp_ecall_from_vs_mode);
+    return trap_cause::exp_ecall_from_vs_mode;
   case privilege::hypervisor:
-    throw sync_exception(trap_cause::exp_ecall_from_hs_mode);
+    return trap_cause::exp_ecall_from_hs_mode;
   case privilege::machine:
-    throw sync_exception(trap_cause::exp_ecall_from_m_mode);
+    return trap_cause::exp_ecall_from_m_mode;
   }
+  throw std::runtime_error("");
 }
 
-void iss_model::handle(sync_exception &ex) {
-  auto cause = ex.cause();
-
+void iss_model::handle(trap_cause cause) {
   fmt::print("{}", cause);
 
   if (cause == trap_cause::exp_inst_access_fault)
@@ -128,12 +128,12 @@ void iss_model::handle(sync_exception &ex) {
   assert((to_int(cause) & masks::sign_bit) == 0);
 
   // all sync exceptions are taken to machine mode for the time being
-  mode = privilege::machine;
+  mode.mode = privilege::machine;
 
-  csrf.write(csrf.priv_csr(csr::ucause), to_int(cause));
-  csrf.write(csrf.priv_csr(csr::utval), 0);
+  csrf.write(mode.priv_csr(csr::ucause), to_int(cause));
+  csrf.write(mode.priv_csr(csr::utval), 0);
 
-  auto tvec = csrf.read(csrf.priv_csr(csr::utvec));
+  auto tvec = csrf.read(mode.priv_csr(csr::utvec));
 
   pc.set(tvec & masks::tvec::base_addr);
 
@@ -148,61 +148,76 @@ void iss_model::save_pc(const trap_cause &cause) {
   case trap_cause::exp_ecall_from_m_mode:
   case trap_cause::exp_ecall_from_vs_mode:
   case trap_cause::exp_ecall_from_u_vu_mode:
-    csrf.write(csrf.priv_csr(csr::uepc), epc);
-    // syscall handler for testing
+    csrf.write(mode.priv_csr(csr::uepc), epc);
     handle_sys_exit();
     break;
   case trap_cause::exp_breakpoint:
-    csrf.write(csrf.priv_csr(csr::uepc), epc);
+    csrf.write(mode.priv_csr(csr::uepc), epc);
     break;
   default:
-    csrf.write(csrf.priv_csr(csr::uepc), (epc + instr_alignment) & masks::tvec::base_addr);
+    csrf.write(mode.priv_csr(csr::uepc),
+               (epc + instr_alignment) & masks::tvec::base_addr);
     break;
   }
 }
 
 void iss_model::csr(op &dec) {
-  switch (std::get<sys>(dec.opt)) {
-    using enum sys;
-  case csrrw: {
-    uint32_t tmp = csrf.read(dec.imm);
-    csrf.write(dec.imm, regf.read(dec.rs1));
-    regf.write(dec.rd, tmp);
-  } break;
-
-  case csrrs: {
-    uint32_t tmp = csrf.read(dec.imm);
-    if (dec.rs1 != 0) csrf.write(dec.imm, tmp | regf.read(dec.rs1));
-    regf.write(dec.rd, tmp);
-  } break;
-
-  case csrrc: {
-    uint32_t tmp = csrf.read(dec.imm);
-    if (dec.rs1 != 0) csrf.write(dec.imm, tmp & (!regf.read(dec.rs1)));
-    regf.write(dec.rd, tmp);
-  } break;
-
-  case csrrwi: {
-    uint32_t tmp = (dec.rd != 0) ? csrf.read(dec.imm) : 0;
-    regf.write(dec.rd, tmp); // write to x0 is discarded
-    csrf.write(dec.imm, dec.rs1);
-  } break;
-
-  case csrrsi: {
-    uint32_t tmp = csrf.read(dec.imm);
-    csrf.write(dec.imm, dec.rs1 | tmp);
-    regf.write(dec.rd, tmp);
-  } break;
-
-  case csrrci: {
-    uint32_t tmp = csrf.read(dec.imm);
-    csrf.write(dec.imm, (!dec.rs1) & tmp);
-    regf.write(dec.rd, tmp);
-  } break;
-
-  case other:
-    break;
+  const sys &Sys = std::get<sys>(dec.opt);
+  uint32_t   tmp = 0;
+  if (Sys != sys::csrrwi || dec.rd != 0) {
+    if (mode.is_read_legal_csr(dec.imm)) {
+      tmp = csrf.read(dec.imm);
+    } else {
+      handle(trap_cause::exp_inst_illegal);
+      return;
+    }
   }
+
+  if (Sys == sys::csrrw || (Sys == sys::csrrs && dec.rs1 != 0) ||
+      (Sys == sys::csrrc && dec.rs1 != 0)) {
+
+    if (mode.is_read_legal_csr(dec.rs1)) {
+      uint32_t I = regf.read(dec.rs1);
+
+      if (Sys == sys::csrrs) {
+        I |= tmp;
+      }
+      if (Sys == sys::csrrc) {
+        I = tmp & !I;
+      }
+
+      if(mode.is_write_legal_csr(dec.imm)) {
+        csrf.write(dec.imm, I);
+      } else {
+        handle(trap_cause::exp_inst_illegal);
+        return;
+      }
+    } else {
+      handle(trap_cause::exp_inst_illegal);
+      return;
+    }
+
+  }
+
+  if (Sys == sys::csrrwi || Sys == sys::csrrsi || Sys == sys::csrrci) {
+    uint32_t I = dec.rs1;
+
+    if (Sys == sys::csrrsi) {
+      I |= tmp;
+    }
+    if (Sys == sys::csrrci) {
+      I = (!I) & tmp;
+    }
+
+    if(mode.is_write_legal_csr(dec.imm)) {
+      csrf.write(dec.imm, I);
+    } else {
+      handle(trap_cause::exp_inst_illegal);
+      return;
+    }
+  }
+
+  regf.write(dec.rd, tmp);
 }
 
 uint32_t iss_model::load(op &dec) {
@@ -221,7 +236,7 @@ uint32_t iss_model::load(op &dec) {
   case load::lhu:
     return mem.read_half(addr);
   default:
-    throw sync_exception(trap_cause::exp_inst_illegal);
+    throw std::runtime_error(""); // illegal
   }
 }
 
@@ -239,7 +254,7 @@ void iss_model::store(op &dec) {
     mem.write_word(addr, regf.read(dec.rs2));
     break;
   default:
-    throw sync_exception(trap_cause::exp_inst_illegal);
+    throw std::runtime_error(""); // illegal
   }
 
   is_done = (addr == tohost_addr);
@@ -269,13 +284,13 @@ void iss_model::handle_mret() {
   mstat[status::mpp + 1] = false;
   csrf.write(to_int(csr::mstatus), mstat.to_ulong());
   pc.set(csrf.read(to_int(csr::mepc)));
-  mode = mode_tmp;
+  mode.mode = mode_tmp;
 }
 
 void iss_model::handle_sret() {
   std::bitset<32> sstat{csrf.read(to_int(csr::sstatus))};
   sstat[status::sie] = sstat[status::spie];
-  mode = static_cast<privilege>(static_cast<uint8_t>(sstat[status::spp]));
+  mode.mode = static_cast<privilege>(static_cast<uint8_t>(sstat[status::spp]));
   sstat[status::spie] = false;
   sstat[status::spp]  = false;
   csrf.write(to_int(csr::sstatus), sstat.to_ulong());
@@ -299,7 +314,7 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum branch b_type) {
   case bgeu:
     return opd_1 >= opd_2;
   default:
-    throw sync_exception(trap_cause::exp_inst_illegal);
+    throw std::runtime_error(""); // illegal
   }
 
   return false;

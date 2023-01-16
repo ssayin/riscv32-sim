@@ -21,18 +21,10 @@ struct status {
 class csr_file {
   static constexpr size_t         csr_count = 4096U;
   std::array<uint32_t, csr_count> csrs{};
-  const privilege                &mode;
 
 public:
-  explicit csr_file(const privilege &mode) : mode{mode} {}
-  uint32_t read(uint32_t addr);
-  void     write(uint32_t addr, uint32_t v);
-
-  uint16_t priv_base() const {
-    return static_cast<uint16_t>(to_int(mode) << 8);
-  }
-
-  uint16_t priv_csr(enum csr c) const { return priv_base() | to_int(c); }
+  uint32_t read(uint32_t addr) { return csrs.at(addr); }
+  void     write(uint32_t addr, uint32_t v) { csrs.at(addr) = v; }
 };
 
 #endif // ZICSR_CSR_FILE_HPP
