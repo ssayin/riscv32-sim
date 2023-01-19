@@ -116,12 +116,20 @@ trap_cause iss_model::handle_ecall() const {
 }
 
 void iss_model::handle(trap_cause cause) {
-  fmt::print("{}", cause);
+
 
   if (cause == trap_cause::exp_inst_access_fault)
     throw std::runtime_error("fatal");
 
-  assert((to_int(cause) & masks::sign_bit) == 0);
+  bool is_interrupt = (to_int(cause) & masks::sign_bit) != 0U;
+  if(is_interrupt) {
+    auto status = csrf.read(static_cast<uint32_t>(csr::mie));
+    if(!status) return;
+    csrf.write(static_cast<uint32_t>(csr::mie), 0);
+  }
+
+  fmt::print("{}", cause);
+
 
   // all sync exceptions are taken to machine mode for the time being
   mode.mode = privilege::machine;
@@ -131,9 +139,16 @@ void iss_model::handle(trap_cause cause) {
 
   auto tvec = csrf.read(mode.priv_csr(csr::utvec));
 
-  pc.set(tvec & masks::tvec::base_addr);
+  auto entry = tvec & masks::tvec::base_addr;
+
+
+  if (is_interrupt) {
+    entry =  entry + (to_int(cause) & masks::msb_zero) * 4;
+  }
+  pc.set(entry);
 
   save_pc(cause);
+  if(is_interrupt) pc.update();
 }
 
 void iss_model::save_pc(const trap_cause &cause) {
@@ -285,6 +300,7 @@ void iss_model::handle_mret() {
   csrf.write(to_int(csr::mstatus), mstat.to_ulong());
   pc.set(csrf.read(to_int(csr::mepc)));
   mode.mode = mode_tmp;
+  csrf.write(static_cast<uint32_t>(csr::mie), 1);
 }
 
 void iss_model::handle_sret() {

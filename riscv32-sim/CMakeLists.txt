@@ -18,27 +18,27 @@ set(SRC_FILES
     include/reg_file.hpp
     include/common/consts.hpp
     include/zicsr/csr_file.hpp
-    include/zicsr/privilege.hpp)
+    include/zicsr/privilege.hpp src/mti_source.cpp include/mti_source.hpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas)
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")
   target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:-O2>")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
-endif()
+endif ()
 
-if(COVERAGE)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if (COVERAGE)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(${PROJECT_NAME}
-                           PRIVATE "-fprofile-arcs;-ftest-coverage")
+        PRIVATE "-fprofile-arcs;-ftest-coverage")
     target_link_libraries(${PROJECT_NAME} PRIVATE "-lgcov")
-  endif()
-endif()
+  endif ()
+endif ()
 
-if(BUILD_TESTS)
+if (BUILD_TESTS)
   add_subdirectory(unittest)
-endif()
+endif ()

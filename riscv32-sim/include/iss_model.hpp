@@ -12,6 +12,7 @@
 #include "zicsr/trap_cause.hpp"
 #include <fmt/os.h>
 #include <fmt/ostream.h>
+#include <thread>
 
 class iss_model {
 public:
@@ -30,6 +31,8 @@ public:
   uint32_t tohost() { return mem.read_word(tohost_addr); }
   bool     done() const { return is_done; }
 
+  void handle(trap_cause cause);
+
 private:
   uint32_t load(op &dec);
   void     store(op &dec);
@@ -46,8 +49,6 @@ private:
   void handle_sret();
   void handle_sys_exit();
   void save_pc(const trap_cause &cause);
-
-  void handle(trap_cause cause);
 
   const uint32_t tohost_addr;
   const opts    &opt;
