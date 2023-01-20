@@ -17,7 +17,7 @@ public:
 
   mti_source(opt opts, sparse_memory &mem);
 
-  bool interrupting() const { return is_interrupting.load(); }
+  bool interrupting() const;
 
   mti_source(const mti_source &)            = delete;
   mti_source &operator=(mti_source const &) = delete;
@@ -29,8 +29,7 @@ public:
   void set_exiting(bool exiting = true);
 
 private:
-  std::atomic_bool is_interrupting = false;
-  std::atomic_bool is_exiting      = false;
+  std::atomic_bool is_exiting = false;
 
   opt            opts;
   sparse_memory &mem;

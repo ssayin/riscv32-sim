@@ -1,14 +1,15 @@
 #include <stdint.h>
 
-extern void _entry() __attribute__((naked, noreturn, noinline));
+extern void _entry() __attribute__((naked, section(".text.init")));
 extern void _start() __attribute__((noreturn));
-extern void _exit(int exit_code) __attribute__((naked, noreturn, noinline));
+extern void _exit(int) __attribute__((noreturn, noinline));
 
 void _entry() {
   __asm__ volatile(".option push;"
                    ".option norelax;"
                    "la gp, __global_pointer$;"
                    ".option pop;"
+                   "la sp, _sp;"
                    "jal zero, _start;");
 }
 

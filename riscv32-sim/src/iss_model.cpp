@@ -30,6 +30,8 @@ void iss_model::step() {
   op dec = next_op();
   exec(dec);
   pc.update();
+
+  handle(trap_cause::int_timer_m);
 }
 
 op iss_model::next_op() {
@@ -59,6 +61,7 @@ void iss_model::exec(op &dec) {
     csr(dec);
     break;
   case target::mret:
+    fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
     handle_mret();
     break;
   case target::ecall:
@@ -116,23 +119,38 @@ trap_cause iss_model::handle_ecall() const {
 }
 
 void iss_model::handle(trap_cause cause) {
-
-
   if (cause == trap_cause::exp_inst_access_fault)
     throw std::runtime_error("fatal");
 
   bool is_interrupt = (to_int(cause) & masks::sign_bit) != 0U;
-  if(is_interrupt) {
-    auto status = csrf.read(static_cast<uint32_t>(csr::mie));
-    if(!status) return;
-    csrf.write(static_cast<uint32_t>(csr::mie), 0);
+  if (is_interrupt) {
+    std::bitset<32> mstatus{csrf.read(static_cast<uint32_t>(csr::mstatus))};
+    auto            i = to_int(cause) & masks::msb_zero;
+    std::bitset<32> mie{csrf.read(static_cast<uint32_t>(csr::mie))};
+    std::bitset<32> mip{csrf.read(static_cast<uint32_t>(csr::mip))};
+    bool            take = mie.test(i) && mip.test(i) && mstatus.test(status::mie);
+
+    if (!take) {
+      return;
+    }
+
+    mip.reset(i);
+    csrf.write(static_cast<uint32_t>(csr::mip), mip.to_ulong());
+
+    // TODO: disabled USER mode
+    // mode.mode = privilege::machine;
+
+    mstatus[status::mpp]     = true;
+    mstatus[status::mpp + 1] = true;
+
+    /* TODO */
+    mstatus[status::mpie] = mstatus[status::mie];
+    mstatus[status::mie]  = false;
+
+    csrf.write(static_cast<uint32_t>(csr::mstatus), mstatus.to_ulong());
   }
 
   fmt::print("{}", cause);
-
-
-  // all sync exceptions are taken to machine mode for the time being
-  mode.mode = privilege::machine;
 
   csrf.write(mode.priv_csr(csr::ucause), to_int(cause));
   csrf.write(mode.priv_csr(csr::utval), 0);
@@ -141,14 +159,13 @@ void iss_model::handle(trap_cause cause) {
 
   auto entry = tvec & masks::tvec::base_addr;
 
-
   if (is_interrupt) {
-    entry =  entry + (to_int(cause) & masks::msb_zero) * 4;
+    entry = entry + (to_int(cause) & masks::msb_zero) * 4;
   }
   pc.set(entry);
 
   save_pc(cause);
-  if(is_interrupt) pc.update();
+  if (is_interrupt) pc.update();
 }
 
 void iss_model::save_pc(const trap_cause &cause) {
@@ -289,28 +306,34 @@ void iss_model::handle_sys_exit() {
 }
 
 void iss_model::handle_mret() {
+
   std::bitset<32> mstat{csrf.read(to_int(csr::mstatus))};
-  mstat[status::mie] = mstat[status::mpie];
-  privilege mode_tmp = static_cast<privilege>((mstat[status::mpp + 1] << 1) |
-                                              mstat[status::mpp]);
-  fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
-  mstat[status::mpie]    = true;
-  mstat[status::mpp]     = false;
-  mstat[status::mpp + 1] = false;
+  /* The privilege before taking the trap to machine-mode */
+  privilege pp =
+      static_cast<privilege>((static_cast<int>(mstat[status::mpp + 1]) << 1) |
+                             static_cast<int>(mstat[status::mpp]));
+
+  mstat[status::mie]  = mstat[status::mpie];
+  mstat[status::mpie] = true;
+
+  /* Set MPP to machine-mode */
+  mstat[status::mpp]     = true;
+  mstat[status::mpp + 1] = true;
+
+  /* Commit mstatus */
   csrf.write(to_int(csr::mstatus), mstat.to_ulong());
+
+  /* Restore exception program counter */
   pc.set(csrf.read(to_int(csr::mepc)));
-  mode.mode = mode_tmp;
-  csrf.write(static_cast<uint32_t>(csr::mie), 1);
+
+  mode.mode = pp;
 }
 
-void iss_model::handle_sret() {
-  std::bitset<32> sstat{csrf.read(to_int(csr::sstatus))};
-  sstat[status::sie] = sstat[status::spie];
-  mode.mode = static_cast<privilege>(static_cast<uint8_t>(sstat[status::spp]));
-  sstat[status::spie] = false;
-  sstat[status::spp]  = false;
-  csrf.write(to_int(csr::sstatus), sstat.to_ulong());
-  pc.set(csrf.read(to_int(csr::sepc)));
+void iss_model::set_pending(trap_cause cause) {
+  auto            i = to_int(cause) & masks::msb_zero;
+  std::bitset<32> mip{csrf.read(static_cast<uint32_t>(csr::mip))};
+  mip.set(i);
+  csrf.write(static_cast<uint32_t>(csr::mip), mip.to_ulong());
 }
 
 namespace {

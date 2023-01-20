@@ -9,11 +9,10 @@
 #include <memory>
 
 int main(int argc, char **argv) {
-  constexpr static uint32_t default_interval = 1000U;
-  std::string               target;
-  iss_model::opts           opt;
-  bool                      mti_enabled = false;
-  mti_source::opt           opts{};
+  std::string     target;
+  iss_model::opts opt;
+  bool            mti_enabled = false;
+  mti_source::opt opts{};
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
@@ -35,12 +34,13 @@ int main(int argc, char **argv) {
       "--mtimecmp", opts.mtimecmp,
       "Memory-mapped 64-bit register written by the simulator");
 
-  ogroup_mti->add_option("--interval", opts.interval, "In miliseconds")
-      ->default_val(default_interval);
+  ogroup_mti->add_option("--interval", opts.interval, "In miliseconds");
+
   ogroup_mti->require_option(3);
 
   app.option_defaults()->required();
-  app.add_option("target", target, "Executable target");
+  app.add_option("target", target, "Executable target")
+      ->check(CLI::ExistingFile);
 
   try {
     app.parse(argc, argv);
@@ -64,6 +64,9 @@ int main(int argc, char **argv) {
       while (!model.done()) {
         model.trace(out);
         model.step();
+        if (mti_enabled && mt->interrupting()) {
+          model.set_pending(trap_cause::int_timer_m);
+        }
       }
     }
 
@@ -71,7 +74,7 @@ int main(int argc, char **argv) {
       while (!model.done()) {
         model.step();
         if (mti_enabled && mt->interrupting()) {
-          model.handle(trap_cause::int_timer_m);
+          model.set_pending(trap_cause::int_timer_m);
         }
       }
     }

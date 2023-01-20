@@ -31,9 +31,11 @@ public:
   uint32_t tohost() { return mem.read_word(tohost_addr); }
   bool     done() const { return is_done; }
 
-  void handle(trap_cause cause);
+  void set_pending(trap_cause cause);
 
 private:
+  void handle(trap_cause cause);
+
   uint32_t load(op &dec);
   void     store(op &dec);
   void     csr(op &dec);
@@ -46,7 +48,6 @@ private:
   void       handle_branch(const op &dec);
 
   void handle_mret();
-  void handle_sret();
   void handle_sys_exit();
   void save_pc(const trap_cause &cause);
 

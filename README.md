@@ -25,13 +25,11 @@ An easy-to-use, still-in-development RISC-V 32-bit simulator.
 
 ### Build Requirements
 
-- a [compiler with C++20 support](https://en.cppreference.com/w/cpp/compiler_support) - required
-  features: [consteval, concepts]
 - [git](https://git-scm.com/downloads)
 - [cmake](https://cmake.org/download/) >= 3.23.2
--
-
-a [cmake supported native build system](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#manual:cmake-generators(7))
+- [a cmake supported native build system](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#manual:cmake-generators(7))
+- [a compiler with C++20 support](https://en.cppreference.com/w/cpp/compiler_support) - required
+  features: [consteval, concepts]
 
 ### Building on Linux
 
