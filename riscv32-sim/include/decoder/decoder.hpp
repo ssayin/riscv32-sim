@@ -1,7 +1,7 @@
 #ifndef DECODER_DECODER_HPP
 #define DECODER_DECODER_HPP
 
-#include "instr/rv32_isn.hpp"
+#include "rv32_isn.hpp"
 #include <cstdint>
 #include <fmt/core.h>
 #include <variant>
@@ -48,8 +48,8 @@ enum class alu : uint8_t {
   _jalr,
 };
 
-
-using op_type = std::variant<std::monostate, alu, load, store, branch, sys>;
+using op_type = std::variant<std::monostate, alu, masks::load, masks::store,
+                             masks::branch, masks::sys>;
 
 struct op {
   uint32_t imm;

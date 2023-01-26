@@ -9,15 +9,8 @@
 
 class mti_source {
 public:
-  struct opt {
-    uint32_t mtime;
-    uint32_t mtimecmp;
-    uint32_t interval;
-  };
-
-  mti_source(opt opts, sparse_memory &mem);
-
-  bool interrupting() const;
+  class address_router;
+  mti_source(uint32_t interval, std::array<std::atomic<uint8_t>, 8> &mtime);
 
   mti_source(const mti_source &)            = delete;
   mti_source &operator=(mti_source const &) = delete;
@@ -30,10 +23,7 @@ public:
 
 private:
   std::atomic_bool is_exiting = false;
-
-  opt            opts;
-  sparse_memory &mem;
-  std::thread    t;
+  std::thread      t;
 };
 
 #endif

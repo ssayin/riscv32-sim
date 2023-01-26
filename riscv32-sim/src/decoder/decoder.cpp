@@ -1,26 +1,26 @@
 #include "decoder/decoder.hpp"
-#include "instr/rv32_isn.hpp"
+#include "decoder/rv32_isn.hpp"
 #include <fmt/os.h>
 
 #define RV32_LOAD(name)                                                        \
-  case load::name:                                                             \
-    return make_load<rv32_##name>(word, load::name);
+  case masks::load::name:                                                      \
+    return make_load<rv32_##name>(word, masks::load::name);
 
 #define RV32_STORE(name)                                                       \
-  case store::name:                                                            \
-    return make_store<rv32_##name>(word, store::name);
+  case masks::store::name:                                                     \
+    return make_store<rv32_##name>(word, masks::store::name);
 
 #define RV32_CSR(name)                                                         \
-  case sys::name:                                                              \
-    return make_csr<rv32_##name>(word, sys::name);
+  case masks::sys::name:                                                       \
+    return make_csr<rv32_##name>(word, masks::sys::name);
 
 #define RV32_REG_IMM(name)                                                     \
   case name##i:                                                                \
     return make_reg_imm<rv32_##name##i>(word, alu::_##name);
 
 #define RV32_BRANCH(name)                                                      \
-  case branch::name:                                                           \
-    return make_branch<rv32_##name>(word, branch::name);
+  case masks::branch::name:                                                    \
+    return make_branch<rv32_##name>(word, masks::branch::name);
 
 #define RV32_REG_REG(name, funct7)                                             \
   case funct7: {                                                               \
@@ -29,22 +29,22 @@
   }
 
 namespace {
-template <typename T> inline op make_store(uint32_t word, store type) {
+template <typename T> inline op make_store(uint32_t word, masks::store type) {
   T isn{word};
   return op{isn.imm, type, target::store, 0, isn.rs1, isn.rs2, true};
 }
 
-template <typename T> inline op make_load(uint32_t word, load type) {
+template <typename T> inline op make_load(uint32_t word, masks::load type) {
   T isn{word};
   return op{isn.imm, type, target::load, isn.rd, isn.rs, 0, true};
 }
 
-template <typename T> inline op make_csr(uint32_t word, sys type) {
+template <typename T> inline op make_csr(uint32_t word, masks::sys type) {
   T isn{word};
   return op{isn.csr, type, target::csr, isn.rd, isn.rs, 0, true};
 }
 
-template <typename T> inline op make_branch(uint32_t word, branch type) {
+template <typename T> inline op make_branch(uint32_t word, masks::branch type) {
   T isn{word};
   return op{isn.imm, type, target::branch, 0, isn.rs1, isn.rs2, true};
 }
@@ -86,8 +86,8 @@ op decode(uint32_t word) {
     return make_nop();
   }
 
-  switch (opcode{off::opc(word)}) {
-    using enum opcode;
+  switch (masks::opcode{off::opc(word)}) {
+    using enum masks::opcode;
   case auipc: {
     rv32_auipc isn{word};
     return op{isn.imm, alu::_auipc, target::alu, isn.rd, 0, 0, true, true};
@@ -126,7 +126,7 @@ op decode(uint32_t word) {
 namespace {
 
 op decode_load(uint32_t word) {
-  switch (load{off::funct3(word)}) {
+  switch (masks::load{off::funct3(word)}) {
     RV32_LOAD(lb)
     RV32_LOAD(lh)
     RV32_LOAD(lw)
@@ -138,7 +138,7 @@ op decode_load(uint32_t word) {
 }
 
 op decode_store(uint32_t word) {
-  switch (store{off::funct3(word)}) {
+  switch (masks::store{off::funct3(word)}) {
     RV32_STORE(sb)
     RV32_STORE(sh)
     RV32_STORE(sw)
@@ -222,8 +222,8 @@ op decode_alu_sltu_mulhu(uint32_t word) {
 }
 
 op decode_alu(uint32_t word) {
-  switch (reg_reg{off::funct3(word)}) {
-    using enum reg_reg;
+  switch (masks::reg_reg{off::funct3(word)}) {
+    using enum masks::reg_reg;
   case and_remu:
     return decode_alu_and_remu(word);
   case or_rem:
@@ -246,8 +246,8 @@ op decode_alu(uint32_t word) {
 }
 
 op decode_reg_imm(uint32_t word) {
-  switch (reg_imm{off::funct3(word)}) {
-    using enum reg_imm;
+  switch (masks::reg_imm{off::funct3(word)}) {
+    using enum masks::reg_imm;
     RV32_REG_IMM(add)
     RV32_REG_IMM(slt)
     RV32_REG_IMM(xor)
@@ -276,7 +276,7 @@ op decode_reg_imm(uint32_t word) {
 }
 
 op decode_branch(uint32_t word) {
-  switch (branch{off::funct3(word)}) {
+  switch (masks::branch{off::funct3(word)}) {
     RV32_BRANCH(beq)
     RV32_BRANCH(bne)
     RV32_BRANCH(blt)
@@ -291,7 +291,7 @@ op decode_branch(uint32_t word) {
 op decode_fence(uint32_t word) { return make_nop(); }
 
 op decode_sys(uint32_t word) {
-  switch (sys{off::funct3(word)}) {
+  switch (masks::sys{off::funct3(word)}) {
     RV32_CSR(csrrw)
     RV32_CSR(csrrs)
     RV32_CSR(csrrc)

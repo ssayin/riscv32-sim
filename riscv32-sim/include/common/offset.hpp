@@ -1,7 +1,7 @@
 #ifndef COMMON_OFFSET_HPP
 #define COMMON_OFFSET_HPP
 
-#include "consts.hpp"
+#include "masks.hpp"
 #include "types.hpp"
 
 constexpr auto fillbits(UnsignedIntegral auto bitcount) {
@@ -58,6 +58,5 @@ inline uint32_t rv32_imm_j(uint32_t x) {
   return (rv32_imm_i(x) & 0xFFF007FE) | (offset(x, 12U, 19U) << 12) |
          (offset(x, 20U, 20U) << 11);
 }
-
 
 #endif // COMMON_OFFSET_HPP

@@ -9,10 +9,9 @@
 #include <memory>
 
 int main(int argc, char **argv) {
-  std::string     target;
-  iss_model::opts opt;
-  bool            mti_enabled = false;
-  mti_source::opt opts{};
+  std::string target;
+
+  options opt;
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
@@ -21,20 +20,20 @@ int main(int argc, char **argv) {
       "--tohost", opt.tohost_sym,
       "Use a custom termination symbol defined in your linker script");
 
-  auto *flag_timer =
-      app.add_flag("--timer", mti_enabled, "Enable machine timer interrupts");
+  auto *flag_timer = app.add_flag("--timer", opt.mti_enabled,
+                                  "Enable machine timer interrupts");
 
   auto *ogroup_mti = app.add_option_group("timer", "Machine timer interrupts")
                          ->needs(flag_timer);
 
-  ogroup_mti->add_option("--mtime", opts.mtime,
+  ogroup_mti->add_option("--mtime", opt.mtime,
                          "Memory-mapped 64-bit register incremented by timer");
 
   ogroup_mti->add_option(
-      "--mtimecmp", opts.mtimecmp,
+      "--mtimecmp", opt.mtimecmp,
       "Memory-mapped 64-bit register written by the simulator");
 
-  ogroup_mti->add_option("--interval", opts.interval, "In miliseconds");
+  ogroup_mti->add_option("--interval", opt.interval, "In microseconds");
 
   ogroup_mti->require_option(3);
 
@@ -48,43 +47,31 @@ int main(int argc, char **argv) {
     return app.exit(e);
   }
 
-  try {
-    sparse_memory mem;
-    iss_model     model{opt, loader(target, mem), mem};
+  sparse_memory          mem;
+  sparse_memory_accessor acc{mem};
+  address_router         rout{mem, opt.mtime, opt.mtimecmp};
+  iss_model              model{opt, loader(target, acc), rout};
 
-    std::unique_ptr<mti_source> mt{nullptr};
-    if (mti_enabled) {
-      mem.write_dword(opts.mtime, 0);
-      mem.write_dword(opts.mtimecmp, 0);
-      mt = std::make_unique<mti_source>(opts, mem);
-    }
-
-    if (opt.trace) {
-      fmt::ostream out{fmt::output_file("trace.log")};
-      while (!model.done()) {
-        model.trace(out);
-        model.step();
-        if (mti_enabled && mt->interrupting()) {
-          model.set_pending(trap_cause::int_timer_m);
-        }
-      }
-    }
-
-    else {
-      while (!model.done()) {
-        model.step();
-        if (mti_enabled && mt->interrupting()) {
-          model.set_pending(trap_cause::int_timer_m);
-        }
-      }
-    }
-
-    fmt::print("{} Exited with 0x{:X} ({})\n", target, model.tohost(),
-               static_cast<int32_t>(model.tohost()));
-
-  } catch (const std::exception &ex) {
-    fmt::print("{}\n{}\n", ex.what(), target);
+  std::unique_ptr<mti_source> mt{nullptr};
+  if (opt.mti_enabled) {
+    mt = std::make_unique<mti_source>(opt.interval, rout.mtime);
   }
+  if (opt.trace) {
+    fmt::ostream out{fmt::output_file("trace.log")};
+    while (!model.done()) {
+      model.trace(out);
+      model.step();
+    }
+  }
+
+  else {
+    while (!model.done()) {
+      model.step();
+    }
+  }
+
+  fmt::print("{} Exited with 0x{:X} ({})\n", target, model.tohost(),
+             static_cast<int32_t>(model.tohost()));
 
   return 0;
 }

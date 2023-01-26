@@ -1,7 +1,7 @@
 #ifndef INSTR_RV32_ISN_HPP
 #define INSTR_RV32_ISN_HPP
 
-#include "common/consts.hpp"
+#include "common/masks.hpp"
 #include "common/offset.hpp"
 #include "common/types.hpp"
 #include <bitset>

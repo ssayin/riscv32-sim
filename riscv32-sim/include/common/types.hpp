@@ -2,7 +2,17 @@
 #define COMMON_TYPES_HPP
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
+
+struct options {
+  std::string tohost_sym = "tohost";
+  uint32_t    mtime{};
+  uint32_t    mtimecmp{};
+  uint32_t    interval{};
+  bool        trace       = false;
+  bool        mti_enabled = false;
+};
 
 template <class T>
 concept UnsignedIntegral =
@@ -13,7 +23,7 @@ concept Enum = std::is_enum<T>::value;
 
 template <typename T>
 concept MemoryModel = requires(T mem, uint32_t addr, void *ptr, int64_t size) {
-                        mem.load(addr, ptr, size);
+                        mem.write(addr, ptr, size);
                       };
 
 constexpr auto to_int(Enum auto val) {

@@ -9,16 +9,18 @@ set(SRC_FILES
     include/iss_model.hpp
     include/loader.hpp
     include/zicsr/misa.hpp
-    include/instr/rv32_isn.hpp
+    include/decoder/rv32_isn.hpp
     include/memory/sparse_memory.hpp
     include/common/types.hpp
     include/zicsr/trap_cause.hpp
     include/common/offset.hpp
     src/reg_file.cpp
     include/reg_file.hpp
-    include/common/consts.hpp
+    include/common/masks.hpp
     include/zicsr/csr_file.hpp
-    include/zicsr/privilege.hpp src/mti_source.cpp include/mti_source.hpp)
+    src/mti_source.cpp
+    include/mti_source.hpp
+    )
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas)
