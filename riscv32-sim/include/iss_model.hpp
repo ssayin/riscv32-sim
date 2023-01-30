@@ -5,6 +5,8 @@
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 #include "mti_source.hpp"
+#include "nlohmann/detail/macro_scope.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include "program_counter.hpp"
 #include "reg_file.hpp"
 #include "zicsr/csr.hpp"
@@ -14,6 +16,7 @@
 #include <fmt/os.h>
 #include <fmt/ostream.h>
 #include <functional>
+#include <nlohmann/json.hpp>
 #include <numeric>
 #include <thread>
 
@@ -43,7 +46,16 @@ public:
   void    write8(uint32_t off, uint8_t b);
 };
 
+struct state {
+  uint32_t instr;
+  op       dec;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(state, instr, dec)
+
 class iss_model {
+  using json = nlohmann::json;
+
 public:
   iss_model(options &opt, loader l, address_router &mem)
       : opts{opt},
@@ -57,20 +69,22 @@ public:
 
   void set_pending(trap_cause cause);
 
+  json j;
+
 private:
   options             &opts;
   static constexpr int instr_alignment = 4;
 
   void trap(trap_cause cause);
 
-  uint32_t load(op &dec);
-  void     store(op &dec);
-  void     csr(op &dec);
-  void     exec(op &dec);
+  uint32_t load();
+  void     store();
+  void     csr();
+  void     exec();
   op       next_op();
-  void     handle_alu(op &dec);
-  void     handle_load(op &dec);
-  void     handle_branch(const op &dec);
+  void     handle_alu();
+  void     handle_load();
+  void     handle_branch();
 
   trap_cause ecall_cause() const;
 
@@ -79,6 +93,9 @@ private:
   void save_pc(const trap_cause &cause);
 
   const uint32_t tohost_addr;
+
+  op       dec;
+  uint32_t instr;
 
   address_router &mem;
   program_counter pc;

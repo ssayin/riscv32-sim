@@ -21,13 +21,15 @@ void iss_model::trace(fmt::ostream &out) {
   std::array<char, 128> buf{};
   disasm_inst(buf.data(), buf.size(), rv32, static_cast<uint32_t>(pc),
               mem.read32(static_cast<uint32_t>(pc)));
-  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
+  // out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
+
+  j.emplace_back(state{instr, dec});
 }
 
 void iss_model::step() {
   pc.set(static_cast<uint32_t>(pc) + instr_alignment);
-  op dec = next_op();
-  exec(dec);
+  dec = next_op();
+  exec();
   pc.update();
 
   if (opts.mti_enabled &&
@@ -38,30 +40,30 @@ void iss_model::step() {
 }
 
 op iss_model::next_op() {
-  op   dec;
-  auto instr = mem.read32(static_cast<uint32_t>(pc));
-  dec        = decode(instr);
+  op dec;
+  instr = mem.read32(static_cast<uint32_t>(pc));
+  dec   = decode(instr);
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
 
   return dec;
 }
 
-void iss_model::exec(op &dec) {
+void iss_model::exec() {
   switch (dec.tgt) {
   case target::store:
-    store(dec);
+    store();
     break;
   case target::alu:
-    handle_alu(dec);
+    handle_alu();
     break;
   case target::load:
-    handle_load(dec);
+    handle_load();
     break;
   case target::branch:
-    handle_branch(dec);
+    handle_branch();
     break;
   case target::csr:
-    csr(dec);
+    csr();
     break;
   case target::mret:
     fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
@@ -79,19 +81,19 @@ void iss_model::exec(op &dec) {
   }
 }
 
-void iss_model::handle_branch(const op &dec) {
+void iss_model::handle_branch() {
   if (should_branch(regf.read(dec.rs1), regf.read(dec.rs2),
                     std::get<enum masks::branch>(dec.opt))) {
     pc.set(dec.imm + static_cast<uint32_t>(pc));
   }
 }
 
-void iss_model::handle_load(op &dec) {
-  auto res = load(dec);
+void iss_model::handle_load() {
+  auto res = load();
   regf.write(dec.rd, res);
 }
 
-void iss_model::handle_alu(op &dec) {
+void iss_model::handle_alu() {
   uint32_t opd_1 = dec.use_pc ? static_cast<uint32_t>(pc) : regf.read(dec.rs1);
   uint32_t opd_2 = dec.has_imm ? dec.imm : regf.read(dec.rs2);
 
@@ -191,7 +193,7 @@ void iss_model::save_pc(const trap_cause &cause) {
   }
 }
 
-void iss_model::csr(op &dec) {
+void iss_model::csr() {
   const masks::sys &Sys = std::get<masks::sys>(dec.opt);
   uint32_t          tmp = 0;
   if (Sys != masks::sys::csrrwi || dec.rd != 0) {
@@ -250,7 +252,7 @@ void iss_model::csr(op &dec) {
   regf.write(dec.rd, tmp);
 }
 
-uint32_t iss_model::load(op &dec) {
+uint32_t iss_model::load() {
 
   auto addr = regf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
 
@@ -275,7 +277,7 @@ uint32_t iss_model::load(op &dec) {
   }
 }
 
-void iss_model::store(op &dec) {
+void iss_model::store() {
   auto addr = regf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
 
   switch (std::get<enum masks::store>(dec.opt)) {

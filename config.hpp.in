@@ -1,1 +1,6 @@
+#ifndef RISCV32_SIM_CONFIG_HPP
+#define RISCV32_SIM_CONFIG_HPP
+
 #cmakedefine ENABLE_TCP
+
+#endif

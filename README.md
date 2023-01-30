@@ -70,6 +70,12 @@ configuration.
 
 ### CLI Options and Flags
 
+**!!!ATTENTION!!!** 
+
+Since exporting hart state is a recently introduced feature, the **serialization format** is quite likely to **change**.
+
+---
+
 `--trace` Enable disasm trace, logged to `trace.log`.
 
 `--tohost <sym>` Customize the tohost symbol. In order to use your own __start() and __exit(int) routines, you can tell
@@ -110,5 +116,6 @@ The simulator can be instructed to stop in the following ways:
   ELF binary format.
 * [{fmt}](https://github.com/fmtlib/fmt) - An open-source formatting library providing a fast and safe alternative to C
   stdio and C++ iostreams.
+* [json](https://github.com/nlohmann/json) - JSON for Modern C++
 * [riscv-disassembler](https://github.com/michaeljclark/riscv-disassembler) - RISC-V Disassembler with support for
   RV32/RV64/RV128 IMAFDC

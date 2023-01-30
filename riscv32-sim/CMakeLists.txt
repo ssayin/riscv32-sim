@@ -32,9 +32,14 @@ set(SRC_FILES
 set(TCP_LIB $<$<BOOL:${ENABLE_TCP}>:rv32-irq-server>)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas
-                                              ${TCP_LIB})
+target_link_libraries(
+  ${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas
+                          nlohmann_json::nlohmann_json ${TCP_LIB})
 target_include_directories(${PROJECT_NAME} PRIVATE include)
+
+add_executable(json_test_op src/json_test_op.cpp)
+target_link_libraries(json_test_op PRIVATE nlohmann_json::nlohmann_json)
+target_include_directories(json_test_op PRIVATE include)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")

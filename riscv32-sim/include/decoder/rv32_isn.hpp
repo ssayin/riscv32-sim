@@ -6,8 +6,6 @@
 #include "common/types.hpp"
 #include <bitset>
 #include <cstdint>
-#include <fmt/core.h>
-#include <fmt/format.h>
 #include <numeric>
 #include <utility>
 

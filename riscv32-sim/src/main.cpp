@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
       model.trace(out);
       model.step();
     }
+    out.print("{}", model.j.dump());
   }
 
   else {
