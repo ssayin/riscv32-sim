@@ -1,3 +1,9 @@
+add_library(rv32-irq-server OBJECT src/irq_server.cpp)
+target_include_directories(rv32-irq-server PUBLIC include)
+
+add_executable(client src/client.cpp)
+target_link_libraries(client rv32-irq-server)
+
 set(SRC_FILES
     src/main.cpp
     src/iss_model.cpp
@@ -19,28 +25,28 @@ set(SRC_FILES
     include/common/masks.hpp
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
-    include/mti_source.hpp
-    )
+    include/mti_source.hpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas)
+target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas
+                                              rv32-irq-server)
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")
   target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:-O2>")
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
-endif ()
+endif()
 
-if (COVERAGE)
-  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if(COVERAGE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(${PROJECT_NAME}
-        PRIVATE "-fprofile-arcs;-ftest-coverage")
+                           PRIVATE "-fprofile-arcs;-ftest-coverage")
     target_link_libraries(${PROJECT_NAME} PRIVATE "-lgcov")
-  endif ()
-endif ()
+  endif()
+endif()
 
-if (BUILD_TESTS)
+if(BUILD_TESTS)
   add_subdirectory(unittest)
-endif ()
+endif()

@@ -3,6 +3,7 @@
 #include "memory/sparse_memory.hpp"
 
 #include "mti_source.hpp"
+#include "tcpip.hpp"
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
@@ -12,6 +13,8 @@ int main(int argc, char **argv) {
   std::string target;
 
   options opt;
+
+  int port;
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
@@ -37,6 +40,15 @@ int main(int argc, char **argv) {
 
   ogroup_mti->require_option(3);
 
+  bool  tcp_enabled;
+  auto *flag_tcpserver = app.add_flag("--tcpserver", tcp_enabled,
+                                      "Enable machine timer interrupts");
+
+  auto *ogroup_server =
+      app.add_option_group("tcpserver", "Server")->needs(flag_tcpserver);
+
+  ogroup_server->add_option("-p,--port", port, "Port")->required();
+
   app.option_defaults()->required();
   app.add_option("target", target, "Executable target")
       ->check(CLI::ExistingFile);
@@ -45,6 +57,20 @@ int main(int argc, char **argv) {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
     return app.exit(e);
+  }
+
+  if (tcp_enabled) {
+    /*
+     * TODO: this feature is partially implemented
+     * either poll with zero timeout & big backlog size
+     * / sandwich iss_model->step() between polls
+     * or run in a separate thread
+     */
+    {
+      irq_server serv(port, 5);
+      while (serv.poll())
+        ;
+    }
   }
 
   sparse_memory          mem;

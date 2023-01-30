@@ -17,8 +17,6 @@
 #include <numeric>
 #include <thread>
 
-class intpc {};
-
 /*
  * Acts as a crossbar switch CPU <=> Mem RW
  */
