@@ -31,8 +31,6 @@ set(SRC_FILES
 
 set(TCP_LIB $<$<BOOL:${ENABLE_TCP}>:rv32-irq-server>)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas
                                               ${TCP_LIB})
