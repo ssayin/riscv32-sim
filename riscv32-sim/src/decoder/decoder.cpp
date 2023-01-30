@@ -1,6 +1,4 @@
-#include "decoder/decoder.hpp"
 #include "decoder/rv32_isn.hpp"
-#include <fmt/os.h>
 
 #define RV32_LOAD(name)                                                        \
   case masks::load::name:                                                      \

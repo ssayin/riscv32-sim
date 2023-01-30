@@ -1,7 +1,8 @@
 #include "reg_file.hpp"
-#include "fmt/color.h"
-#include "fmt/core.h"
+
 #include <cassert>
+#include <fmt/color.h>
+#include <fmt/core.h>
 
 uint32_t reg_file::read(uint8_t index) {
   assert(index < reg_count);

@@ -1,10 +1,7 @@
 #ifndef ZICSR_TRAP_CAUSE_HPP
 #define ZICSR_TRAP_CAUSE_HPP
 
-#include <cstdint>
 #include <fmt/core.h>
-#include <fmt/format.h>
-#include <string_view>
 
 enum class trap_cause : uint32_t {
   exp_inst_addr_misaligned   = 0x0,

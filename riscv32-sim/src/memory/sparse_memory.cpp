@@ -1,6 +1,7 @@
 #include "memory/sparse_memory.hpp"
-#include "decoder/rv32_isn.hpp"
-#include <mutex>
+#include "common/offset.hpp"
+
+#include <cstring>
 
 static void *write_block(uint8_t *page_offset, void *ptr,
                          uint32_t size_in_bytes) {
@@ -56,6 +57,7 @@ void sparse_memory_accessor::write32(uint32_t off, uint32_t w) {
   write16(off, offset(w, 0U, 15U));
   write16(off + 2, offset(w, 16U, 31U));
 }
+
 uint64_t sparse_memory_accessor::read64(uint32_t off) const {
   return (read32(off)) | (static_cast<uint64_t>(read32(off + 4)) << 32);
 }

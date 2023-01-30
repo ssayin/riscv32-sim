@@ -1,13 +1,8 @@
 #ifndef INSTR_RV32_ISN_HPP
 #define INSTR_RV32_ISN_HPP
 
-#include "common/masks.hpp"
 #include "common/offset.hpp"
 #include "common/types.hpp"
-#include <bitset>
-#include <cstdint>
-#include <numeric>
-#include <utility>
 
 struct rv32_jal {
   uint8_t                           rd;

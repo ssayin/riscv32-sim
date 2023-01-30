@@ -1,7 +1,6 @@
 #include "tcpip.hpp"
+
 #include <algorithm>
-#include <optional>
-#include <stdexcept>
 
 bool irq_server::poll(int timeout) {
   if (call_guard(::poll, vfd.data(), vfd.size(), timeout) == 0) {

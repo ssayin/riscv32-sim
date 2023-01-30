@@ -1,16 +1,17 @@
-#include "iss_model.hpp"
-#include "loader.hpp"
-#include "memory/sparse_memory.hpp"
-
 #include "config.hpp"
+#include "iss_model.hpp"
 #include "mti_source.hpp"
+
 #ifdef ENABLE_TCP
 #include "tcpip.hpp"
 #endif
+
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
-#include <memory>
+#include <CLI/Validators.hpp>
+
+#include "common/serialize.hpp"
 
 int main(int argc, char **argv) {
   std::string target;
@@ -87,12 +88,15 @@ int main(int argc, char **argv) {
     mt = std::make_unique<mti_source>(opt.interval, rout.mtime);
   }
   if (opt.trace) {
-    fmt::ostream out{fmt::output_file("trace.log")};
+    fmt::ostream   out{fmt::output_file("trace.log")};
+    nlohmann::json state;
     while (!model.done()) {
-      model.trace(out);
       model.step();
+      model.trace_disasm(out);
+      model.trace<nlohmann::json>(state);
     }
-    out.print("{}", model.j.dump());
+    fmt::ostream state_file{fmt::output_file("trace.json")};
+    state_file.print("{}", state.dump());
   }
 
   else {

@@ -2,10 +2,9 @@
 #define ZICSR_CSR_FILE_HPP
 
 #include "common/offset.hpp"
-#include "common/types.hpp"
-#include "csr.hpp"
+#include "zicsr/csr.hpp"
+
 #include <array>
-#include <cstddef>
 #include <cstdint>
 
 struct status {

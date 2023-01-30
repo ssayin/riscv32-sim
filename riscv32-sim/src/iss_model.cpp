@@ -1,29 +1,24 @@
 #include "iss_model.hpp"
 #include "arith.hpp"
 #include "decoder/decoder.hpp"
-#include "decoder/rv32_isn.hpp"
-#include "memory/sparse_memory.hpp"
-#include "zicsr/csr.hpp"
-#include "zicsr/trap_cause.hpp"
+
+#include <bitset>
 #include <fmt/color.h>
+
 extern "C" {
 #include <riscv-disas.h>
 }
-#include <cstdint>
-#include <stdexcept>
 
 namespace {
 uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2);
 bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type);
 } // namespace
 
-void iss_model::trace(fmt::ostream &out) {
+void iss_model::trace_disasm(fmt::ostream &out) {
   std::array<char, 128> buf{};
   disasm_inst(buf.data(), buf.size(), rv32, static_cast<uint32_t>(pc),
               mem.read32(static_cast<uint32_t>(pc)));
-  // out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
-
-  j.emplace_back(state{instr, dec});
+  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
 }
 
 void iss_model::step() {

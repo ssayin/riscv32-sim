@@ -1,9 +1,8 @@
 #ifndef MTI_SOURCE_HPP
 #define MTI_SOURCE_HPP
 
-#include "fmt/core.h"
-#include "memory/sparse_memory.hpp"
-#include <condition_variable>
+#include <array>
+#include <atomic>
 #include <cstdint>
 #include <thread>
 

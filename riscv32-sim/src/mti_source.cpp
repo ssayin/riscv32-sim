@@ -1,4 +1,5 @@
 #include "mti_source.hpp"
+
 #include <future>
 
 namespace {

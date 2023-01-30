@@ -1,7 +1,8 @@
 #include "loader.hpp"
-#include "fmt/format.h"
-#include <elfio/elfio.hpp>
-#include <elfio/elfio_section.hpp>
+#include "memory/sparse_memory.hpp"
+
+#include <elfio/elfio_dump.hpp>
+#include <fmt/ostream.h>
 
 loader::loader(const std::string &file_name, sparse_memory_accessor &mem) {
   /*
@@ -69,3 +70,4 @@ void loader::dump(std::ostream &out) {
   ELFIO::dump::section_datas(out, reader);
   ELFIO::dump::segment_datas(out, reader);
 }
+uint32_t loader::entry() { return reader.get_entry(); }

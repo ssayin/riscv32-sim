@@ -1,24 +1,17 @@
 #ifndef ISS_MODEL_HPP
 #define ISS_MODEL_HPP
 
-#include "decoder/decoder.hpp"
+#include "common/types.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
-#include "mti_source.hpp"
-#include "nlohmann/detail/macro_scope.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include "program_counter.hpp"
 #include "reg_file.hpp"
-#include "zicsr/csr.hpp"
 #include "zicsr/csr_file.hpp"
 #include "zicsr/trap_cause.hpp"
-#include <algorithm>
+
+#include <array>
+#include <atomic>
 #include <fmt/os.h>
-#include <fmt/ostream.h>
-#include <functional>
-#include <nlohmann/json.hpp>
-#include <numeric>
-#include <thread>
 
 /*
  * Acts as a crossbar switch CPU <=> Mem RW
@@ -46,15 +39,7 @@ public:
   void    write8(uint32_t off, uint8_t b);
 };
 
-struct state {
-  uint32_t instr;
-  op       dec;
-};
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(state, instr, dec)
-
 class iss_model {
-  using json = nlohmann::json;
 
 public:
   iss_model(options &opt, loader l, address_router &mem)
@@ -62,14 +47,16 @@ public:
         tohost_addr{l.symbol(opt.tohost_sym)}, mem{mem}, pc{l.entry()} {}
 
   void step();
-  void trace(fmt::ostream &out);
+  void trace_disasm(fmt::ostream &out);
+
+  template <class Container> void trace(Container &cont) {
+    cont.emplace_back(state{dec, instr});
+  }
 
   uint32_t tohost() { return mem.read32(tohost_addr); }
   bool     done() const { return is_done; }
 
   void set_pending(trap_cause cause);
-
-  json j;
 
 private:
   options             &opts;

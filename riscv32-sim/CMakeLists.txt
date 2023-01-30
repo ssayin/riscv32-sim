@@ -27,13 +27,14 @@ set(SRC_FILES
     include/common/masks.hpp
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
-    include/mti_source.hpp)
+    include/mti_source.hpp
+    include/common/serialize.hpp)
 
 set(TCP_LIB $<$<BOOL:${ENABLE_TCP}>:rv32-irq-server>)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(
-  ${PROJECT_NAME} PRIVATE elfio fmt::fmt CLI11 riscv_disas
+  ${PROJECT_NAME} PRIVATE elfio::elfio fmt::fmt CLI11 riscv_disas
                           nlohmann_json::nlohmann_json ${TCP_LIB})
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

@@ -1,11 +1,8 @@
 #ifndef MEMORY_SPARSE_MEMORY_HPP
 #define MEMORY_SPARSE_MEMORY_HPP
 
-#include <array>
-#include <cassert>
-#include <cstring>
+#include <cstdint>
 #include <memory>
-#include <mutex>
 #include <unordered_map>
 
 using sparse_memory = std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>>;
