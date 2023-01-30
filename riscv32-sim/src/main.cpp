@@ -2,8 +2,11 @@
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 
+#include "config.hpp"
 #include "mti_source.hpp"
+#ifdef ENABLE_TCP
 #include "tcpip.hpp"
+#endif
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
@@ -13,8 +16,6 @@ int main(int argc, char **argv) {
   std::string target;
 
   options opt;
-
-  int port;
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
@@ -40,7 +41,9 @@ int main(int argc, char **argv) {
 
   ogroup_mti->require_option(3);
 
+#ifdef ENABLE_TCP
   bool  tcp_enabled;
+  int   port;
   auto *flag_tcpserver = app.add_flag("--tcpserver", tcp_enabled,
                                       "Enable machine timer interrupts");
 
@@ -48,7 +51,7 @@ int main(int argc, char **argv) {
       app.add_option_group("tcpserver", "Server")->needs(flag_tcpserver);
 
   ogroup_server->add_option("-p,--port", port, "Port")->required();
-
+#endif
   app.option_defaults()->required();
   app.add_option("target", target, "Executable target")
       ->check(CLI::ExistingFile);
@@ -58,7 +61,7 @@ int main(int argc, char **argv) {
   } catch (const CLI::ParseError &e) {
     return app.exit(e);
   }
-
+#ifdef ENABLE_TCP
   if (tcp_enabled) {
     /*
      * TODO: this feature is partially implemented
@@ -72,6 +75,7 @@ int main(int argc, char **argv) {
         ;
     }
   }
+#endif
 
   sparse_memory          mem;
   sparse_memory_accessor acc{mem};
