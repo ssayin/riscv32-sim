@@ -4,8 +4,6 @@
 #include "decoder/rvc_cr.hpp"
 #include "decoder/rvc_isn.hpp"
 
-#include <iostream>
-
 namespace {
 op decode16_quad0(uint16_t word);
 op decode16_quad1(uint16_t word);
@@ -189,7 +187,6 @@ op decode16_quad2(uint16_t word) {
     }
     case 0b1: {
       if (_26 == 0 && _711 == 0) /* ebreak*/ {
-        rvc_ebreak isn{word};
         return op{0, {}, target::ebreak, 0, 0, 0, false, false, true};
       }
       if (_26 == 0 && _711 != 0) /*jalr*/ {

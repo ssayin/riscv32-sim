@@ -35,8 +35,8 @@ public:
   using sparse_memory_accessor::write32;
   using sparse_memory_accessor::write64;
 
-  uint8_t read8(uint32_t off) const;
-  void    write8(uint32_t off, uint8_t b);
+  [[nodiscard]] uint8_t read8(uint32_t off) const;
+  void                  write8(uint32_t off, uint8_t b);
 };
 
 class iss_model {
@@ -53,8 +53,8 @@ public:
     cont.emplace_back(cur_state);
   }
 
-  uint32_t tohost() { return mem.read32(tohost_addr); }
-  bool     done() const { return is_done; }
+  uint32_t           tohost() { return mem.read32(tohost_addr); }
+  [[nodiscard]] bool done() const { return is_done; }
 
   void set_pending(trap_cause cause);
 
@@ -72,7 +72,7 @@ private:
   void     handle_load();
   void     handle_branch();
 
-  trap_cause ecall_cause() const;
+  [[nodiscard]] trap_cause ecall_cause() const;
 
   void handle_mret();
   void handle_sys_exit();

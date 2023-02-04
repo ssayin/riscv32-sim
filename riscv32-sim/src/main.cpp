@@ -86,10 +86,9 @@ int main(int argc, char **argv) {
   address_router         rout{mem, opt.mtime, opt.mtimecmp};
   iss_model              model{opt, loader(target, acc), rout};
 
-  std::unique_ptr<mti_source> mt{nullptr};
-  if (opt.mti_enabled) {
-    mt = std::make_unique<mti_source>(opt.interval, rout.mtime);
-  }
+  std::unique_ptr<mti_source> mt =
+      opt.mti_enabled ? std::make_unique<mti_source>(opt.interval, rout.mtime)
+                      : nullptr;
 
   if (opt.trace) {
     fmt::ostream   out{fmt::output_file("trace.log")};

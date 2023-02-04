@@ -75,6 +75,7 @@ configuration.
 Since exporting hart state is a recently introduced feature, the **serialization format** is quite likely to **change**.
 
 ---
+`--step` Enable manual step.
 
 `--trace` Enable disasm trace, logged to `trace.log`.
 

@@ -33,7 +33,7 @@ constexpr uint8_t rd(uint32_t w) {
   return static_cast<uint8_t>(offset(w, 7U, 11U));
 }
 
-}; // namespace off
+} // namespace off
 
 inline uint32_t rv32_imm_i(uint32_t x) {
   return static_cast<uint32_t>(static_cast<int32_t>(x) >> 20);

@@ -30,14 +30,16 @@ class privileged_mode {
 
 public:
   privileged_mode(privilege m) { set_mode(m); }
-  privilege      mode() const { return m; }
-  static uint8_t priv(uint32_t addr) { return offset(addr, 8U, 9U); };
+  [[nodiscard]] privilege mode() const { return m; }
+  static uint8_t          priv(uint32_t addr) { return offset(addr, 8U, 9U); };
 
-  bool can_write(uint32_t addr) const {
+  [[nodiscard]] bool can_write(uint32_t addr) const {
     return !readonly(addr) && (priv(addr) <= to_int(m));
   }
 
-  bool can_read(uint32_t addr) const { return priv(addr) <= to_int(m); }
+  [[nodiscard]] bool can_read(uint32_t addr) const {
+    return priv(addr) <= to_int(m);
+  }
 
   static bool readonly(uint32_t addr) { return offset(addr, 10U, 11U) == 0b11; }
 
@@ -46,7 +48,7 @@ public:
     base = static_cast<uint16_t>(static_cast<uint16_t>(m) << 8);
   }
 
-  uint16_t priv_csr(enum csr c) const { return base | to_int(c); }
+  [[nodiscard]] uint16_t priv_csr(enum csr c) const { return base | to_int(c); }
 };
 
 class csr_file {

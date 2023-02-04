@@ -14,6 +14,12 @@ struct masks {
     static constexpr uint32_t base_addr = 0xFFFFFFFCU;
   };
 
+  static constexpr uint32_t ecall  = 0x73U;
+  static constexpr uint32_t ebreak = 0x9002U;
+  static constexpr uint32_t mret   = 0x30200073U;
+  static constexpr uint32_t sret   = 0x10200073U;
+  static constexpr uint32_t wfi    = 0x10500073U;
+
   enum class opcode : uint8_t {
     branch   = 0b1100011,
     load     = 0b0000011,

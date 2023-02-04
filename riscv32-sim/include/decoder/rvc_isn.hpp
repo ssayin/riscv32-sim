@@ -217,8 +217,4 @@ struct rvc_jal {
   rvc_jal(uint16_t w) { unpack(w); }
 };
 
-struct rvc_ebreak {
-  rvc_ebreak(uint16_t w) { assert(offset(w, 2U, 11U) == 0U); }
-};
-
 #endif

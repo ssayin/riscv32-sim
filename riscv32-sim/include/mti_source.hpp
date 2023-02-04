@@ -8,7 +8,6 @@
 
 class mti_source {
 public:
-  class address_router;
   mti_source(uint32_t interval, std::array<std::atomic<uint8_t>, 8> &mtime);
 
   mti_source(const mti_source &)            = delete;

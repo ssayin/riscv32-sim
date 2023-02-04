@@ -65,16 +65,17 @@ op decode_fence(uint32_t word);
 
 op decode(uint32_t word) {
   switch (word) {
-  case ecall:
+  case masks::ecall:
     return op{0, {}, target::ecall, 0, 0, 0, false};
-  case ebreak:
+  case masks::ebreak:
     return op{0, {}, target::ebreak, 0, 0, 0, false};
-  case mret:
+  case masks::mret:
     return op{0, {}, target::mret, 0, 0, 0, false};
-  case sret:
+  case masks::sret:
+  case masks::wfi:
     return make_nop();
-  case wfi:
-    return make_nop();
+  default:
+    break;
   }
 
   switch (masks::opcode{off::opc(word)}) {
