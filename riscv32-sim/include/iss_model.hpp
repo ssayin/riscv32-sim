@@ -50,7 +50,7 @@ public:
   void trace_disasm(fmt::ostream &out);
 
   template <class Container> void trace(Container &cont) {
-    cont.emplace_back(state{dec, instr});
+    cont.emplace_back(cur_state);
   }
 
   uint32_t tohost() { return mem.read32(tohost_addr); }
@@ -59,8 +59,7 @@ public:
   void set_pending(trap_cause cause);
 
 private:
-  options             &opts;
-  static constexpr int instr_alignment = 4;
+  options &opts;
 
   void trap(trap_cause cause);
 
@@ -68,7 +67,7 @@ private:
   void     store();
   void     csr();
   void     exec();
-  op       next_op();
+  void     fetch();
   void     handle_alu();
   void     handle_load();
   void     handle_branch();
@@ -81,8 +80,7 @@ private:
 
   const uint32_t tohost_addr;
 
-  op       dec;
-  uint32_t instr;
+  state cur_state;
 
   address_router &mem;
   program_counter pc;
@@ -90,6 +88,7 @@ private:
   reg_file        regf;
   csr_file        csrf;
   bool            is_done = false;
+  void            interrupt_pending();
 };
 
 #endif

@@ -28,7 +28,11 @@ set(SRC_FILES
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
     include/mti_source.hpp
-    include/common/serialize.hpp)
+    include/common/serialize.hpp
+    src/decoder/decoder16.cpp
+    include/decoder/rvc_isn.hpp
+    include/decoder/rvc_ca.hpp
+    include/decoder/rvc_cr.hpp)
 
 set(TCP_LIB $<$<BOOL:${ENABLE_TCP}>:rv32-irq-server>)
 

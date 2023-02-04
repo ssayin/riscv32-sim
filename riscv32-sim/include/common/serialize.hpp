@@ -41,7 +41,7 @@ template <> struct adl_serializer<op_type> {
 } // namespace nlohmann
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(op, imm, opt, tgt, rd, rs1, rs2, has_imm,
-                                   use_pc)
+                                   use_pc, is_compressed)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(state, instr, dec)
 

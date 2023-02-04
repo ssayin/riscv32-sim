@@ -1,4 +1,4 @@
-set(ISA_TEST_GLOB "rv32u[im]-p-*")
+set(ISA_TEST_GLOB "rv32u[imc]-p-*")
 
 if(NOT DEFINED ISA_TESTS_DIR)
   message(STATUS "ISA_TESTS_DIR was not set")
@@ -24,6 +24,7 @@ if(DEFINED ISA_TESTS_DIR)
     foreach(ISA_TEST ${ISA_TESTS})
       add_test(NAME ${ISA_TEST} COMMAND $<TARGET_FILE:riscv32-sim> ${ISA_TEST})
       message(STATUS "Add test target ${ISA_TEST}")
+      set_tests_properties(${ISA_TEST} PROPERTIES TIMEOUT 10)
       set_tests_properties(${ISA_TEST} PROPERTIES PASS_REGULAR_EXPRESSION
                                                   "Exited with 0x0")
     endforeach()

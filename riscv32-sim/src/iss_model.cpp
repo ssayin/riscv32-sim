@@ -16,17 +16,26 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type);
 
 void iss_model::trace_disasm(fmt::ostream &out) {
   std::array<char, 128> buf{};
-  disasm_inst(buf.data(), buf.size(), rv32, static_cast<uint32_t>(pc),
-              mem.read32(static_cast<uint32_t>(pc)));
+  auto                  cpc = static_cast<uint32_t>(pc);
+  disasm_inst(buf.data(), buf.size(), rv32, cpc, mem.read32(cpc));
   out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
 }
 
 void iss_model::step() {
-  pc.set(static_cast<uint32_t>(pc) + instr_alignment);
-  dec = next_op();
+  fetch();
+
+  pc.set(static_cast<uint32_t>(pc) + (cur_state.dec.is_compressed ? 2 : 4));
+  fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc),
+             cur_state.instr);
+
   exec();
+
   pc.update();
 
+  interrupt_pending();
+}
+
+void iss_model::interrupt_pending() {
   if (opts.mti_enabled &&
       (mem.read64(opts.mtime) > mem.read64(opts.mtimecmp))) {
     set_pending(trap_cause::int_timer_m);
@@ -34,17 +43,21 @@ void iss_model::step() {
   }
 }
 
-op iss_model::next_op() {
-  op dec;
-  instr = mem.read32(static_cast<uint32_t>(pc));
-  dec   = decode(instr);
-  fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc), instr);
+void iss_model::fetch() {
+  auto x             = mem.read32(static_cast<uint32_t>(pc));
+  auto is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
 
-  return dec;
+  if (is_compressed(x)) {
+    cur_state.dec   = decode16(x);
+    cur_state.instr = x;
+  } else {
+    cur_state.dec   = decode(x);
+    cur_state.instr = x;
+  }
 }
 
 void iss_model::exec() {
-  switch (dec.tgt) {
+  switch (cur_state.dec.tgt) {
   case target::store:
     store();
     break;
@@ -61,7 +74,6 @@ void iss_model::exec() {
     csr();
     break;
   case target::mret:
-    fmt::print(fg(fmt::color{0xE8EDDF}), "mRET ");
     handle_mret();
     break;
   case target::ecall:
@@ -77,30 +89,33 @@ void iss_model::exec() {
 }
 
 void iss_model::handle_branch() {
-  if (should_branch(regf.read(dec.rs1), regf.read(dec.rs2),
-                    std::get<enum masks::branch>(dec.opt))) {
-    pc.set(dec.imm + static_cast<uint32_t>(pc));
+  if (should_branch(regf.read(cur_state.dec.rs1), regf.read(cur_state.dec.rs2),
+                    std::get<enum masks::branch>(cur_state.dec.opt))) {
+    pc.set(cur_state.dec.imm + static_cast<uint32_t>(pc));
   }
 }
 
 void iss_model::handle_load() {
   auto res = load();
-  regf.write(dec.rd, res);
+  regf.write(cur_state.dec.rd, res);
 }
 
 void iss_model::handle_alu() {
-  uint32_t opd_1 = dec.use_pc ? static_cast<uint32_t>(pc) : regf.read(dec.rs1);
-  uint32_t opd_2 = dec.has_imm ? dec.imm : regf.read(dec.rs2);
+  uint32_t opd_1 = cur_state.dec.use_pc ? static_cast<uint32_t>(pc)
+                                        : regf.read(cur_state.dec.rs1);
+  uint32_t opd_2 =
+      cur_state.dec.has_imm ? cur_state.dec.imm : regf.read(cur_state.dec.rs2);
 
-  auto res = do_alu(std::get<enum alu>(dec.opt), opd_1, opd_2);
-  switch (std::get<enum alu>(dec.opt)) {
+  auto res = do_alu(std::get<enum alu>(cur_state.dec.opt), opd_1, opd_2);
+  switch (std::get<enum alu>(cur_state.dec.opt)) {
   case alu::_jal:
   case alu::_jalr:
-    regf.write(dec.rd, static_cast<uint32_t>(pc) + instr_alignment);
+    regf.write(cur_state.dec.rd, static_cast<uint32_t>(pc) +
+                                     (cur_state.dec.is_compressed ? 2 : 4));
     pc.set(res);
     break;
   default:
-    regf.write(dec.rd, res);
+    regf.write(cur_state.dec.rd, res);
     break;
   }
 }
@@ -119,8 +134,6 @@ trap_cause iss_model::ecall_cause() const {
 }
 
 void iss_model::trap(trap_cause cause) {
-  if (cause == trap_cause::exp_inst_access_fault) std::exit(EXIT_FAILURE);
-
   bool is_interrupt = (to_int(cause) & masks::sign_bit) != 0U;
   if (is_interrupt) {
     std::bitset<32> mstatus{csrf.read(static_cast<uint32_t>(csr::mstatus))};
@@ -148,8 +161,6 @@ void iss_model::trap(trap_cause cause) {
 
     csrf.write(static_cast<uint32_t>(csr::mstatus), mstatus.to_ulong());
   }
-
-  fmt::print("{}", cause);
 
   csrf.write(mode.priv_csr(csr::ucause), to_int(cause));
   csrf.write(mode.priv_csr(csr::utval), 0);
@@ -183,28 +194,29 @@ void iss_model::save_pc(const trap_cause &cause) {
     break;
   default:
     csrf.write(mode.priv_csr(csr::uepc),
-               (epc + instr_alignment) & masks::tvec::base_addr);
+               /*todo*/ (epc + 4) & masks::tvec::base_addr);
     break;
   }
 }
 
 void iss_model::csr() {
-  const masks::sys &Sys = std::get<masks::sys>(dec.opt);
+  const masks::sys &Sys = std::get<masks::sys>(cur_state.dec.opt);
   uint32_t          tmp = 0;
-  if (Sys != masks::sys::csrrwi || dec.rd != 0) {
-    if (mode.can_read(dec.imm)) {
-      tmp = csrf.read(dec.imm);
+  if (Sys != masks::sys::csrrwi || cur_state.dec.rd != 0) {
+    if (mode.can_read(cur_state.dec.imm)) {
+      tmp = csrf.read(cur_state.dec.imm);
     } else {
       trap(trap_cause::exp_inst_illegal);
       return;
     }
   }
 
-  if (Sys == masks::sys::csrrw || (Sys == masks::sys::csrrs && dec.rs1 != 0) ||
-      (Sys == masks::sys::csrrc && dec.rs1 != 0)) {
+  if (Sys == masks::sys::csrrw ||
+      (Sys == masks::sys::csrrs && cur_state.dec.rs1 != 0) ||
+      (Sys == masks::sys::csrrc && cur_state.dec.rs1 != 0)) {
 
-    if (mode.can_read(dec.rs1)) {
-      uint32_t I = regf.read(dec.rs1);
+    if (mode.can_read(cur_state.dec.rs1)) {
+      uint32_t I = regf.read(cur_state.dec.rs1);
 
       if (Sys == masks::sys::csrrs) {
         I |= tmp;
@@ -213,8 +225,8 @@ void iss_model::csr() {
         I = tmp & !I;
       }
 
-      if (mode.can_write(dec.imm)) {
-        csrf.write(dec.imm, I);
+      if (mode.can_write(cur_state.dec.imm)) {
+        csrf.write(cur_state.dec.imm, I);
       } else {
         trap(trap_cause::exp_inst_illegal);
         return;
@@ -227,7 +239,7 @@ void iss_model::csr() {
 
   if (Sys == masks::sys::csrrwi || Sys == masks::sys::csrrsi ||
       Sys == masks::sys::csrrci) {
-    uint32_t I = dec.rs1;
+    uint32_t I = cur_state.dec.rs1;
 
     if (Sys == masks::sys::csrrsi) {
       I |= tmp;
@@ -236,22 +248,23 @@ void iss_model::csr() {
       I = (!I) & tmp;
     }
 
-    if (mode.can_write(dec.imm)) {
-      csrf.write(dec.imm, I);
+    if (mode.can_write(cur_state.dec.imm)) {
+      csrf.write(cur_state.dec.imm, I);
     } else {
       trap(trap_cause::exp_inst_illegal);
       return;
     }
   }
 
-  regf.write(dec.rd, tmp);
+  regf.write(cur_state.dec.rd, tmp);
 }
 
 uint32_t iss_model::load() {
 
-  auto addr = regf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
+  auto addr = regf.read(cur_state.dec.rs1) +
+              cur_state.dec.imm; /* mem addr for load/store */
 
-  switch (std::get<enum masks::load>(dec.opt)) {
+  switch (std::get<enum masks::load>(cur_state.dec.opt)) {
   case masks::load::lb: {
     return (static_cast<int32_t>(mem.read8(addr)) << 24) >> 24;
   }
@@ -273,17 +286,18 @@ uint32_t iss_model::load() {
 }
 
 void iss_model::store() {
-  auto addr = regf.read(dec.rs1) + dec.imm; /* mem addr for load/store */
+  auto addr = regf.read(cur_state.dec.rs1) +
+              cur_state.dec.imm; /* mem addr for load/store */
 
-  switch (std::get<enum masks::store>(dec.opt)) {
+  switch (std::get<enum masks::store>(cur_state.dec.opt)) {
   case masks::store::sb:
-    mem.write8(addr, regf.read(dec.rs2));
+    mem.write8(addr, regf.read(cur_state.dec.rs2));
     break;
   case masks::store::sh:
-    mem.write16(addr, regf.read(dec.rs2));
+    mem.write16(addr, regf.read(cur_state.dec.rs2));
     break;
   case masks::store::sw:
-    mem.write32(addr, regf.read(dec.rs2));
+    mem.write32(addr, regf.read(cur_state.dec.rs2));
     break;
   default:
     throw std::runtime_error(""); // illegal
@@ -301,7 +315,6 @@ void iss_model::handle_sys_exit() {
   if (regf.read(17) == 93) {
     mem.write32(tohost_addr, regf.read(10));
     is_done = true;
-    fmt::print("\n");
   }
 }
 
@@ -355,17 +368,15 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type) {
   default:
     throw std::runtime_error(""); // illegal
   }
-
-  return false;
-}
-
-bool is_overflow(int32_t dividend, int32_t divisor) {
-  return (dividend == -2147483648) && (divisor == -1);
 }
 
 uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2) {
-  switch (opt) {
 
+  auto is_overflow = [](int32_t dividend, int32_t divisor) {
+    return (dividend == -2147483648) && (divisor == -1);
+  };
+
+  switch (opt) {
   case alu::_or:
     return opd_1 | opd_2;
 
@@ -407,10 +418,10 @@ uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2) {
      */
 
   case alu::_mulh:
-    return mulh(opd_1, opd_2);
+    return mulh(static_cast<int32_t>(opd_1), static_cast<int32_t>(opd_2));
 
   case alu::_mulhsu:
-    return mulhsu(opd_1, opd_2);
+    return mulhsu(static_cast<int32_t>(opd_1), opd_2);
 
   case alu::_mulhu:
     return mulhu(opd_1, opd_2);
@@ -448,8 +459,8 @@ clang-format on
  */
 
   case alu::_div: {
-    int32_t dividend = static_cast<int32_t>(opd_1);
-    int32_t divisor  = static_cast<int32_t>(opd_2);
+    auto dividend = static_cast<int32_t>(opd_1);
+    auto divisor  = static_cast<int32_t>(opd_2);
     if (divisor == 0) return -1;
     if (is_overflow(dividend, divisor)) return dividend;
     return dividend / divisor;

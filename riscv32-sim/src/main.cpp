@@ -18,8 +18,11 @@ int main(int argc, char **argv) {
 
   options opt;
 
+  bool fstep{false};
+
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
+  app.add_flag("--step", fstep, "Enable manual step");
 
   app.add_option(
       "--tohost", opt.tohost_sym,
@@ -87,6 +90,7 @@ int main(int argc, char **argv) {
   if (opt.mti_enabled) {
     mt = std::make_unique<mti_source>(opt.interval, rout.mtime);
   }
+
   if (opt.trace) {
     fmt::ostream   out{fmt::output_file("trace.log")};
     nlohmann::json state;
@@ -94,14 +98,22 @@ int main(int argc, char **argv) {
       model.step();
       model.trace_disasm(out);
       model.trace<nlohmann::json>(state);
+      if (fstep)
+        if (std::cin.get() == 'q') break;
     }
     fmt::ostream state_file{fmt::output_file("trace.json")};
     state_file.print("{}", state.dump());
-  }
+  } else {
+    if (fstep) {
+      while (!model.done()) {
+        model.step();
+        if (std::cin.get() == 'q') break;
+      }
 
-  else {
-    while (!model.done()) {
-      model.step();
+    } else {
+      while (!model.done()) {
+        model.step();
+      }
     }
   }
 

@@ -1,3 +1,4 @@
+#include "decoder/decoder.hpp"
 #include "decoder/rv32_isn.hpp"
 
 #define RV32_LOAD(name)                                                        \
@@ -50,14 +51,6 @@ template <typename T> inline op make_branch(uint32_t word, masks::branch type) {
 template <typename T> inline op make_reg_imm(uint32_t word, alu type) {
   T isn{word};
   return op{isn.imm, type, target::alu, isn.rd, isn.rs, 0, true};
-}
-
-constexpr inline op make_nop() {
-  return op{0, alu::_add, target::alu, 0, 0, 0, true};
-}
-
-constexpr inline op make_illegal() {
-  return op{0, {}, target::illegal, 0, 0, 0, false};
 }
 
 op decode_load(uint32_t word);

@@ -84,7 +84,8 @@ struct op {
   uint8_t  rs1;
   uint8_t  rs2;
   bool     has_imm;
-  bool     use_pc = false;
+  bool     use_pc        = false;
+  bool     is_compressed = false;
 };
 
 struct state {

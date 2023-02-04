@@ -5,8 +5,8 @@
 #include "common/types.hpp"
 
 struct rv32_jal {
-  uint8_t                           rd;
   uint32_t                          imm;
+  uint8_t                           rd;
   static constexpr std::string_view str() { return "jal"; };
   rv32_jal(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
@@ -55,9 +55,9 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
 
 #define RV32_REG_IMM_INST(name, funct3, opc)                                   \
   struct rv32_##name {                                                         \
+    uint32_t                          imm;                                     \
     uint8_t                           rd;                                      \
     uint8_t                           rs;                                      \
-    uint32_t                          imm;                                     \
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
@@ -106,8 +106,8 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
 
 #define RV32_REG_IMM_U_INST(name, opc)                                         \
   struct rv32_##name {                                                         \
-    uint8_t                           rd;                                      \
     uint32_t                          imm;                                     \
+    uint8_t                           rd;                                      \
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
@@ -123,9 +123,9 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
 
 #define RV32_STORE_INST(name, funct3)                                          \
   struct rv32_##name {                                                         \
+    uint32_t                          imm;                                     \
     uint8_t                           rs1;                                     \
     uint8_t                           rs2;                                     \
-    uint32_t                          imm;                                     \
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
@@ -143,9 +143,9 @@ RV32_STORE_INST(sw, store::sw)
 
 #define RV32_BRANCH_INST(name, funct3)                                         \
   struct rv32_##name {                                                         \
+    uint32_t                          imm;                                     \
     uint8_t                           rs1;                                     \
     uint8_t                           rs2;                                     \
-    uint32_t                          imm;                                     \
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
@@ -166,9 +166,9 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
 
 #define RV32_CSR_INST(name, funct3)                                            \
   struct rv32_##name {                                                         \
+    uint32_t                          csr;                                     \
     uint8_t                           rd;                                      \
     uint8_t                           rs;                                      \
-    uint32_t                          csr;                                     \
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
