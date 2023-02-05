@@ -1,0 +1,26 @@
+name: build-windows-latest
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    env:
+      BUILD_TYPE: Debug 
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Set up msbuild
+        uses: microsoft/setup-msbuild@v1.1
+          
+      - name: Debug 
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S . -B ${{env.BUILD_TYPE}}
+          cd ${{env.BUILD_TYPE}}
+          MSBuild.exe riscv32-sim.sln
