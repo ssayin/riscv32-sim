@@ -99,7 +99,7 @@ jobs:
       - name: Build & Test 
         shell: bash
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DBUILD_RUNTIME=ON -DENABLE_TCP -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}} -GNinja
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DBUILD_RUNTIME=ON -DENABLE_TCP=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}} -GNinja
           ninja -C ${{env.BUILD_TYPE}}
           ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}
           gcovr -e external -e build --sonarqube > coverage.xml
