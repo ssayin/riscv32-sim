@@ -2,6 +2,7 @@
 #define DECODER_DECODER_HPP
 
 #include "common/types.hpp"
+#include "common/op.hpp"
 
 constexpr inline op make_nop(bool compressed = false) {
   return op{0, alu::_add, target::alu, 0, 0, 0, true, false, compressed};
