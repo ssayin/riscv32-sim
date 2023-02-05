@@ -31,3 +31,8 @@ foreach (SRC ${SOURCES})
   set_tests_properties(${TARGET} PROPERTIES PASS_REGULAR_EXPRESSION
       "Exited with ${EXPECTED}")
 endforeach ()
+
+add_test(NAME timer2 COMMAND $<TARGET_FILE:riscv32-sim> --timer --mtime 32768 --mtimecmp 33024 --interval 10 $<TARGET_FILE:timer>)
+
+set_tests_properties(timer2 PROPERTIES FAIL_REGULAR_EXPRESSION
+    "Exited with 0x0 \(0\)")
