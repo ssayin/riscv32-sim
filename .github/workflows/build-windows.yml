@@ -21,6 +21,7 @@ jobs:
           
       - name: Debug 
         run: |
+          dir
           cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S . -B ${{env.BUILD_TYPE}}
           cd ${{env.BUILD_TYPE}}
           MSBuild.exe riscv32-sim.sln
