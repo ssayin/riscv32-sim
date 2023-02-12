@@ -5,7 +5,9 @@
 #include "zicsr/csr.hpp"
 
 #include <array>
+#include <bitset>
 #include <cstdint>
+#include <limits>
 
 struct status {
   static constexpr uint8_t sie  = 1U;

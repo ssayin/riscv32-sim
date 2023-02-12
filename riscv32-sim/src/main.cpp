@@ -3,7 +3,7 @@
 #include "mti_source.hpp"
 
 #ifdef ENABLE_TCP
-#include "tcpip.hpp"
+#include "ipc/irq_server.hpp"
 #endif
 
 #include <CLI/App.hpp>
@@ -11,18 +11,29 @@
 #include <CLI/Formatter.hpp>
 #include <CLI/Validators.hpp>
 
+#include <csignal>
+#include <cstdlib>
+
 #include "common/serialize.hpp"
 
+volatile std::sig_atomic_t pending_interrupt = 0;
+
+namespace {
+void sighandler(int signal) { pending_interrupt = signal; }
+} // namespace
+
+void run(options &opt);
+
 int main(int argc, char **argv) {
-  std::string target;
+  signal(SIGINT, sighandler);
 
   options opt;
 
-  bool fstep{false};
-
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
-  app.add_flag("--step", fstep, "Enable manual step");
+  app.add_flag("--step", opt.fstep, "Enable manual step");
+
+  app.add_flag("-d,--dump", opt.dump_exit, "Dump elf file then exit.");
 
   app.add_option(
       "--tohost", opt.tohost_sym,
@@ -46,18 +57,15 @@ int main(int argc, char **argv) {
   ogroup_mti->require_option(3);
 
 #ifdef ENABLE_TCP
-  bool  tcp_enabled;
-  int   port;
-  auto *flag_tcpserver = app.add_flag("--tcpserver", tcp_enabled,
+  auto *flag_tcpserver = app.add_flag("--tcpserver", opt.tcp_enabled,
                                       "Enable machine timer interrupts");
-
   auto *ogroup_server =
       app.add_option_group("tcpserver", "Server")->needs(flag_tcpserver);
 
-  ogroup_server->add_option("-p,--port", port, "Port")->required();
+  ogroup_server->add_option("-p,--port", opt.port, "Port")->required();
 #endif
   app.option_defaults()->required();
-  app.add_option("target", target, "Executable target")
+  app.add_option("target", opt.target, "Executable target")
       ->check(CLI::ExistingFile);
 
   try {
@@ -65,8 +73,21 @@ int main(int argc, char **argv) {
   } catch (const CLI::ParseError &e) {
     return app.exit(e);
   }
+
+  run(opt);
+
+  return 0;
+}
+
+void run(options &opt) {
+  if (opt.dump_exit) {
+    loader prog{opt.target};
+    prog.dump(std::cout);
+    std::exit(EXIT_SUCCESS);
+  }
+
 #ifdef ENABLE_TCP
-  if (tcp_enabled) {
+  if (opt.tcp_enabled) {
     /*
      * TODO: this feature is partially implemented
      * either poll with zero timeout & big backlog size
@@ -74,7 +95,7 @@ int main(int argc, char **argv) {
      * or run in a separate thread
      */
     {
-      irq_server serv(port, 5);
+      irq_server serv(opt.port, 5);
       while (serv.poll())
         ;
     }
@@ -84,7 +105,7 @@ int main(int argc, char **argv) {
   sparse_memory          mem;
   sparse_memory_accessor acc{mem};
   address_router         rout{mem, opt.mtime, opt.mtimecmp};
-  iss_model              model{opt, loader(target, acc), rout};
+  iss_model              model{opt, loader(opt.target, acc), rout};
 
   std::unique_ptr<mti_source> mt =
       opt.mti_enabled ? std::make_unique<mti_source>(opt.interval, rout.mtime)
@@ -97,13 +118,13 @@ int main(int argc, char **argv) {
       model.step();
       model.trace_disasm(out);
       model.trace<nlohmann::json>(state);
-      if (fstep)
+      if (opt.fstep)
         if (std::cin.get() == 'q') break;
     }
     fmt::ostream state_file{fmt::output_file("trace.json")};
     state_file.print("{}", state.dump());
   } else {
-    if (fstep) {
+    if (opt.fstep) {
       while (!model.done()) {
         model.step();
         if (std::cin.get() == 'q') break;
@@ -116,8 +137,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  fmt::print("{} Exited with 0x{:X} ({})\n", target, model.tohost(),
+  fmt::print("{} Exited with 0x{:X} ({})\n", opt.target, model.tohost(),
              static_cast<int32_t>(model.tohost()));
-
-  return 0;
 }

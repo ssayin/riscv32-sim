@@ -4,7 +4,7 @@
 #include <elfio/elfio_dump.hpp>
 #include <fmt/ostream.h>
 
-loader::loader(const std::string &file_name, sparse_memory_accessor &mem) {
+loader::loader(const std::string &file_name) {
   /*
    * Irrecoverable
    * Can resort to exceptions if necessary in the future.
@@ -21,7 +21,6 @@ loader::loader(const std::string &file_name, sparse_memory_accessor &mem) {
   }
 
   if (reader.get_machine() != ELFIO::EM_RISCV) {
-    // std::cerr << "Loaded ELF does not target RISC-V";
     fmt::print(stderr, "Loaded ELF does not target RISC-V");
     std::exit(EXIT_FAILURE);
   }
@@ -30,9 +29,10 @@ loader::loader(const std::string &file_name, sparse_memory_accessor &mem) {
     fmt::print(stderr, "Loaded ELF has no segments");
     std::exit(EXIT_FAILURE);
   }
+}
 
-  // dump();
-
+loader::loader(const std::string &file_name, sparse_memory_accessor &mem)
+    : loader{file_name} {
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
                   if (s->get_type() == ELFIO::PT_LOAD) {

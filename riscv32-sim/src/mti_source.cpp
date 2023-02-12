@@ -1,5 +1,6 @@
 #include "mti_source.hpp"
 
+#include <csignal>
 #include <future>
 
 namespace {
@@ -7,10 +8,12 @@ std::mutex              mtx;
 std::condition_variable cond;
 } // namespace
 
+extern volatile std::sig_atomic_t pending_interrupt;
+
 void runner(uint32_t interval, std::array<std::atomic<uint8_t>, 8> &mtime,
             std::atomic_bool &is_exiting) {
 
-  while (!is_exiting) {
+  while (!(is_exiting || pending_interrupt)) {
     mtime.at(0).fetch_add(1);
     std::unique_lock<std::mutex> lck{mtx};
     // auto mtime = mem.read_dword(opts.mtime);

@@ -1,5 +1,6 @@
-#ifndef RVC_CA
-#define RVC_CA
+
+#ifndef DECODER_RVC_CA_HPP
+#define DECODER_RVC_CA_HPP
 
 #include "common/offset.hpp"
 
@@ -20,4 +21,4 @@ using rvc_sub  = rvc_ca;
 using rvc_addw = rvc_ca;
 using rvc_subw = rvc_ca;
 
-#endif
+#endif /* end of include guard: DECODER_RVC_CA_HPP */

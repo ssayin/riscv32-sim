@@ -1,8 +1,18 @@
 #!/usr/bin/bash -e
 
 BUILD_DIR=build
+ISA_TESTS_DIR=/opt/riscv32
 
-cmake -B $BUILD_DIR -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_RUNTIME=ON -DCOVERAGE=ON -DISA_TESTS_DIR=/opt/riscv32 -DENABLE_TCP=ON -GNinja
+cmake -B $BUILD_DIR -GNinja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCOVERAGE=ON \
+  -DISA_TESTS_DIR=$ISA_TESTS_DIR \
+  -DENABLE_TCP=ON \
+  -DBUILD_RUNTIME=ON \
+  #-DBUILD_TESTING=OFF
+
 ninja -v -C $BUILD_DIR
+
 ctest --test-dir $BUILD_DIR --output-on-failure
+
 gcovr -e external -e build 

@@ -12,7 +12,7 @@ static constexpr uint32_t type_u_imm = 0xFFFFF000U;
 namespace tvec {
 static constexpr uint32_t type = 0x00000002U;
 static constexpr uint32_t base_addr = 0xFFFFFFFCU;
-};
+} // namespace tvec
 
 static constexpr uint32_t ecall = 0x73U;
 static constexpr uint32_t ebreak = 0x9002U;
@@ -20,6 +20,6 @@ static constexpr uint32_t mret = 0x30200073U;
 static constexpr uint32_t sret = 0x10200073U;
 static constexpr uint32_t wfi = 0x10500073U;
 
-};
+} // namespace masks
 
 #endif // COMMON_CONSTS_HPP

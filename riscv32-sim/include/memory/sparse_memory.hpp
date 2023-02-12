@@ -10,10 +10,13 @@ using sparse_memory = std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>>;
 class sparse_memory_accessor {
   uint32_t ensure_page_exists(uint32_t addr);
 
-protected:
   sparse_memory &page;
 
 public:
+  sparse_memory_accessor(const sparse_memory_accessor &)            = default;
+  sparse_memory_accessor(sparse_memory_accessor &&)                 = delete;
+  sparse_memory_accessor &operator=(const sparse_memory_accessor &) = delete;
+  sparse_memory_accessor &operator=(sparse_memory_accessor &&)      = delete;
   explicit sparse_memory_accessor(sparse_memory &page) : page{page} {}
   virtual ~sparse_memory_accessor()   = default;
   constexpr static uint32_t page_size = 4096U;

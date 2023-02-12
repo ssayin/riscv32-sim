@@ -1,5 +1,5 @@
-#ifndef RVC_ISN_HPP
-#define RVC_ISN_HPP
+#ifndef DECODER_RVC_ISN_HPP
+#define DECODER_RVC_ISN_HPP
 
 #include "common/offset.hpp"
 
@@ -217,4 +217,4 @@ struct rvc_jal {
   rvc_jal(uint16_t w) { unpack(w); }
 };
 
-#endif
+#endif /* end of include guard: DECODER_RVC_ISN_HPP */

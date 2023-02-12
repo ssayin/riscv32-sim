@@ -1,5 +1,5 @@
-#ifndef RVC_CR
-#define RVC_CR
+#ifndef DECODER_RVC_CR_HPP
+#define DECODER_RVC_CR_HPP
 
 #include "common/offset.hpp"
 
@@ -18,4 +18,4 @@ using rvc_jalr = rvc_cr;
 using rvc_mv   = rvc_cr;
 using rvc_add  = rvc_cr;
 
-#endif
+#endif /* end of include guard: DECODER_RVC_CR_HPP */

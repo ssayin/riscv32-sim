@@ -1,13 +1,14 @@
 #ifndef ISS_MODEL_HPP
 #define ISS_MODEL_HPP
 
+#include "common/program_counter.hpp"
+#include "common/trap_cause.hpp"
 #include "common/types.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
-#include "common/program_counter.hpp"
+#include "options.hpp"
 #include "reg_file.hpp"
 #include "zicsr/csr_file.hpp"
-#include "zicsr/trap_cause.hpp"
 
 #include <array>
 #include <atomic>
@@ -20,8 +21,8 @@
  */
 class address_router : public sparse_memory_accessor {
 private:
-  uint32_t mtime_addr;
-  uint32_t mtimecmp_addr;
+  uint32_t                            mtime_addr;
+  uint32_t                            mtimecmp_addr;
   std::array<std::atomic<uint8_t>, 8> mtimecmp;
 
 public:
@@ -38,7 +39,7 @@ public:
   using sparse_memory_accessor::write64;
 
   [[nodiscard]] uint8_t read8(uint32_t off) const;
-  void write8(uint32_t off, uint8_t b);
+  void                  write8(uint32_t off, uint8_t b);
 };
 
 class iss_model {
@@ -51,11 +52,11 @@ public:
   void step();
   void trace_disasm(fmt::ostream &out);
 
-  template<class Container> void trace(Container &cont) {
+  template <class Container> void trace(Container &cont) {
     cont.emplace_back(cur_state);
   }
 
-  uint32_t tohost() { return mem.read32(tohost_addr); }
+  uint32_t           tohost() { return mem.read32(tohost_addr); }
   [[nodiscard]] bool done() const { return is_done; }
 
   void set_pending(trap_cause cause);
@@ -66,13 +67,13 @@ private:
   void trap(trap_cause cause);
 
   uint32_t load();
-  void store();
-  void csr();
-  void exec();
-  void fetch();
-  void handle_alu();
-  void handle_load();
-  void handle_branch();
+  void     store();
+  void     csr();
+  void     exec();
+  void     fetch();
+  void     handle_alu();
+  void     handle_load();
+  void     handle_branch();
 
   [[nodiscard]] trap_cause ecall_cause() const;
 
@@ -87,10 +88,10 @@ private:
   address_router &mem;
   program_counter pc;
   privileged_mode mode{privilege::machine};
-  reg_file regf;
-  csr_file csrf;
-  bool is_done = false;
-  void interrupt_pending();
+  reg_file        regf;
+  csr_file        csrf;
+  bool            is_done = false;
+  void            interrupt_pending();
 };
 
 #endif

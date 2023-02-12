@@ -1,5 +1,5 @@
-#ifndef INSTR_RV32_ISN_HPP
-#define INSTR_RV32_ISN_HPP
+#ifndef DECODER_RV32_ISN_HPP
+#define DECODER_RV32_ISN_HPP
 
 #include "common/offset.hpp"
 #include "common/types.hpp"
@@ -187,4 +187,4 @@ RV32_CSR_INST(csrrci, sys::csrrci)
 
 #undef RV32_CSR_INST
 
-#endif // INSTR_RV32_ISN_HPP
+#endif /* end of include guard: DECODER_RV32_ISN_HPP */

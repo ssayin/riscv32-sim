@@ -11,8 +11,9 @@ endif()
 project(riscv32-sim LANGUAGES CXX C ASM)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  include(CTest)
+
   option(ENABLE_TCP "" OFF)
-  option(BUILD_TESTS "" OFF)
   option(BUILD_RUNTIME "" OFF)
   option(COVERAGE "" OFF)
 
@@ -36,16 +37,13 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     endif()
   endif()
 
-  if(BUILD_TESTS)
-    include(CTest)
-    enable_testing()
-  endif()
-
   add_subdirectory(external)
-  add_subdirectory(riscv32-sim)
-  add_subdirectory(riscv-tests)
 
-  if(BUILD_RUNTIME)
-    add_subdirectory(runtime)
+  if(BUILD_TESTING)
+    add_subdirectory(riscv-tests)
+    if(BUILD_RUNTIME)
+      add_subdirectory(runtime)
+    endif()
   endif()
+  add_subdirectory(riscv32-sim)
 endif()

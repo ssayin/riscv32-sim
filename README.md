@@ -1,7 +1,5 @@
-riscv32-sim ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.yml/badge.svg) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
-===========
-
-
+![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
@@ -14,6 +12,9 @@ riscv32-sim ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.ym
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 -->
+
+riscv32-sim 
+===========
 
 <p align="center" width="100%">
   <img width="60%" src="misc/images/screenshot.svg">
@@ -30,6 +31,18 @@ An easy-to-use, still-in-development RISC-V 32-bit simulator.
 - [a cmake supported native build system](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#manual:cmake-generators(7))
 - [a compiler with C++20 support](https://en.cppreference.com/w/cpp/compiler_support) - required
   features: [consteval, concepts]
+
+### Build Flags
+
+`-DBUILD_TESTING=[ON/OFF]`: Enabled by default.
+
+~~`-DENABLE_TCP=[ON/OFF]`: Enable TCP/IP for handling external interrupts. Only UNIX-like platforms are currently supported. Only on Linux has it been tested. Not fully integrated. This feature will be available in the first release.~~
+
+`-DBUILD_RUNTIME=[ON/OFF]`: Cross-compile the programs in the `runtime` directory and add them as test targets. Before you enable this flag, ensure that the GCC RISC-V toolchain is in your `PATH` and that the `RISCV` variable is set to the compiler root directory.
+
+`-DISA_TESTS_DIR=[PATH]`: Location of [riscv-tests](https://github.com/riscv-software-src/riscv-tests) **binaries**. 
+
+`-DCOVERAGE=[ON/OFF]`: For GCC only. Compile with `-fprofile-arcs -ftest-coverage` and link `gcov` library.
 
 ### Building on Linux
 
@@ -75,6 +88,9 @@ configuration.
 Since exporting hart state is a recently introduced feature, the **serialization format** is quite likely to **change**.
 
 ---
+
+`-d,--dump` Dump ELF header then exit.
+
 `--step` Enable manual step.
 
 `--trace` Enable disasm trace, logged to `trace.log`.

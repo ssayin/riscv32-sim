@@ -10,8 +10,8 @@ private:
   ELFIO::elfio reader;
 
 public:
-  explicit loader(const std::string &file_name, sparse_memory_accessor &mem);
-
+  explicit loader(const std::string &file_name);
+  loader(const std::string &file_name, sparse_memory_accessor &mem);
   uint32_t symbol(const std::string &str);
   uint32_t entry();
   void     dump(std::ostream &out);
