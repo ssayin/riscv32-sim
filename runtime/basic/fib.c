@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #include <stdint.h>
 
 uint32_t fib(uint8_t v) {

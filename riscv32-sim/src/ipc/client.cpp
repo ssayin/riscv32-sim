@@ -1,3 +1,8 @@
+/*
+ * This code was largely copied from
+ * https://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/client.c
+ */
+
 #include "ipc/call_guard.hpp"
 #include "ipc/fd.hpp"
 #include <array>

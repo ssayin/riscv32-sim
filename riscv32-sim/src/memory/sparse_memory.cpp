@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #include "memory/sparse_memory.hpp"
 #include "common/offset.hpp"
 

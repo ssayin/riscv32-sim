@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #ifndef ZICSR_CSR_FILE_HPP
 #define ZICSR_CSR_FILE_HPP
 

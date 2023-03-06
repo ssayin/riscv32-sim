@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.yml/badge.svg)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)

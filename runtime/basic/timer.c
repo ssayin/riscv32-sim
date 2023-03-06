@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 /*
  * ./build.sh; ./build/riscv32-sim/riscv32-sim  --timer --mtime 32768 --mtimecmp
  * 33024 --interval 10 ./build/runtime/basic/timer.elf

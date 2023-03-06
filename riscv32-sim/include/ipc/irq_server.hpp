@@ -1,7 +1,12 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #ifndef IPC_IRQ_SERVER_HPP
 #define IPC_IRQ_SERVER_HPP
 
 #include "ipc/fd.hpp"
+#include <optional>
 #include <sys/poll.h>
 
 class irq_server {

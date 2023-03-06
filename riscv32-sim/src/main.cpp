@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #include "config.hpp"
 #include "iss_model.hpp"
 #include "mti_source.hpp"

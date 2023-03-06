@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+#
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.23.2)
 configure_file(config.hpp.in config.hpp)
 

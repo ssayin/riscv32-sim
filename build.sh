@@ -1,5 +1,9 @@
 #!/usr/bin/bash -e
 
+# SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+#
+# SPDX-License-Identifier: MIT
+
 BUILD_DIR=build
 ISA_TESTS_DIR=/opt/riscv32
 

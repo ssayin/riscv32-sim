@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #include "decoder/decoder.hpp"
 #include "decoder/rv32_isn.hpp"
 #include "decoder/rvc_ca.hpp"

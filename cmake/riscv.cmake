@@ -1,3 +1,5 @@
+# https://github.com/five-embeddev/riscv-scratchpad/blob/c3cf48324ea041251f4452d2a16449d9bd344370/cmake/cmake/riscv.cmake
+
 # include(CMakeForceCompiler)
 
 # usage cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/rv32imac.cmake ../

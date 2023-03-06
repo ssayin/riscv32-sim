@@ -1,13 +1,17 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #ifndef ISS_MODEL_HPP
 #define ISS_MODEL_HPP
 
 #include "common/program_counter.hpp"
-#include "common/trap_cause.hpp"
 #include "common/types.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 #include "options.hpp"
 #include "reg_file.hpp"
+#include "trap_cause.hpp"
 #include "zicsr/csr_file.hpp"
 
 #include <array>

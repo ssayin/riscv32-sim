@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #ifndef RISCV32_SIM_CONFIG_HPP
 #define RISCV32_SIM_CONFIG_HPP
 

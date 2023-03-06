@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 - 2023 Serdar Sayın <https://serdarsayin.com>
+#
+# SPDX-License-Identifier: MIT
+
 include(riscv)
 
 set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS}")
