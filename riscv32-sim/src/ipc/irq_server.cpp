@@ -7,53 +7,75 @@
 #include "ipc/call_guard.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <optional>
+#include <stdexcept>
 
-bool irq_server::poll(int timeout) {
-  if (call_guard(::poll, vfd.data(), vfd.size(), timeout) == 0) {
-    return false;
+constexpr static int bufsize = 128;
+
+void irq_server::close(int &fd) {
+  ::close(fd);
+  fd = -1;
+}
+
+void irq_server::accept_all() {
+  std::optional<int> opt;
+  while ((opt = this->accept()) != std::nullopt) {
+    if (opt.has_value()) {
+      fdf.make_fd(opt.value());
+      vfd.emplace_back(pollfd{static_cast<int>(opt.value()), POLLIN, 0});
+    }
   }
+}
 
-  for (auto &x : vfd) {
-    if (x.revents == 0) continue;
+bool irq_server::for_each_pollfd(pollfd_iterator        first,
+                                 const pollfd_iterator &last) {
+  for (; first < last; ++first) {
 
-    if (x.revents != POLLIN) {
+    if (first->revents == 0) continue;
+
+    if (first->revents != POLLIN) {
       fprintf(stderr, "revents\n");
       return false;
     }
-    if (x.fd == sfd->operator int()) {
+
+    if (first->fd == sfd->operator int()) {
       try {
-        this->accept();
+        accept_all();
       } catch (std::runtime_error &e) {
         fprintf(stderr, "%s\n", e.what());
         return true;
       }
+
     } else {
       std::optional<int> rc{std::nullopt};
       try {
-        char buf[128];
+        char buf[bufsize];
         do {
-          rc = call_guard_would_block(recv, x.fd, buf, sizeof(buf), 0);
+          rc = call_guard_would_block(recv, first->fd, buf, sizeof(buf), 0);
 
           if (!rc.has_value()) break; /* EWOULDBLOCK or EAGAIN */
-
-          /*
-           * TODO: not sure if I need to clean-up if recv returns 0.
-           * can I return with false?
-           */
-          if (rc.value() == 0) throw std::runtime_error("conn closed");
+          if (rc.value() == 0) {
+            vfd.erase(std::next(first).base());
+            printf("%d\n", first->fd);
+            ::close(first->fd);
+            first->fd = -1;
+            printf("%d\n", first->fd);
+            // close(first->fd);
+            break;
+          }
           fprintf(stdout, "received: %s\n", buf);
           /* echo bytes back to the client */
-          call_guard_would_block(send, x.fd, buf, rc.value(), 0);
+          call_guard_would_block(send, first->fd, buf, rc.value(), 0);
 
         } while (rc.value() > 0);
       } catch (std::runtime_error &err) {
-        /* TODO: remove from fd_factory instead */
-        close(x.fd);
-        x.fd = -1;
-        /* TODO: loop on iterators and move this inside the loop */
-        vfd.erase(std::remove_if(this->vfd.begin(), this->vfd.end(),
-                                 [](const auto &x) { return x.fd == -1; }),
-                  this->vfd.end());
+        printf("%s", err.what());
+        vfd.erase(std::next(first).base());
+        printf("%d\n", first->fd);
+        ::close(first->fd);
+        first->fd = -1;
+        printf("%d\n", first->fd);
       }
     }
   }
@@ -61,25 +83,21 @@ bool irq_server::poll(int timeout) {
   return true;
 }
 
-void irq_server::accept() {
-  printf("  Listening socket is readable\n");
-  std::optional<int> cli_or_opt{std::nullopt};
-  do {
-    sockaddr_in cli_addr{};
-    socklen_t   clilen{sizeof(cli_addr)};
-    cli_or_opt = call_guard_would_block(::accept, sfd->operator int(),
-                                        (sockaddr *)&cli_addr, &clilen);
+bool irq_server::poll(int timeout) {
+  if (call_guard(::poll, vfd.data(), vfd.size(), timeout) == 0) return false;
+  return for_each_pollfd(vfd.rbegin(), vfd.rend());
+}
 
-    if (cli_or_opt.has_value()) {
-      fdf.make_fd(cli_or_opt.value());
-      printf("server: got connection %d from %s port %d\n",
-             static_cast<int>(cli_or_opt.value()), inet_ntoa(cli_addr.sin_addr),
-             ntohs(cli_addr.sin_port));
-
-      vfd.emplace_back(pollfd{static_cast<int>(cli_or_opt.value()), POLLIN, 0});
-    }
-
-  } while (cli_or_opt != std::nullopt);
+std::optional<int> irq_server::accept() {
+  sockaddr_in cli_addr{};
+  socklen_t   clilen{sizeof(cli_addr)};
+  return call_guard_would_block(::accept, sfd->operator int(),
+                                std::bit_cast<struct sockaddr *>(&cli_addr),
+                                &clilen);
+  /*printf("server: got connection %d from %s port %d\n",
+               static_cast<int>(cli_or_opt.value()),
+     inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+               */
 }
 
 irq_server::~irq_server() {
@@ -91,25 +109,24 @@ irq_server::~irq_server() {
 irq_server::irq_server(int port, int backlog) {
   // EWOULDBLOCK => accept(), recv(), recvfrom(), send(), sendmsg(), read() ...
   sfd = fdf.make_fd(call_guard(socket, AF_INET, SOCK_STREAM, 0));
+
   int enable{1};
+  if (-1 == setsockopt(sfd->operator int(), SOL_SOCKET, SO_REUSEADDR, &enable,
+                       sizeof(enable)) ||
+      -1 == ioctl(sfd->operator int(), FIONBIO, &enable)) {
+    throw std::runtime_error(std::strerror(errno));
+  }
 
-  call_guard(setsockopt, sfd->operator int(), SOL_SOCKET, SO_REUSEADDR,
-             (char *)&enable, sizeof(enable));
-
-  call_guard(ioctl, sfd->operator int(), FIONBIO, (char *)&enable);
-
-  sockaddr_in serv_addr{0};
+  sockaddr_in serv_addr{};
   serv_addr.sin_family      = AF_INET;
   serv_addr.sin_addr.s_addr = INADDR_ANY;
   serv_addr.sin_port        = htons(port);
 
-  call_guard(bind, sfd->operator int(), (struct sockaddr *)&serv_addr,
-             sizeof(serv_addr));
-
+  call_guard(bind, sfd->operator int(),
+             std::bit_cast<struct sockaddr *>(&serv_addr), sizeof(serv_addr));
   call_guard(listen, sfd->operator int(), backlog);
-  // listen socket
+
   vfd.emplace_back(pollfd{sfd->operator int(), POLLIN, 0});
-  printf("irq_server ctor\n");
 }
 
 fd::~fd() {

@@ -15,7 +15,7 @@ class fd {
 public:
   fd(fd &&)            = delete;
   fd &operator=(fd &&) = delete;
-  fd(const fd &, int x) : handle{x} {}
+  fd(const fd & /*unused*/, int x) : handle{x} {}
   fd(const fd &)      = delete;
   fd &operator=(fd &) = delete;
   ~fd();
@@ -36,8 +36,19 @@ private:
   std::vector<std::shared_ptr<fd>> cont;
 
 public:
+  fd_factory() = default;
+  fd_factory(const fd_factory &)                    = default;
+  fd_factory(fd_factory &&)                         = delete;
+  fd_factory         &operator=(const fd_factory &) = default;
+  fd_factory         &operator=(fd_factory &&)      = delete;
   std::shared_ptr<fd> make_fd(int h) {
     return cont.emplace_back(fd::create(h));
+  }
+
+  ~fd_factory() {
+    for (auto &x : cont) {
+      printf("~fd_factory() %d\n", x->handle);
+    }
   }
 };
 

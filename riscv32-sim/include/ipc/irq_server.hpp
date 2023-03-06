@@ -22,7 +22,12 @@ public:
   constexpr static int default_timeout = 6000;
 
 private:
-  void                accept();
+  typedef std::vector<pollfd>::reverse_iterator pollfd_iterator;
+
+  void close(int& fd);
+  void accept_all();
+  bool for_each_pollfd(pollfd_iterator first, const pollfd_iterator &last);
+  std::optional<int>  accept();
   std::vector<pollfd> vfd;
   std::shared_ptr<fd> sfd;
   fd_factory          fdf;
