@@ -81,6 +81,8 @@ jobs:
         if: steps.cache-riscv-tests.outputs.cache-hit != 'true'
         shell: bash
         run: |
+          mkdir tmp0
+          cd tmp0
           git clone --recurse-submodules https://github.com/riscv-software-src/riscv-tests.git; cd riscv-tests
           git submodule update --init --recursive
 
@@ -95,6 +97,7 @@ jobs:
           RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} 
           ../configure --prefix=$RISCV --with-xlen=32
           make install
+          cd ..
 
       - name: Build & Test 
         shell: bash
