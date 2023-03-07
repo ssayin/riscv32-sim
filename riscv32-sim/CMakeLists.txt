@@ -11,35 +11,29 @@ if(ENABLE_TCP)
 
   add_executable(minimal src/ipc/minimal_test.cpp)
   target_link_libraries(minimal rv32-irq-server)
- 
+
   add_test(NAME minimal COMMAND minimal)
 endif()
 
 add_subdirectory(riscv32-sim-common)
+add_subdirectory(riscv32-decoder)
 
 set(SRC_FILES
     src/main.cpp
     src/iss_model.cpp
-    src/decoder/decoder.cpp
     src/memory/sparse_memory.cpp
     src/loader.cpp
     include/zicsr/csr.hpp
-    include/decoder/decoder.hpp
     include/iss_model.hpp
     include/loader.hpp
     include/zicsr/misa.hpp
-    include/decoder/rv32_isn.hpp
     include/memory/sparse_memory.hpp
     include/trap_cause.hpp
     src/reg_file.cpp
     include/reg_file.hpp
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
-    include/mti_source.hpp
-    src/decoder/decoder16.cpp
-    include/decoder/rvc_isn.hpp
-    include/decoder/rvc_ca.hpp
-    include/decoder/rvc_cr.hpp)
+    include/mti_source.hpp)
 
 set(TCP_LIB $<$<BOOL:${ENABLE_TCP}>:rv32-irq-server>)
 
@@ -52,7 +46,8 @@ target_link_libraries(
           riscv_disas
           nlohmann_json::nlohmann_json
           ${TCP_LIB}
-          riscv32-sim-common)
+          riscv32-sim-common
+          riscv32-decoder)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
