@@ -30,12 +30,9 @@ set(SRC_FILES
     include/zicsr/misa.hpp
     include/decoder/rv32_isn.hpp
     include/memory/sparse_memory.hpp
-    include/common/types.hpp
     include/trap_cause.hpp
-    include/common/offset.hpp
     src/reg_file.cpp
     include/reg_file.hpp
-    include/common/masks.hpp
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
     include/mti_source.hpp

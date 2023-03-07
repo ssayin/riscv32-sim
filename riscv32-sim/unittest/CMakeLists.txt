@@ -13,7 +13,7 @@ include(GoogleTest)
 
 macro(add_unit_test TEST)
   add_executable(${TEST} ${ARGN})
-  target_link_libraries(${TEST} GTest::gtest_main fmt::fmt)
+  target_link_libraries(${TEST} GTest::gtest_main fmt::fmt riscv32-sim-common)
 
   target_include_directories(${TEST}
                              PRIVATE ${PROJECT_SOURCE_DIR}/riscv32-sim/include)
