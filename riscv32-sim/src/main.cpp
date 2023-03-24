@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
-  app.add_flag("--export", opt.trace, "Export hart state as JSON");
+  app.add_flag("--export", opt.export_json, "Export hart state as JSON");
   app.add_flag("--step", opt.fstep, "Enable manual step");
 
   app.add_flag("-d,--dump", opt.dump_exit, "Dump elf file then exit.");
