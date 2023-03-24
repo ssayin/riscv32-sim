@@ -21,6 +21,7 @@ struct options {
   bool     tcp_enabled = false;
 #endif
   bool trace       = false;
+  bool export_json = false;
   bool mti_enabled = false;
   bool fstep       = false;
   bool dump_exit   = false;

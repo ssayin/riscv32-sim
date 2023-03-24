@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
   app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
+  app.add_flag("--export", opt.trace, "Export hart state as JSON");
   app.add_flag("--step", opt.fstep, "Enable manual step");
 
   app.add_flag("-d,--dump", opt.dump_exit, "Dump elf file then exit.");
@@ -115,30 +116,18 @@ void run(options &opt) {
       opt.mti_enabled ? std::make_unique<mti_source>(opt.interval, rout.mtime)
                       : nullptr;
 
-  if (opt.trace) {
-    fmt::ostream   out{fmt::output_file("trace.log")};
-    nlohmann::json state;
-    while (!model.done()) {
-      model.step();
+  nlohmann::json state;
+  while ((opt.fstep && std::cin.get() == 'q') || !model.done()) {
+    model.step();
+    if (opt.trace) {
+      static fmt::ostream out{fmt::output_file("trace.log")};
       model.trace_disasm(out);
-      model.trace<nlohmann::json>(state);
-      if (opt.fstep)
-        if (std::cin.get() == 'q') break;
     }
+    if (opt.export_json) model.trace<nlohmann::json>(state);
+  }
+  if (opt.export_json) {
     fmt::ostream state_file{fmt::output_file("trace.json")};
     state_file.print("{}", state.dump());
-  } else {
-    if (opt.fstep) {
-      while (!model.done()) {
-        model.step();
-        if (std::cin.get() == 'q') break;
-      }
-
-    } else {
-      while (!model.done()) {
-        model.step();
-      }
-    }
   }
 
   fmt::print("{} Exited with 0x{:X} ({})\n", opt.target, model.tohost(),

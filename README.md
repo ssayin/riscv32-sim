@@ -28,6 +28,21 @@ riscv32-sim
 
 An easy-to-use, still-in-development RISC-V 32-bit simulator.
 
+<!--toc:start-->
+- [riscv32-sim 
+===========
+](#riscv32-sim)
+  - [Getting Started](#getting-started)
+    - [Build Requirements](#build-requirements)
+    - [Build Flags](#build-flags)
+    - [Building on Linux](#building-on-linux)
+    - [Building and Running Tests [Optional]](#building-and-running-tests-optional)
+  - [Using](#using)
+    - [CLI Options and Flags](#cli-options-and-flags)
+    - [How does the simulator determine when to halt?](#how-does-the-simulator-determine-when-to-halt)
+  - [Built With](#built-with)
+<!--toc:end-->
+
 ## Getting Started
 
 ### Build Requirements
@@ -89,7 +104,7 @@ configuration.
 
 ### CLI Options and Flags
 
-**!!!ATTENTION!!!** 
+**<<<ATTENTION>>>** 
 
 Since exporting hart state is a recently introduced feature, the **serialization format** is quite likely to **change**.
 
@@ -101,10 +116,13 @@ Since exporting hart state is a recently introduced feature, the **serialization
 
 `--trace` Enable disasm trace, logged to `trace.log`.
 
+`--export` Export hart state as JSON.
+
 `--tohost <sym>` Customize the tohost symbol. In order to use your own __start() and __exit(int) routines, you can tell
 the simulator to use this symbol instead. Be sure to define it in your linker script.
 
 ---
+
 The options below have not been thoroughly tested and may cause your computer to malfunction. **Caution is advised.**
 
 `--timer` Enable machine timer interrupts.
