@@ -5,6 +5,7 @@
 #ifndef ISS_MODEL_HPP
 #define ISS_MODEL_HPP
 
+#include "common/hart_state.hpp"
 #include "common/program_counter.hpp"
 #include "common/types.hpp"
 #include "loader.hpp"
