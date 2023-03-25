@@ -20,6 +20,7 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type);
 
 void iss_model::trace_disasm(fmt::ostream &out) {
   std::array<char, 128> buf{};
+  auto                 &pc  = cur_state.pc;
   auto                  cpc = static_cast<uint32_t>(pc);
   disasm_inst(buf.data(), buf.size(), rv32, cpc, mem.read32(cpc));
   out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
@@ -28,13 +29,16 @@ void iss_model::trace_disasm(fmt::ostream &out) {
 void iss_model::step() {
   fetch();
 
+  auto &pc = cur_state.pc;
   pc.set(static_cast<uint32_t>(pc) + (cur_state.dec.is_compressed ? 2 : 4));
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc),
              cur_state.instr);
 
   exec();
+}
 
-  pc.update();
+void iss_model::commit() {
+  cur_state.pc.update();
 
   interrupt_pending();
 }
@@ -48,8 +52,9 @@ void iss_model::interrupt_pending() {
 }
 
 void iss_model::fetch() {
-  auto x             = mem.read32(static_cast<uint32_t>(pc));
-  auto is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
+  auto &pc            = cur_state.pc;
+  auto  x             = mem.read32(static_cast<uint32_t>(pc));
+  auto  is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
 
   if (is_compressed(x)) {
     cur_state.dec   = decode16(x);
@@ -95,6 +100,7 @@ void iss_model::exec() {
 void iss_model::handle_branch() {
   if (should_branch(regf.read(cur_state.dec.rs1), regf.read(cur_state.dec.rs2),
                     std::get<enum masks::branch>(cur_state.dec.opt))) {
+    auto &pc = cur_state.pc;
     pc.set(cur_state.dec.imm + static_cast<uint32_t>(pc));
   }
 }
@@ -105,6 +111,7 @@ void iss_model::handle_load() {
 }
 
 void iss_model::handle_alu() {
+  auto    &pc    = cur_state.pc;
   uint32_t opd_1 = cur_state.dec.use_pc ? static_cast<uint32_t>(pc)
                                         : regf.read(cur_state.dec.rs1);
   uint32_t opd_2 =
@@ -176,6 +183,8 @@ void iss_model::trap(trap_cause cause) {
   if (is_interrupt) {
     entry = entry + (to_int(cause) & masks::msb_zero) * 4;
   }
+
+  auto &pc = cur_state.pc;
   pc.set(entry);
 
   save_pc(cause);
@@ -183,7 +192,8 @@ void iss_model::trap(trap_cause cause) {
 }
 
 void iss_model::save_pc(const trap_cause &cause) {
-  auto epc = static_cast<uint32_t>(pc) & masks::tvec::base_addr;
+  auto &pc  = cur_state.pc;
+  auto  epc = static_cast<uint32_t>(pc) & masks::tvec::base_addr;
 
   switch (cause) {
   case trap_cause::exp_ecall_from_hs_mode:
@@ -341,6 +351,7 @@ void iss_model::handle_mret() {
   csrf.write(to_int(csr::mstatus), mstat.to_ulong());
 
   /* Restore exception program counter */
+  auto &pc = cur_state.pc;
   pc.set(csrf.read(to_int(csr::mepc)));
 
   mode.set_mode(pp);

@@ -51,9 +51,10 @@ class iss_model {
 public:
   iss_model(options &opt, loader l, address_router &mem)
       : opts{opt},
-        tohost_addr{l.symbol(opt.tohost_sym)}, mem{mem}, pc{l.entry()} {}
+        tohost_addr{l.symbol(opt.tohost_sym)}, cur_state{l.entry()}, mem{mem} {}
 
   void step();
+  void commit();
   void trace_disasm(fmt::ostream &out);
 
   template <class Container> void trace(Container &cont) {
@@ -90,7 +91,6 @@ private:
   hart_state cur_state;
 
   address_router &mem;
-  program_counter pc;
   privileged_mode mode{privilege::machine};
   reg_file        regf;
   csr_file        csrf;

@@ -124,6 +124,7 @@ void run(options &opt) {
       model.trace_disasm(out);
     }
     if (opt.export_json) model.trace<nlohmann::json>(state);
+    model.commit();
   }
   if (opt.export_json) {
     fmt::ostream state_file{fmt::output_file("trace.json")};
