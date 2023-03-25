@@ -16,7 +16,7 @@ if(ENABLE_TCP)
 endif()
 
 add_subdirectory(riscv32-sim-common)
-add_subdirectory(riscv32-decoder)
+add_subdirectory(decoder)
 
 set(SRC_FILES
     src/main.cpp

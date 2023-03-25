@@ -13,3 +13,6 @@
 [submodule "riscv32-sim/riscv32-sim-common"]
 	path = riscv32-sim/riscv32-sim-common
 	url = https://github.com/ssayin/riscv32-sim-common.git
+[submodule "riscv32-sim/decoder"]
+	path = riscv32-sim/decoder
+	url = git@github.com:ssayin/riscv32-decoder.git
