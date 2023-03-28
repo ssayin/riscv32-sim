@@ -40,10 +40,13 @@ void iss_model::step() {
 void iss_model::commit() {
   cur_state.pc.update();
 
-  cur_state.csr_staged.clear();
-  cur_state.gpr_staged.clear();
-
+  // interrupts will not be exported
   interrupt_pending();
+
+  if (opts.export_json) {
+    cur_state.csr_staged.clear();
+    cur_state.gpr_staged.clear();
+  }
 }
 
 void iss_model::interrupt_pending() {
@@ -110,7 +113,7 @@ void iss_model::handle_branch() {
 
 void iss_model::handle_load() {
   auto res = load();
-  regf.write(cur_state.dec.rd, res);
+  write(regf, cur_state.dec.rd, res);
 }
 
 void iss_model::handle_alu() {
@@ -124,12 +127,12 @@ void iss_model::handle_alu() {
   switch (std::get<enum alu>(cur_state.dec.opt)) {
   case alu::_jal:
   case alu::_jalr:
-    regf.write(cur_state.dec.rd, static_cast<uint32_t>(pc) +
-                                     (cur_state.dec.is_compressed ? 2 : 4));
+    write(regf, cur_state.dec.rd,
+          static_cast<uint32_t>(pc) + (cur_state.dec.is_compressed ? 2 : 4));
     pc.set(res);
     break;
   default:
-    regf.write(cur_state.dec.rd, res);
+    write(regf, cur_state.dec.rd, res);
     break;
   }
 }
@@ -161,7 +164,7 @@ void iss_model::trap(trap_cause cause) {
     }
 
     mip.reset(i);
-    csrf.write(static_cast<uint32_t>(csr::mip), mip.to_ulong());
+    write(csrf, static_cast<uint32_t>(csr::mip), mip.to_ulong());
 
     // TODO: disabled USER mode
     // mode.mode = privilege::machine;
@@ -173,11 +176,11 @@ void iss_model::trap(trap_cause cause) {
     mstatus[status::mpie] = mstatus[status::mie];
     mstatus[status::mie]  = false;
 
-    csrf.write(static_cast<uint32_t>(csr::mstatus), mstatus.to_ulong());
+    write(csrf, static_cast<uint32_t>(csr::mstatus), mstatus.to_ulong());
   }
 
-  csrf.write(mode.priv_csr(csr::ucause), to_int(cause));
-  csrf.write(mode.priv_csr(csr::utval), 0);
+  write(csrf, mode.priv_csr(csr::ucause), to_int(cause));
+  write(csrf, mode.priv_csr(csr::utval), 0);
 
   auto tvec = csrf.read(mode.priv_csr(csr::utvec));
 
@@ -203,15 +206,15 @@ void iss_model::save_pc(const trap_cause &cause) {
   case trap_cause::exp_ecall_from_m_mode:
   case trap_cause::exp_ecall_from_vs_mode:
   case trap_cause::exp_ecall_from_u_vu_mode:
-    csrf.write(mode.priv_csr(csr::uepc), epc);
+    write(csrf, mode.priv_csr(csr::uepc), epc);
     handle_sys_exit();
     break;
   case trap_cause::exp_breakpoint:
-    csrf.write(mode.priv_csr(csr::uepc), epc);
+    write(csrf, mode.priv_csr(csr::uepc), epc);
     break;
   default:
-    csrf.write(mode.priv_csr(csr::uepc),
-               /*todo*/ (epc + 4) & masks::tvec::base_addr);
+    write(csrf, mode.priv_csr(csr::uepc),
+          /*todo*/ (epc + 4) & masks::tvec::base_addr);
     break;
   }
 }
@@ -243,7 +246,7 @@ void iss_model::csr() {
       }
 
       if (mode.can_write(cur_state.dec.imm)) {
-        csrf.write(cur_state.dec.imm, I);
+        write(csrf, cur_state.dec.imm, I);
       } else {
         trap(trap_cause::exp_inst_illegal);
         return;
@@ -266,14 +269,14 @@ void iss_model::csr() {
     }
 
     if (mode.can_write(cur_state.dec.imm)) {
-      csrf.write(cur_state.dec.imm, I);
+      write(csrf, cur_state.dec.imm, I);
     } else {
       trap(trap_cause::exp_inst_illegal);
       return;
     }
   }
 
-  regf.write(cur_state.dec.rd, tmp);
+  write(regf, cur_state.dec.rd, tmp);
 }
 
 uint32_t iss_model::load() {
@@ -351,7 +354,7 @@ void iss_model::handle_mret() {
   mstat[status::mpp + 1] = true;
 
   /* Commit mstatus */
-  csrf.write(to_int(csr::mstatus), mstat.to_ulong());
+  write(csrf, to_int(csr::mstatus), mstat.to_ulong());
 
   /* Restore exception program counter */
   auto &pc = cur_state.pc;
@@ -364,7 +367,7 @@ void iss_model::set_pending(trap_cause cause) {
   auto            i = to_int(cause) & masks::msb_zero;
   std::bitset<32> mip{csrf.read(static_cast<uint32_t>(csr::mip))};
   mip.set(i);
-  csrf.write(static_cast<uint32_t>(csr::mip), mip.to_ulong());
+  write(csrf, static_cast<uint32_t>(csr::mip), mip.to_ulong());
 }
 
 namespace {

@@ -69,6 +69,7 @@ public:
     out.index = addr;
     out.next  = v;
     out.prev  = csrs.at(addr);
+    write(addr, v);
   }
 
   void write(uint16_t addr, uint32_t v, std::vector<csr_change> &vec) {

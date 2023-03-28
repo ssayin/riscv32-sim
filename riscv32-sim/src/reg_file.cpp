@@ -37,6 +37,7 @@ void reg_file::write(uint8_t index, uint32_t data, gpr_change &out) {
   out.index = index;
   out.next  = data;
   out.prev  = x[index];
+  write(index, data);
 }
 
 void reg_file::write(uint8_t index, uint32_t data,

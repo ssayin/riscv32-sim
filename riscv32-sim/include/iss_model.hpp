@@ -70,6 +70,22 @@ public:
 private:
   options &opts;
 
+  void write(csr_file &file, uint16_t index, uint32_t val) {
+    if (opts.export_json) {
+      file.write(index, val, cur_state.csr_staged);
+    } else {
+      file.write(index, val);
+    }
+  }
+
+  void write(reg_file &file, uint8_t index, uint32_t val) {
+    if (opts.export_json) {
+      file.write(index, val, cur_state.gpr_staged);
+    } else {
+      file.write(index, val);
+    }
+  }
+
   void trap(trap_cause cause);
 
   uint32_t load();
