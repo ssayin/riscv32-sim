@@ -5,6 +5,7 @@
 #ifndef ZICSR_CSR_FILE_HPP
 #define ZICSR_CSR_FILE_HPP
 
+#include "common/hart_state.hpp"
 #include "common/offset.hpp"
 #include "zicsr/csr.hpp"
 
@@ -64,6 +65,17 @@ class csr_file {
 public:
   uint32_t read(uint32_t addr) { return csrs.at(addr); }
   void     write(uint32_t addr, uint32_t v) { csrs.at(addr) = v; }
+  void     write(uint16_t addr, uint32_t v, csr_change &out) {
+    out.index = addr;
+    out.next  = v;
+    out.prev  = csrs.at(addr);
+  }
+
+  void write(uint16_t addr, uint32_t v, std::vector<csr_change> &vec) {
+    csr_change tmp;
+    write(addr, v, tmp);
+    vec.emplace_back(tmp);
+  }
 };
 
 #endif // ZICSR_CSR_FILE_HPP

@@ -32,3 +32,16 @@ void reg_file::print(unsigned int data) {
   fmt::print(fg(fmt::color{0xF5CB5C}), "{:#d}", static_cast<int32_t>(data));
   fmt::print(fg(fmt::color{0xCFDBD5}), " ({:#x})\t", data);
 }
+
+void reg_file::write(uint8_t index, uint32_t data, gpr_change &out) {
+  out.index = index;
+  out.next  = data;
+  out.prev  = x[index];
+}
+
+void reg_file::write(uint8_t index, uint32_t data,
+                     std::vector<gpr_change> &vec) {
+  gpr_change tmp;
+  write(index, data, tmp);
+  vec.emplace_back(tmp);
+}

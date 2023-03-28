@@ -40,6 +40,9 @@ void iss_model::step() {
 void iss_model::commit() {
   cur_state.pc.update();
 
+  cur_state.csr_staged.clear();
+  cur_state.gpr_staged.clear();
+
   interrupt_pending();
 }
 
