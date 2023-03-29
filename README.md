@@ -19,8 +19,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 -->
 
-riscv32-sim 
-===========
+# riscv32-sim 
 
 <p align="center" width="100%">
   <img width="60%" src="misc/images/screenshot.svg">
@@ -29,9 +28,7 @@ riscv32-sim
 An easy-to-use, still-in-development RISC-V 32-bit simulator.
 
 <!--toc:start-->
-- [riscv32-sim 
-===========
-](#riscv32-sim)
+- [riscv32-sim](#riscv32-sim)
   - [Getting Started](#getting-started)
     - [Build Requirements](#build-requirements)
     - [Build Flags](#build-flags)
@@ -103,8 +100,6 @@ configuration.
 ```
 
 ### CLI Options and Flags
-
-**<<<ATTENTION>>>** 
 
 Since exporting hart state is a recently introduced feature, the **serialization format** is quite likely to **change**.
 

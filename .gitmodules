@@ -10,9 +10,9 @@
 [submodule "external/CLI11"]
 	path = external/CLI11
 	url = https://github.com/CLIUtils/CLI11.git
-[submodule "riscv32-sim/riscv32-sim-common"]
-	path = riscv32-sim/riscv32-sim-common
+[submodule "riscv32-sim/lib/common"]
+	path = riscv32-sim/lib/common
 	url = https://github.com/ssayin/riscv32-sim-common.git
-[submodule "riscv32-sim/decoder"]
-	path = riscv32-sim/decoder
+[submodule "riscv32-sim/lib/decoder"]
+	path = riscv32-sim/lib/decoder
 	url = https://github.com/ssayin/riscv32-decoder.git

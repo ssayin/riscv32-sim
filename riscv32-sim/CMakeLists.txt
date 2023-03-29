@@ -2,21 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-if(ENABLE_TCP)
-  add_library(rv32-irq-server OBJECT src/ipc/irq_server.cpp)
-  target_include_directories(rv32-irq-server PUBLIC include)
-
-  add_executable(client src/ipc/client.cpp)
-  target_link_libraries(client rv32-irq-server)
-
-  add_executable(minimal src/ipc/minimal_test.cpp)
-  target_link_libraries(minimal rv32-irq-server)
-
-  add_test(NAME minimal COMMAND minimal)
-endif()
-
-add_subdirectory(riscv32-sim-common)
-add_subdirectory(decoder)
+add_subdirectory(lib)
 
 set(SRC_FILES
     src/main.cpp

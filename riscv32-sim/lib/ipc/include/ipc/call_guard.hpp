@@ -42,7 +42,4 @@ std::optional<int> call_guard_would_block(Func func, Args &&...args) {
   return ret;
 }
 
-// using sock_fd = int_handle<decltype(socket), int, int, int>;
-// using conn_fd = int_handle<decltype(accept), int, sockaddr *, socklen_t *>;
-
 #endif /* end of include guard: IPC_CALL_GUARD_HPP */
