@@ -16,3 +16,6 @@
 [submodule "riscv32-sim/lib/decoder"]
 	path = riscv32-sim/lib/decoder
 	url = https://github.com/ssayin/riscv32-decoder.git
+[submodule "external/asio"]
+	path = external/asio
+	url = https://github.com/boostorg/asio.git

@@ -6,10 +6,6 @@
 #include "iss_model.hpp"
 #include "mti_source.hpp"
 
-#ifdef ENABLE_TCP
-#include "ipc/irq_server.hpp"
-#endif
-
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
@@ -17,6 +13,10 @@
 
 #include <csignal>
 #include <cstdlib>
+
+#ifdef ENABLE_TCP
+#include "ipc.hpp"
+#endif
 
 #include "common/serialize.hpp"
 
@@ -28,9 +28,15 @@ void sighandler(int signal) { pending_interrupt = signal; }
 
 void run(options &opt);
 
-int main(int argc, char **argv) {
+void register_signals() {
   signal(SIGINT, sighandler);
+  signal(SIGTERM, sighandler);
+#if defined(SIGQUIT)
+  signal(SIGQUIT, sighandler);
+#endif
+}
 
+int main(int argc, char **argv) {
   options opt;
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
@@ -93,16 +99,14 @@ void run(options &opt) {
 
 #ifdef ENABLE_TCP
   if (opt.tcp_enabled) {
-    /*
-     * TODO: this feature is partially implemented
-     * either poll with zero timeout & big backlog size
-     * / sandwich iss_model->step() between polls
-     * or run in a separate thread
-     */
     {
-      irq_server serv(opt.port, 5);
-      while (serv.poll())
-        ;
+      try {
+        boost::asio::io_context io_context;
+        ipc::server             s(io_context, opt.port, 5);
+        s.run();
+      } catch (std::exception &e) {
+        std::cerr << "Exception: " << e.what() << "\n";
+      }
     }
   }
 #endif
