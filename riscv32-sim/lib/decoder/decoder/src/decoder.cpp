@@ -82,7 +82,7 @@ op decode(uint32_t word) {
     break;
   }
 
-  switch (masks::opcode{off::opc(word)}) {
+  switch (masks::opcode{rv32::opc(word)}) {
     using enum masks::opcode;
   case auipc: {
     rv32_auipc isn{word};
@@ -122,7 +122,7 @@ op decode(uint32_t word) {
 namespace {
 
 op decode_load(uint32_t word) {
-  switch (masks::load{off::funct3(word)}) {
+  switch (masks::load{rv32::funct3(word)}) {
     RV32_LOAD(lb)
     RV32_LOAD(lh)
     RV32_LOAD(lw)
@@ -134,7 +134,7 @@ op decode_load(uint32_t word) {
 }
 
 op decode_store(uint32_t word) {
-  switch (masks::store{off::funct3(word)}) {
+  switch (masks::store{rv32::funct3(word)}) {
     RV32_STORE(sb)
     RV32_STORE(sh)
     RV32_STORE(sw)
@@ -144,7 +144,7 @@ op decode_store(uint32_t word) {
 }
 
 op decode_alu_and_remu(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(and, 0x0)
     RV32_REG_REG(remu, 0x1)
   default:
@@ -153,7 +153,7 @@ op decode_alu_and_remu(uint32_t word) {
 }
 
 op decode_alu_or_rem(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(or, 0x0)
     RV32_REG_REG(rem, 0x1)
   default:
@@ -162,7 +162,7 @@ op decode_alu_or_rem(uint32_t word) {
 }
 
 op decode_alu_xor_div(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(xor, 0x0)
     RV32_REG_REG(div, 0x1)
   default:
@@ -171,7 +171,7 @@ op decode_alu_xor_div(uint32_t word) {
 }
 
 op decode_alu_add_sub_mul(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(add, 0x0)
     RV32_REG_REG(mul, 0x1)
     RV32_REG_REG(sub, 0x20)
@@ -181,7 +181,7 @@ op decode_alu_add_sub_mul(uint32_t word) {
 }
 
 op decode_alu_sll_mulh(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(sll, 0x0)
     RV32_REG_REG(mulh, 0x1)
   default:
@@ -190,7 +190,7 @@ op decode_alu_sll_mulh(uint32_t word) {
 }
 
 op decode_alu_srl_sra_divu(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(srl, 0x0)
     RV32_REG_REG(divu, 0x1)
     RV32_REG_REG(sra, 0x20)
@@ -200,7 +200,7 @@ op decode_alu_srl_sra_divu(uint32_t word) {
 }
 
 op decode_alu_slt_mulhsu(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(slt, 0x0)
     RV32_REG_REG(mulhsu, 0x1)
   default:
@@ -209,7 +209,7 @@ op decode_alu_slt_mulhsu(uint32_t word) {
 }
 
 op decode_alu_sltu_mulhu(uint32_t word) {
-  switch (off::funct7(word)) {
+  switch (rv32::funct7(word)) {
     RV32_REG_REG(sltu, 0x0)
     RV32_REG_REG(mulhu, 0x1)
   default:
@@ -218,7 +218,7 @@ op decode_alu_sltu_mulhu(uint32_t word) {
 }
 
 op decode_alu(uint32_t word) {
-  switch (masks::reg_reg{off::funct3(word)}) {
+  switch (masks::reg_reg{rv32::funct3(word)}) {
     using enum masks::reg_reg;
   case and_remu:
     return decode_alu_and_remu(word);
@@ -242,7 +242,7 @@ op decode_alu(uint32_t word) {
 }
 
 op decode_reg_imm(uint32_t word) {
-  switch (masks::reg_imm{off::funct3(word)}) {
+  switch (masks::reg_imm{rv32::funct3(word)}) {
     using enum masks::reg_imm;
     RV32_REG_IMM(add)
     RV32_REG_IMM(slt)
@@ -254,7 +254,7 @@ op decode_reg_imm(uint32_t word) {
   case srli_srai: {
     constexpr int srli = 0x0;
     constexpr int srai = 0x20;
-    switch (off::funct7(word)) {
+    switch (rv32::funct7(word)) {
       RV32_REG_IMM(srl)
       RV32_REG_IMM(sra)
     default:
@@ -272,7 +272,7 @@ op decode_reg_imm(uint32_t word) {
 }
 
 op decode_branch(uint32_t word) {
-  switch (masks::branch{off::funct3(word)}) {
+  switch (masks::branch{rv32::funct3(word)}) {
     RV32_BRANCH(beq)
     RV32_BRANCH(bne)
     RV32_BRANCH(blt)
@@ -287,7 +287,7 @@ op decode_branch(uint32_t word) {
 op decode_fence(uint32_t word) { return make_nop(); }
 
 op decode_sys(uint32_t word) {
-  switch (masks::sys{off::funct3(word)}) {
+  switch (masks::sys{rv32::funct3(word)}) {
     RV32_CSR(csrrw)
     RV32_CSR(csrrs)
     RV32_CSR(csrrc)

@@ -8,14 +8,47 @@
 #include "common/offset.hpp"
 #include "common/types.hpp"
 
+struct rv32 {
+  constexpr static uint8_t funct7(uint32_t w) { return offset(w, 25U, 31U); }
+  constexpr static uint8_t funct3(uint32_t w) { return offset(w, 12U, 14U); }
+  constexpr static uint8_t rs2(uint32_t w) { return offset(w, 20U, 24U); }
+  constexpr static uint8_t rs1(uint32_t w) { return offset(w, 15U, 19U); }
+  constexpr static uint8_t opc(uint32_t w) { return offset(w, 0U, 6U); }
+  constexpr static uint8_t rd(uint32_t w) { return offset(w, 7U, 11U); }
+
+  constexpr static uint32_t imm_i(uint32_t x) {
+    return static_cast<uint32_t>(static_cast<int32_t>(x) >> 20);
+  }
+
+  constexpr static uint32_t imm_s(uint32_t x) {
+    return (offset(x, 7U, 11U) |
+            static_cast<uint32_t>(static_cast<int32_t>(x & 0xFE000000) >> 20));
+  }
+
+  constexpr static uint32_t imm_b(uint32_t x) {
+    return ((offset(x, 8U, 11U) << 1) | (offset(x, 25U, 30U) << 5) |
+            (offset(x, 7U, 7U) << 11) |
+            static_cast<uint32_t>(static_cast<int32_t>(x & masks::sign_bit) >>
+                                  19)) &
+           0xFFFFFFFE;
+  }
+
+  constexpr static uint32_t imm_u(uint32_t x) { return x & masks::type_u_imm; }
+
+  constexpr static uint32_t imm_j(uint32_t x) {
+    return (imm_i(x) & 0xFFF007FE) | (offset(x, 12U, 19U) << 12) |
+           (offset(x, 20U, 20U) << 11);
+  }
+};
+
 struct rv32_jal {
   uint32_t                          imm;
   uint8_t                           rd;
   static constexpr std::string_view str() { return "jal"; };
   rv32_jal(uint32_t word) { unpack(word); }
   void unpack(uint32_t word) {
-    rd  = off::rd(word);
-    imm = rv32_imm_j(word);
+    rd  = rv32::rd(word);
+    imm = rv32::imm_j(word);
   }
 };
 
@@ -27,9 +60,9 @@ struct rv32_jal {
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = off::rd(word);                                                     \
-      rs1 = off::rs1(word);                                                    \
-      rs2 = off::rs2(word);                                                    \
+      rd  = rv32::rd(word);                                                    \
+      rs1 = rv32::rs1(word);                                                   \
+      rs2 = rv32::rs2(word);                                                   \
     }                                                                          \
   };
 
@@ -65,9 +98,9 @@ RV32_REG_REG_INST(remu, reg_reg::and_remu, 0x1)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = off::rd(word);                                                     \
-      rs  = off::rs1(word);                                                    \
-      imm = rv32_imm_i(word);                                                  \
+      rd  = rv32::rd(word);                                                    \
+      rs  = rv32::rs1(word);                                                   \
+      imm = rv32::imm_i(word);                                                 \
     }                                                                          \
   };
 
@@ -96,9 +129,9 @@ RV32_REG_IMM_INST(jalr, 0b000, opcode::jalr)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = off::rd(word);                                                     \
-      rs  = off::rs1(word);                                                    \
-      imm = off::rs2(word);                                                    \
+      rd  = rv32::rd(word);                                                    \
+      rs  = rv32::rs1(word);                                                   \
+      imm = rv32::rs2(word);                                                   \
     }                                                                          \
   };
 
@@ -115,8 +148,8 @@ RV32_REG_IMM_SH_INST(srai, reg_imm::srli_srai, 0x20)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = off::rd(word);                                                     \
-      imm = rv32_imm_u(word);                                                  \
+      rd  = rv32::rd(word);                                                    \
+      imm = rv32::imm_u(word);                                                 \
     }                                                                          \
   };
 
@@ -133,9 +166,9 @@ RV32_REG_IMM_U_INST(auipc, opcode::auipc)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rs1 = off::rs1(word);                                                    \
-      rs2 = off::rs2(word);                                                    \
-      imm = rv32_imm_s(word);                                                  \
+      rs1 = rv32::rs1(word);                                                   \
+      rs2 = rv32::rs2(word);                                                   \
+      imm = rv32::imm_s(word);                                                 \
     }                                                                          \
   };
 
@@ -153,9 +186,9 @@ RV32_STORE_INST(sw, store::sw)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rs1 = off::rs1(word);                                                    \
-      rs2 = off::rs2(word);                                                    \
-      imm = rv32_imm_b(word);                                                  \
+      rs1 = rv32::rs1(word);                                                   \
+      rs2 = rv32::rs2(word);                                                   \
+      imm = rv32::imm_b(word);                                                 \
     }                                                                          \
   };
 
@@ -176,8 +209,8 @@ RV32_BRANCH_INST(bgeu, branch::bgeu)
     static constexpr std::string_view str() { return "" #name; };              \
     rv32_##name(uint32_t word) { unpack(word); }                               \
     void unpack(uint32_t word) {                                               \
-      rd  = off::rd(word);                                                     \
-      rs  = off::rs1(word);                                                    \
+      rd  = rv32::rd(word);                                                    \
+      rs  = rv32::rs1(word);                                                   \
       csr = offset(word, 20U, 31U);                                            \
     }                                                                          \
   };
