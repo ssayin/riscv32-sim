@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <stdint.h>
+#include "serdar_core.h"
 
 uint32_t fib(uint8_t v) {
-  if(v == 0 || v == 1) return 1;
-  else return fib(v - 1) + fib(v - 2);
+  if (v == 0 || v == 1)
+    return 1;
+  else
+    return fib(v - 1) + fib(v - 2);
 }
 
 int main() {

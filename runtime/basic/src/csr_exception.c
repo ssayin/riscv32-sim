@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: MIT
 
-void handle_trap() {
-  asm("j base");
-}
+extern void handle_trap() __attribute__((interrupt("machine")));
 
-void base(){
-  asm ("mret");
-}
+// empty
+void handle_trap() {}
 
 int main() {
   int result;
   asm("csrr %0, 0" : "=r"(result));
-  void (*ptr)() = &handle_trap;
-  asm("add t0, %0, x0" : : "r"(ptr));
+  asm("add t0, %0, x0" : : "r"(handle_trap));
   asm("csrrw zero, mtvec, t0");
   asm("csrrw zero, mhartid, t0"); // trigger illegal instruction
 

@@ -1,0 +1,42 @@
+name: SonarScan
+on:
+  workflow_dispatch:
+jobs:
+  sonarqube:
+    needs: build
+    runs-on: ubuntu-22.04
+    env:
+      BUILD_TYPE: Debug 
+      SONAR_SCANNER_VERSION: 4.6.1.2450 # Find the latest version in the "Linux" link on this page:
+     
+      # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+      SONAR_HOST_URL: "https://sonarcloud.io"
+    steps:
+      - name: Cache SonarQube packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Download and set up sonar-scanner
+        env:
+            SONAR_SCANNER_DOWNLOAD_URL: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip
+        run: |
+          mkdir -p $HOME/.sonar
+          curl -sSLo $HOME/.sonar/sonar-scanner.zip ${{ env.SONAR_SCANNER_DOWNLOAD_URL }} 
+          unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+          echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
+
+      - name: Download build
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Set the property "sonar.cfamily.compile-commands" to the compilation database file
+          sonar-scanner --define sonar.host.url="${{ env.SONAR_HOST_URL }}" --define sonar.cfamily.compile-commands=${{env.BUILD_TYPE}}/compile_commands.json

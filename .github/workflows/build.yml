@@ -18,21 +18,20 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       BUILD_TYPE: Debug 
-      SONAR_SCANNER_VERSION: 4.6.1.2450 # Find the latest version in the "Linux" link on this page:
-      RISCV32_TOOLCHAIN_GZIP: riscv32-embecosm-gcc-ubuntu2204-20221030
-      # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
-      SONAR_HOST_URL: "https://sonarcloud.io"
+      RISCV32_TOOLCHAIN_GZIP: riscv32-embecosm-gcc-ubuntu2204-20230430
+      RISCV32_TOOLCHAIN_URL: https://buildbot.embecosm.com/job/riscv32-gcc-ubuntu2204/60/artifact/riscv32-embecosm-gcc-ubuntu2204-20230430.tar.gz 
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Update GCC
+      - name: Update GCC and Install Boost
         run: |
           sudo apt-get update
           sudo apt install gcc-12 g++-12
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
+          sudo apt install libboost-dev
 
       - name: Get GCC Version
         shell: bash
@@ -62,8 +61,6 @@ jobs:
       - name: Download & Extract RISCV32 GCC Toolchain
         if: steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
         shell: bash
-        env:
-          RISCV32_TOOLCHAIN_URL: https://buildbot.embecosm.com/job/riscv32-gcc-ubuntu2204/30/artifact/riscv32-embecosm-gcc-ubuntu2204-20221030.tar.gz
         run: |
           mkdir -p $HOME/.riscv-gcc
           wget -q ${{env.RISCV32_TOOLCHAIN_URL}}
@@ -106,31 +103,19 @@ jobs:
       - name: Build & Test 
         shell: bash
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DBUILD_RUNTIME=ON -DENABLE_TCP=OFF -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -S . -B ${{env.BUILD_TYPE}} -GNinja
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DBUILD_RUNTIME=ON -DENABLE_TCP=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -DTEST_EXPORT_TRACE_DISASSEMBLY=ON -DTEST_EXPORT_JSON_HART_STATE=ON -S . -B ${{env.BUILD_TYPE}} -GNinja
           ninja -C ${{env.BUILD_TYPE}}
           ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}
           gcovr -e external -e build --sonarqube > coverage.xml
 
-      - name: Cache SonarQube packages
-        uses: actions/cache@v3
+      - name: Upload build logs
+        uses: actions/upload-artifact@v3
         with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
+          name: build-logs-artifact
+          path: ${{env.BUILD_TYPE}}/log
 
-      - name: Download and set up sonar-scanner
-        env:
-          SONAR_SCANNER_DOWNLOAD_URL: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip
-        run: |
-          mkdir -p $HOME/.sonar
-          curl -sSLo $HOME/.sonar/sonar-scanner.zip ${{ env.SONAR_SCANNER_DOWNLOAD_URL }} 
-          unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
-          echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
-
-      - name: Run sonar-scanner
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          # Set the property "sonar.cfamily.compile-commands" to the compilation database file
-          sonar-scanner --define sonar.host.url="${{ env.SONAR_HOST_URL }}" --define sonar.cfamily.compile-commands=${{env.BUILD_TYPE}}/compile_commands.json
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifact
+          path: ${{env.BUILD_TYPE}}

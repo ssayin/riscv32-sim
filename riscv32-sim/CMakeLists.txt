@@ -32,11 +32,11 @@ add_subdirectory(lib)
 
 set(SRC_FILES
     src/main.cpp
-    src/iss_model.cpp
+    src/iss/model.cpp
     src/memory/sparse_memory.cpp
     src/loader.cpp
     include/zicsr/csr.hpp
-    include/iss_model.hpp
+    include/iss/model.hpp
     include/loader.hpp
     include/zicsr/misa.hpp
     include/memory/sparse_memory.hpp
@@ -63,15 +63,13 @@ target_link_libraries(
           CLI11
           riscv_disas
           nlohmann_json::nlohmann_json
+          spdlog::spdlog
+          $<$<BOOL:${MINGW}>:ws2_32>
           ${TCP_LIB}
           riscv32-sim-common
           riscv32-decoder)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-
-add_executable(json_test_op src/json_test_op.cpp)
-target_link_libraries(json_test_op PRIVATE nlohmann_json::nlohmann_json)
-target_include_directories(json_test_op PRIVATE include)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")

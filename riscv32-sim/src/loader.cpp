@@ -35,7 +35,7 @@ loader::loader(const std::string &file_name) {
   }
 }
 
-loader::loader(const std::string &file_name, sparse_memory_accessor &mem)
+loader::loader(const std::string &file_name, mem::address_router &mem)
     : loader{file_name} {
   std::for_each(reader.segments.begin(), reader.segments.end(),
                 [&mem](std::unique_ptr<ELFIO::segment> &s) {
@@ -74,4 +74,19 @@ void loader::dump(std::ostream &out) {
   ELFIO::dump::section_datas(out, reader);
   ELFIO::dump::segment_datas(out, reader);
 }
+
 uint32_t loader::entry() { return reader.get_entry(); }
+
+std::vector<std::tuple<uint64_t, uint64_t>> loader::progbit_ranges() {
+  std::vector<std::tuple<uint64_t, uint64_t>> ranges;
+  for (const auto &section : reader.sections) {
+    if (section->get_type() == ELFIO::SHT_PROGBITS &&
+        (section->get_flags() & ELFIO::SHF_EXECINSTR) &&
+        section->get_size() > 0) {
+      uint64_t start_addr = section->get_address();
+      uint64_t end_addr   = start_addr + section->get_size() - 1;
+      ranges.emplace_back(start_addr, end_addr);
+    }
+  }
+  return ranges;
+}

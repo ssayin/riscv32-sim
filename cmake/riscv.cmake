@@ -18,6 +18,11 @@ find_file(RISCV_XPACK_GCC_COMPILER_EXT "riscv32-unknown-elf-gcc.exe"
           PATHS ENV INCLUDE)
 find_file(RISCV_XPACK_GCC_COMPILER "riscv32-unknown-elf-gcc" PATHS ENV INCLUDE)
 
+find_file(RISCV64_XPACK_GCC_COMPILER_EXT "riscv64-unknown-elf-gcc.exe"
+          PATHS ENV INCLUDE)
+find_file(RISCV64_XPACK_GCC_COMPILER "riscv64-unknown-elf-gcc" PATHS ENV
+                                                                     INCLUDE)
+
 # Select which is found
 if(EXISTS ${RISCV_XPACK_NEW_GCC_COMPILER})
   set(RISCV_GCC_COMPILER ${RISCV_XPACK_NEW_GCC_COMPILER})
@@ -31,6 +36,8 @@ elseif(EXISTS ${RISCV_GITHUB_GCC_COMPILER})
   set(RISCV_GCC_COMPILER ${RISCV_GITHUB_GCC_COMPILER})
 elseif(EXISTS ${RISCV_GITHUB_GCC_COMPILER_EXE})
   set(RISCV_GCC_COMPILER ${RISCV_GITHUB_GCC_COMPILER_EXE})
+elseif(EXISTS ${RISCV64_XPACK_GCC_COMPILER})
+  set(RISCV_GCC_COMPILER ${RISCV64_XPACK_GCC_COMPILER})
 else()
   message(
     FATAL_ERROR
@@ -52,7 +59,7 @@ message("RISC-V Cross Compile: ${CROSS_COMPILE}")
 # The Generic system name is used for embedded targets (targets without OS) in
 # CMake
 set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR rv32im_zicsr)
+set(CMAKE_SYSTEM_PROCESSOR rv32imc_zicsr)
 set(CMAKE_EXECUTABLE_SUFFIX ".elf")
 
 # specify the cross compiler. We force the compiler so that CMake doesn't
@@ -83,7 +90,8 @@ set(CMAKE_OBJDUMP
 
 # Set the CMAKE C flags (which should also be used by the assembler!
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${CMAKE_SYSTEM_PROCESSOR}")
+set(CMAKE_C_FLAGS
+    "${CMAKE_C_FLAGS} -march=${CMAKE_SYSTEM_PROCESSOR} -mabi=ilp32")
 
 set(CMAKE_C_FLAGS
     "${CMAKE_C_FLAGS}"
@@ -95,5 +103,5 @@ set(CMAKE_ASM_FLAGS
     "${CMAKE_C_FLAGS}"
     CACHE STRING "")
 set(CMAKE_EXE_LINKER_FLAGS
-    "${CMAKE_EXE_LINKER_FLAGS}  -march=${CMAKE_SYSTEM_PROCESSOR}  -nostartfiles"
+    "${CMAKE_EXE_LINKER_FLAGS} -nostartfiles -nostdlib -nodefaultlibs -fno-exceptions"
 )

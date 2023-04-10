@@ -1,10 +1,10 @@
 OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
 	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
-ENTRY(_entry)
+ENTRY(rvtest_entry_point)
 SECTIONS
 {
-PROVIDE(__stack_size = 0x200);
+PROVIDE(__stack_size = 0x100);
 . = 0x1000;
 .text.init : { *(.text.init) }
 . = ALIGN(0x1000);

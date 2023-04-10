@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <stdint.h>
+#include "serdar_core.h"
 
 extern void _entry() __attribute__((naked, section(".text.init")));
 extern void _start() __attribute__((noreturn));

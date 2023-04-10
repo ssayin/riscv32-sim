@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "config.hpp"
-#include "iss_model.hpp"
+#include "iss/model.hpp"
 #include "mti_source.hpp"
 
 #include <CLI/App.hpp>
@@ -40,11 +40,15 @@ int main(int argc, char **argv) {
   options opt;
 
   CLI::App app{"An easy-to-use, still-in-development RISC-V 32-bit simulator"};
-  app.add_flag("--trace", opt.trace, "Enable logging trace to a file");
-  app.add_flag("--export", opt.export_json, "Export hart state as JSON");
+
+  app.add_option("-j,--json-output", opt.json_output, "JSON output filename");
+
+  app.add_option("-d,--disas-output", opt.disas_output,
+                 "Disas trace output filename");
+
   app.add_flag("--step", opt.fstep, "Enable manual step");
 
-  app.add_flag("-d,--dump", opt.dump_exit, "Dump elf file then exit.");
+  app.add_flag("--dump", opt.dump_exit, "Dump elf file then exit.");
 
   app.add_option(
       "--tohost", opt.tohost_sym,
@@ -77,7 +81,9 @@ int main(int argc, char **argv) {
 #endif
   app.option_defaults()->required();
   app.add_option("target", opt.target, "Executable target")
-      ->check(CLI::ExistingFile);
+      ->check(CLI::ExistingFile)
+      ->required()
+      ->take_first();
 
   try {
     app.parse(argc, argv);
@@ -110,11 +116,9 @@ void run(options &opt) {
     }
   }
 #endif
-
-  sparse_memory          mem;
-  sparse_memory_accessor acc{mem};
-  address_router         rout{mem, opt.mtime, opt.mtimecmp};
-  iss_model              model{opt, loader(opt.target, acc), rout};
+  mem::sparse_memory  mem;
+  mem::address_router rout{mem, opt.mtime, opt.mtimecmp};
+  iss::model          model{opt, loader(opt.target, rout), rout};
 
   std::unique_ptr<mti_source> mt =
       opt.mti_enabled ? std::make_unique<mti_source>(opt.interval, rout.mtime)
@@ -123,15 +127,15 @@ void run(options &opt) {
   nlohmann::json state;
   while ((opt.fstep && std::cin.get() == 'q') || !model.done()) {
     model.step();
-    if (opt.trace) {
-      static fmt::ostream out{fmt::output_file("trace.log")};
+    if (!opt.disas_output.empty()) {
+      static fmt::ostream out{fmt::output_file(opt.disas_output)};
       model.trace_disasm(out);
     }
-    if (opt.export_json) model.trace<nlohmann::json>(state);
+    if (!opt.json_output.empty()) model.trace<nlohmann::json>(state);
     model.commit();
   }
-  if (opt.export_json) {
-    fmt::ostream state_file{fmt::output_file("trace.json")};
+  if (!opt.json_output.empty()) {
+    fmt::ostream state_file{fmt::output_file(opt.json_output)};
     state_file.print("{}", state.dump());
   }
 

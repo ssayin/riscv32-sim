@@ -22,11 +22,25 @@ endif()
 if(DEFINED ISA_TESTS_DIR)
   file(GLOB_RECURSE ISA_TESTS ${ISA_TESTS_DIR}/${ISA_TEST_GLOB})
 
+  # Exclude fence_i as it is not yet implemented
+  list(FILTER ISA_TESTS EXCLUDE REGEX ".*rv32ui-p-fence_i.*")
+
   list(FILTER ISA_TESTS EXCLUDE REGEX ".*.dump$")
 
   if(ISA_TESTS)
     foreach(ISA_TEST ${ISA_TESTS})
-      add_test(NAME ${ISA_TEST} COMMAND $<TARGET_FILE:riscv32-sim> ${ISA_TEST})
+      get_filename_component(FILENAME_BASE ${ISA_TEST} NAME_WLE)
+      set(LOG_FILE_BASE ${RISCV32_SIM_TRACE_OUTPUT_DIRECTORY}/${FILENAME_BASE})
+      set(EXPORT_JSON "-j${LOG_FILE_BASE}.json")
+      set(EXPORT_DISAS_TRACE "-d${LOG_FILE_BASE}.log")
+
+      add_test(
+        NAME ${ISA_TEST}
+        COMMAND
+          $<TARGET_FILE:riscv32-sim> ${ISA_TEST}
+          $<$<BOOL:${TEST_EXPORT_JSON_HART_STATE}>:${EXPORT_JSON}>
+          $<$<BOOL:${TEST_EXPORT_TRACE_DISASSEMBLY}>:${EXPORT_DISAS_TRACE}>)
+
       message(STATUS "Add test target ${ISA_TEST}")
       set_tests_properties(${ISA_TEST} PROPERTIES TIMEOUT 10)
       set_tests_properties(${ISA_TEST} PROPERTIES PASS_REGULAR_EXPRESSION

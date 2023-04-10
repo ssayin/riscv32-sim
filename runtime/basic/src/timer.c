@@ -7,7 +7,7 @@
  * 33024 --interval 10 ./build/runtime/basic/timer.elf
  */
 
-#include <stdint.h>
+#include "serdar_core.h"
 
 // TODO: map to read-only region
 #define MTIME 0x8000

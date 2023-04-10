@@ -3,15 +3,20 @@
 # SPDX-License-Identifier: MIT
 
 include(riscv)
-include(test_config.cmake)
+include(cmake/test_config.cmake)
+include(cmake/test_helpers.cmake)
 
-include(riscv)
+set(CMAKE_C_FLAGS "-g -march=rv32im_zicsr -mabi=ilp32")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS}")
 
 # set(CMAKE_C_FLAGS "-Os -g -Wall -ffunction-sections")
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/crt/serdar.ld")
-set(CMAKE_EXE_LINKER_FLAGS
-    "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -nodefaultlibs -fno-exceptions -T ${LINKER_SCRIPT}"
-)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T ${LINKER_SCRIPT}")
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(serdar STATIC crt/crt.c)
 set_target_properties(serdar PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
@@ -26,15 +31,11 @@ set(SOURCES
     src/timer.c)
 
 foreach(SRC ${SOURCES})
-  get_filename_component(TARGET ${SRC} NAME_WLE)
-  add_executable(${TARGET} ${SRC})
-  set_target_properties(${TARGET} PROPERTIES LINK_DEPENDS "${LINKER_SCRIPT}")
-  target_link_libraries(${TARGET} PRIVATE serdar)
-  add_test(NAME ${TARGET} COMMAND $<TARGET_FILE:riscv32-sim>
-                                  $<TARGET_FILE:${TARGET}>)
   list(GET ${SRC} 0 EXPECTED)
-  set_tests_properties(${TARGET} PROPERTIES PASS_REGULAR_EXPRESSION
-                                            "Exited with ${EXPECTED}")
+  get_filename_component(TARGET ${SRC} NAME_WLE)
+
+  add_test_executable(${TARGET} ${SRC})
+  add_test_with_expected_result(${TARGET} ${EXPECTED})
 endforeach()
 
 add_test(NAME timer2

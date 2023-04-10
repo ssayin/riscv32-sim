@@ -13,6 +13,8 @@
 struct options {
   std::string target;
   std::string tohost_sym = "tohost";
+  std::string json_output;
+  std::string disas_output;
   uint32_t    mtime{};
   uint32_t    mtimecmp{};
   uint32_t    interval{};
@@ -20,8 +22,6 @@ struct options {
   uint16_t port;
   bool     tcp_enabled = false;
 #endif
-  bool trace       = false;
-  bool export_json = false;
   bool mti_enabled = false;
   bool fstep       = false;
   bool dump_exit   = false;

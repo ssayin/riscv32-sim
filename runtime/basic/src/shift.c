@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <stdint.h>
+#include "serdar_core.h"
 
 int main() {
   uint32_t a = 1;

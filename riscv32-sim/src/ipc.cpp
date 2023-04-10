@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Serdar Sayın <https://serdarsayin.com>
+//
+// SPDX-License-Identifier: MIT
+
 #include "ipc.hpp"
 
 void ipc::session::start() {

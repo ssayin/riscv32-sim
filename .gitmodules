@@ -19,3 +19,9 @@
 [submodule "riscv32-sim/lib/riscv32-sim-common"]
 	path = riscv32-sim/lib/riscv32-sim-common
 	url = https://github.com/ssayin/riscv32-sim-common.git
+[submodule "external/riscv-arch-test"]
+	path = external/riscv-arch-test
+	url = https://github.com/riscv-non-isa/riscv-arch-test.git
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = https://github.com/gabime/spdlog.git

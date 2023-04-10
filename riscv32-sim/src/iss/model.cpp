@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "iss_model.hpp"
-#include "arith.hpp"
+#include "iss/model.hpp"
 #include "decoder/decoder.hpp"
+#include "iss/arith.hpp"
 
 #include <bitset>
 #include <fmt/color.h>
@@ -13,12 +13,13 @@ extern "C" {
 #include <riscv-disas.h>
 }
 
+namespace iss {
 namespace {
 uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2);
 bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type);
 } // namespace
 
-void iss_model::trace_disasm(fmt::ostream &out) {
+void model::trace_disasm(fmt::ostream &out) {
   std::array<char, 128> buf{};
   auto                 &pc  = cur_state.pc;
   auto                  cpc = static_cast<uint32_t>(pc);
@@ -26,7 +27,7 @@ void iss_model::trace_disasm(fmt::ostream &out) {
   out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
 }
 
-void iss_model::step() {
+void model::step() {
   fetch();
 
   auto &pc = cur_state.pc;
@@ -34,22 +35,25 @@ void iss_model::step() {
   fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc),
              cur_state.instr);
 
+  if (!is_valid_pc(static_cast<uint32_t>(pc))) {
+    fmt::print("ERROR: Instruction address is not within PROGBITS\n");
+    exit(1);
+  }
+
   exec();
 }
 
-void iss_model::commit() {
+void model::commit() {
   cur_state.pc.update();
 
   // interrupts will not be exported
   interrupt_pending();
 
-  if (opts.export_json) {
-    cur_state.csr_staged.clear();
-    cur_state.gpr_staged.clear();
-  }
+  cur_state.csr_staged.clear();
+  cur_state.gpr_staged.clear();
 }
 
-void iss_model::interrupt_pending() {
+void model::interrupt_pending() {
   if (opts.mti_enabled &&
       (mem.read64(opts.mtime) > mem.read64(opts.mtimecmp))) {
     set_pending(trap_cause::int_timer_m);
@@ -57,7 +61,7 @@ void iss_model::interrupt_pending() {
   }
 }
 
-void iss_model::fetch() {
+void model::fetch() {
   auto &pc            = cur_state.pc;
   auto  x             = mem.read32(static_cast<uint32_t>(pc));
   auto  is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
@@ -71,7 +75,7 @@ void iss_model::fetch() {
   }
 }
 
-void iss_model::exec() {
+void model::exec() {
   switch (cur_state.dec.tgt) {
   case target::store:
     store();
@@ -103,7 +107,7 @@ void iss_model::exec() {
   }
 }
 
-void iss_model::handle_branch() {
+void model::handle_branch() {
   if (should_branch(regf.read(cur_state.dec.rs1), regf.read(cur_state.dec.rs2),
                     std::get<enum masks::branch>(cur_state.dec.opt))) {
     auto &pc = cur_state.pc;
@@ -111,12 +115,12 @@ void iss_model::handle_branch() {
   }
 }
 
-void iss_model::handle_load() {
+void model::handle_load() {
   auto res = load();
   write(regf, cur_state.dec.rd, res);
 }
 
-void iss_model::handle_alu() {
+void model::handle_alu() {
   auto    &pc    = cur_state.pc;
   uint32_t opd_1 = cur_state.dec.use_pc ? static_cast<uint32_t>(pc)
                                         : regf.read(cur_state.dec.rs1);
@@ -136,7 +140,7 @@ void iss_model::handle_alu() {
     break;
   }
 }
-trap_cause iss_model::ecall_cause() const {
+trap_cause model::ecall_cause() const {
   switch (mode.mode()) {
   case privilege::user:
     return trap_cause::exp_ecall_from_u_vu_mode;
@@ -150,7 +154,7 @@ trap_cause iss_model::ecall_cause() const {
   throw std::runtime_error("");
 }
 
-void iss_model::trap(trap_cause cause) {
+void model::trap(trap_cause cause) {
   bool is_interrupt = (to_int(cause) & masks::sign_bit) != 0U;
   if (is_interrupt) {
     std::bitset<32> mstatus{csrf.read(static_cast<uint32_t>(csr::mstatus))};
@@ -197,7 +201,7 @@ void iss_model::trap(trap_cause cause) {
   if (is_interrupt) pc.update();
 }
 
-void iss_model::save_pc(const trap_cause &cause) {
+void model::save_pc(const trap_cause &cause) {
   auto &pc  = cur_state.pc;
   auto  epc = static_cast<uint32_t>(pc) & masks::tvec::base_addr;
 
@@ -219,7 +223,7 @@ void iss_model::save_pc(const trap_cause &cause) {
   }
 }
 
-void iss_model::csr() {
+void model::csr() {
   const masks::sys &Sys = std::get<masks::sys>(cur_state.dec.opt);
   uint32_t          tmp = 0;
   if (Sys != masks::sys::csrrwi || cur_state.dec.rd != 0) {
@@ -279,7 +283,7 @@ void iss_model::csr() {
   write(regf, cur_state.dec.rd, tmp);
 }
 
-uint32_t iss_model::load() {
+uint32_t model::load() {
 
   auto addr = regf.read(cur_state.dec.rs1) +
               cur_state.dec.imm; /* mem addr for load/store */
@@ -305,7 +309,7 @@ uint32_t iss_model::load() {
   }
 }
 
-void iss_model::store() {
+void model::store() {
   auto addr = regf.read(cur_state.dec.rs1) +
               cur_state.dec.imm; /* mem addr for load/store */
 
@@ -331,14 +335,14 @@ void iss_model::store() {
  * since there is no supervisor
  * write register a0 to tohost then halt
  */
-void iss_model::handle_sys_exit() {
+void model::handle_sys_exit() {
   if (regf.read(17) == 93) {
     mem.write32(tohost_addr, regf.read(10));
     is_done = true;
   }
 }
 
-void iss_model::handle_mret() {
+void model::handle_mret() {
 
   std::bitset<32> mstat{csrf.read(to_int(csr::mstatus))};
   /* The privilege before taking the trap to machine-mode */
@@ -363,7 +367,7 @@ void iss_model::handle_mret() {
   mode.set_mode(pp);
 }
 
-void iss_model::set_pending(trap_cause cause) {
+void model::set_pending(trap_cause cause) {
   auto            i = to_int(cause) & masks::msb_zero;
   std::bitset<32> mip{csrf.read(static_cast<uint32_t>(csr::mip))};
   mip.set(i);
@@ -498,27 +502,6 @@ clang-format on
     throw std::runtime_error("this is not meant to happen");
   }
 }
+
 } // namespace
-uint8_t address_router::read8(uint32_t off) const {
-  if (off >= mtime_addr && off < mtime_addr + 8) {
-    return mtime.at(off - mtime_addr).load();
-  }
-  if (off >= mtimecmp_addr && off < mtimecmp_addr + 8) {
-    return mtimecmp.at(off - mtimecmp_addr).load();
-  }
-  return sparse_memory_accessor::read8(off);
-}
-
-void address_router::write8(uint32_t off, uint8_t b) {
-  if (off >= mtime_addr && off < mtime_addr + 8) {
-    mtime.at(off - mtime_addr).store(b);
-  } else if (off >= mtimecmp_addr && off < mtimecmp_addr + 8) {
-    mtimecmp.at(off - mtimecmp_addr).store(b);
-  } else
-    sparse_memory_accessor::write8(off, b);
-}
-
-address_router::address_router(sparse_memory &mem, uint32_t mtime_addr,
-                               uint32_t mtimecmp_addr)
-    : sparse_memory_accessor{mem}, mtime_addr{mtime_addr}, mtimecmp_addr{
-                                                               mtimecmp_addr} {}
+} // namespace iss

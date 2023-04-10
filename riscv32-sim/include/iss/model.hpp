@@ -21,37 +21,12 @@
 
 #include "common/op.hpp"
 
-/*
- * Acts as a crossbar switch CPU <=> Mem RW
- */
-class address_router : public sparse_memory_accessor {
-private:
-  uint32_t                            mtime_addr;
-  uint32_t                            mtimecmp_addr;
-  std::array<std::atomic<uint8_t>, 8> mtimecmp;
+namespace iss {
+class model {
 
 public:
-  std::array<std::atomic<uint8_t>, 8> mtime;
-
-  address_router(sparse_memory &mem, uint32_t mtime_addr,
-                 uint32_t mtimecmp_addr);
-
-  using sparse_memory_accessor::read16;
-  using sparse_memory_accessor::read32;
-  using sparse_memory_accessor::read64;
-  using sparse_memory_accessor::write16;
-  using sparse_memory_accessor::write32;
-  using sparse_memory_accessor::write64;
-
-  [[nodiscard]] uint8_t read8(uint32_t off) const;
-  void                  write8(uint32_t off, uint8_t b);
-};
-
-class iss_model {
-
-public:
-  iss_model(options &opt, loader l, address_router &mem)
-      : opts{opt},
+  model(options &opt, loader l, mem::address_router &mem)
+      : allowed_pcs{l.progbit_ranges()}, opts{opt},
         tohost_addr{l.symbol(opt.tohost_sym)}, cur_state{l.entry()}, mem{mem} {}
 
   void step();
@@ -68,10 +43,11 @@ public:
   void set_pending(trap_cause cause);
 
 private:
-  options &opts;
+  std::vector<std::tuple<uint64_t, uint64_t>> allowed_pcs;
+  options                                    &opts;
 
   void write(csr_file &file, uint16_t index, uint32_t val) {
-    if (opts.export_json) {
+    if (!opts.json_output.empty()) {
       file.write(index, val, cur_state.csr_staged);
     } else {
       file.write(index, val);
@@ -79,7 +55,7 @@ private:
   }
 
   void write(reg_file &file, uint8_t index, uint32_t val) {
-    if (opts.export_json) {
+    if (!opts.json_output.empty()) {
       file.write(index, val, cur_state.gpr_staged);
     } else {
       file.write(index, val);
@@ -107,12 +83,27 @@ private:
 
   hart_state cur_state;
 
-  address_router &mem;
-  privileged_mode mode{privilege::machine};
-  reg_file        regf;
-  csr_file        csrf;
-  bool            is_done = false;
-  void            interrupt_pending();
+  mem::address_router &mem;
+  privileged_mode      mode{privilege::machine};
+  reg_file             regf;
+  csr_file             csrf;
+  bool                 is_done = false;
+  void                 interrupt_pending();
+
+  inline static bool is_address_initialized(
+      const std::vector<std::tuple<uint64_t, uint64_t>> &ranges,
+      uint64_t                                           address) {
+    return std::any_of(
+        ranges.begin(), ranges.end(), [address](const auto &range) {
+          return address >= std::get<0>(range) && address <= std::get<1>(range);
+        });
+  }
+
+  inline bool is_valid_pc(uint64_t addr) {
+    return is_address_initialized(this->allowed_pcs, addr);
+  }
 };
+
+} // namespace iss
 
 #endif
