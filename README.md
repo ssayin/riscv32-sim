@@ -34,6 +34,10 @@ An easy-to-use, still-in-development RISC-V 32-bit instruction-accurate simulato
 - [riscv32-sim](#riscv32-sim)
   - [Table of Contents](#table-of-contents)
   - [Why does this project exist?](#why-does-this-project-exist)
+  - [Features](#features)
+  - [Roadmap](#roadmap)
+    - [In Progress](#in-progress)
+    - [Planned](#planned)
   - [Directory Structure](#directory-structure)
   - [Getting Started](#getting-started)
     - [Build Requirements](#build-requirements)
@@ -56,6 +60,50 @@ An easy-to-use, still-in-development RISC-V 32-bit instruction-accurate simulato
 ## Why does this project exist?
 
 The processor simulator is a lightweight alternative to existing IA (Instruction-accurate) processor simulators. Designed for the 32-bit RISC-V instruction set architecture and its extensions, it offers gentle learning curve, and optimizes performance. This also allows for simplified code base, faster simulation, accurate results, and increased productivity and efficiency in the development process.
+
+## Features
+
+- Supports the RV32I, RV32M, and RVC instruction set extensions
+
+- Supports machine timer interrupts
+
+- Supports CSRs (basic).
+
+- Supports M-mode
+
+- Exports hart-state in JSON format
+
+- Exports disassembly trace
+
+## Roadmap
+
+### In Progress
+
+- Implement WPRI, WLRL, WARL fields
+
+- TCP/IP-based external interrupts
+
+- GDB stub, attach/step, EBREAK
+
+- File and network I/O using ECALL
+
+### Planned
+
+- Toggle instructions in misa register
+
+- GPIO
+
+- UART
+
+- Ability to configure enabled/disabled extensions in CLI
+
+- Implement extension A (atomic instructions)
+
+- Implement extension F (single-precision floating-point)
+
+- Implement base extension E (embedded)
+
+- CSR field modulation (I and E)
 
 ## Directory Structure
 
