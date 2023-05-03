@@ -17,25 +17,25 @@
 
 #include <array>
 #include <atomic>
-#include <fmt/os.h>
-
-#include "common/op.hpp"
 
 namespace iss {
 class model {
 
 public:
+  class unexpected_switch_case_value : public std::runtime_error {
+  public:
+    unexpected_switch_case_value()
+        : std::runtime_error("Unexpected value in switch statement") {}
+  };
+
   model(options &opt, loader l, mem::address_router &mem)
       : allowed_pcs{l.progbit_ranges()}, opts{opt},
         tohost_addr{l.symbol(opt.tohost_sym)}, cur_state{l.entry()}, mem{mem} {}
 
   void step();
   void commit();
-  void trace_disasm(fmt::ostream &out);
 
-  template <class Container> void trace(Container &cont) {
-    cont.emplace_back(cur_state);
-  }
+  const hart_state &state() const { return cur_state; }
 
   uint32_t           tohost() { return mem.read32(tohost_addr); }
   [[nodiscard]] bool done() const { return is_done; }
@@ -47,37 +47,27 @@ private:
   options                                    &opts;
 
   void write(csr_file &file, uint16_t index, uint32_t val) {
-    if (!opts.json_output.empty()) {
-      file.write(index, val, cur_state.csr_staged);
-    } else {
-      file.write(index, val);
-    }
+    file.write(index, val, cur_state.csr_staged);
   }
 
   void write(reg_file &file, uint8_t index, uint32_t val) {
-    if (!opts.json_output.empty()) {
-      file.write(index, val, cur_state.gpr_staged);
-    } else {
-      file.write(index, val);
-    }
+    file.write(index, val, cur_state.gpr_staged);
   }
 
   void trap(trap_cause cause);
 
-  uint32_t load();
-  void     store();
-  void     csr();
-  void     exec();
-  void     fetch();
-  void     handle_alu();
-  void     handle_load();
-  void     handle_branch();
-
+  uint32_t                 load();
+  void                     store();
+  void                     csr();
+  void                     exec();
+  void                     fetch();
+  void                     handle_alu();
+  void                     handle_load();
+  void                     handle_branch();
   [[nodiscard]] trap_cause ecall_cause() const;
-
-  void handle_mret();
-  void handle_sys_exit();
-  void save_pc(const trap_cause &cause);
+  void                     handle_mret();
+  void                     handle_sys_exit();
+  void                     save_pc(const trap_cause &cause);
 
   const uint32_t tohost_addr;
 
@@ -90,14 +80,9 @@ private:
   bool                 is_done = false;
   void                 interrupt_pending();
 
-  inline static bool is_address_initialized(
+  static bool is_address_initialized(
       const std::vector<std::tuple<uint64_t, uint64_t>> &ranges,
-      uint64_t                                           address) {
-    return std::any_of(
-        ranges.begin(), ranges.end(), [address](const auto &range) {
-          return address >= std::get<0>(range) && address <= std::get<1>(range);
-        });
-  }
+      uint64_t                                           address);
 
   inline bool is_valid_pc(uint64_t addr) {
     return is_address_initialized(this->allowed_pcs, addr);

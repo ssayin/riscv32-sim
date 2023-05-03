@@ -14,11 +14,16 @@
 #include <csignal>
 #include <cstdlib>
 
+#include <fstream>
+
 #ifdef ENABLE_TCP
 #include "ipc.hpp"
 #endif
 
 #include "common/serialize.hpp"
+
+#include "spdlog/spdlog.h"
+#include "util/format_helpers.hpp"
 
 volatile std::sig_atomic_t pending_interrupt = 0;
 
@@ -34,6 +39,15 @@ void register_signals() {
 #if defined(SIGQUIT)
   signal(SIGQUIT, sighandler);
 #endif
+}
+
+std::ostream &operator<<(std::ostream &os, const hart_state &state) {
+  std::array<char, 128> buf{};
+  auto                  pc = static_cast<uint32_t>(state.pc);
+  disasm_inst(buf.data(), buf.size(), rv32, pc, state.instr);
+  fmt::format_to(std::ostream_iterator<char>(os), "{:>#10x}\t{}", pc,
+                 buf.data());
+  return os;
 }
 
 int main(int argc, char **argv) {
@@ -124,21 +138,30 @@ void run(options &opt) {
       opt.mti_enabled ? std::make_unique<mti_source>(opt.interval, rout.mtime)
                       : nullptr;
 
-  nlohmann::json state;
+  nlohmann::json state_export;
   while ((opt.fstep && std::cin.get() == 'q') || !model.done()) {
     model.step();
+
+    const auto &state = model.state();
+    spdlog::info(state);
+    fmt::print("{}", state.dec);
+    auto log_changes = [](const auto &changes) {
+      std::for_each(changes.begin(), changes.end(),
+                    [](const auto &change) { spdlog::info("{}", change); });
+    };
+    log_changes(model.state().gpr_staged);
+    log_changes(model.state().csr_staged);
     if (!opt.disas_output.empty()) {
-      static fmt::ostream out{fmt::output_file(opt.disas_output)};
-      model.trace_disasm(out);
+      static std::ofstream out(opt.disas_output);
+      out << state;
     }
-    if (!opt.json_output.empty()) model.trace<nlohmann::json>(state);
+    if (!opt.json_output.empty()) state_export.emplace_back(state);
     model.commit();
   }
   if (!opt.json_output.empty()) {
-    fmt::ostream state_file{fmt::output_file(opt.json_output)};
-    state_file.print("{}", state.dump());
+    std::ofstream state_file(opt.json_output);
+    state_file << state_export.dump();
   }
-
-  fmt::print("{} Exited with 0x{:X} ({})\n", opt.target, model.tohost(),
-             static_cast<int32_t>(model.tohost()));
+  spdlog::info("{} Exited with 0x{:X} ({})\n", opt.target, model.tohost(),
+               static_cast<int32_t>(model.tohost()));
 }

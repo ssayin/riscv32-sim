@@ -246,15 +246,15 @@ If you're using Arch Linux, you can install binutils-riscv32 from the AUR.
 
 ## Built With
 
-* [CLI11](https://github.com/CLIUtils/CLI11) - CLI11 is a command line parser for C++11 and beyond that provides a rich
-  feature set with a simple and intuitive interface.
-* [ELFIO](https://github.com/serge1/ELFIO) - A header-only C++ library intended for reading and generating files in the
-  ELF binary format.
-* [{fmt}](https://github.com/fmtlib/fmt) - An open-source formatting library providing a fast and safe alternative to C
-  stdio and C++ iostreams.
+* [CLI11](https://github.com/CLIUtils/CLI11) - CLI11 is a command line parser for C++11 and beyond that provides a rich feature set with a simple and intuitive interface.
+
+* [ELFIO](https://github.com/serge1/ELFIO) - A header-only C++ library intended for reading and generating files in the ELF binary format.
+
 * [json](https://github.com/nlohmann/json) - JSON for Modern C++
-* [riscv-disassembler](https://github.com/michaeljclark/riscv-disassembler) - RISC-V Disassembler with support for
-  RV32/RV64/RV128 IMAFDC
+
+* [riscv-disassembler](https://github.com/michaeljclark/riscv-disassembler) - RISC-V Disassembler with support for RV32/RV64/RV128 IMAFDC
+
+* [spdlog](https://github.com/gabime/spdlog) - Very fast, header-only/compiled, C++ logging library.
 
 ## Author
 

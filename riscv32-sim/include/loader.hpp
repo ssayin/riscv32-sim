@@ -17,6 +17,11 @@ private:
   ELFIO::elfio reader;
 
 public:
+  class loader_error : public std::runtime_error {
+  public:
+    loader_error(const std::string &message) : std::runtime_error(message) {}
+  };
+
   explicit loader(const std::string &file_name);
   loader(const std::string &file_name, mem::address_router &mem);
   uint32_t                                    symbol(const std::string &str);

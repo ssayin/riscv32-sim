@@ -20,7 +20,7 @@ if(BUILD_TESTING)
 
   macro(add_unit_test TEST)
     add_executable(${TEST} ${ARGN})
-    target_link_libraries(${TEST} GTest::gtest_main fmt::fmt riscv32-sim-common)
+    target_link_libraries(${TEST} GTest::gtest_main riscv32-sim-common)
 
     target_include_directories(
       ${TEST} PRIVATE ${PROJECT_SOURCE_DIR}/riscv32-sim/include)
@@ -45,7 +45,8 @@ set(SRC_FILES
     include/reg_file.hpp
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
-    include/mti_source.hpp)
+    include/mti_source.hpp
+    include/util/format_helpers.hpp)
 
 if(ENABLE_TCP)
   add_library(rv32_sim_ipc OBJECT src/ipc.cpp)
@@ -59,7 +60,6 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(
   ${PROJECT_NAME}
   PRIVATE elfio::elfio
-          fmt::fmt
           CLI11
           riscv_disas
           nlohmann_json::nlohmann_json

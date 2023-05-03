@@ -19,7 +19,6 @@ public:
   void        write(uint8_t index, uint32_t data);
   void        write(uint8_t index, uint32_t data, gpr_change &out);
   void        write(uint8_t index, uint32_t data, std::vector<gpr_change> &vec);
-  static void trace(uint8_t index, uint32_t prev, uint32_t cur);
 
 private:
   file_type   x{};

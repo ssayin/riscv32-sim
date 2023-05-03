@@ -7,11 +7,6 @@
 #include "iss/arith.hpp"
 
 #include <bitset>
-#include <fmt/color.h>
-
-extern "C" {
-#include <riscv-disas.h>
-}
 
 namespace iss {
 namespace {
@@ -19,25 +14,14 @@ uint32_t do_alu(enum alu opt, uint32_t opd_1, uint32_t opd_2);
 bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type);
 } // namespace
 
-void model::trace_disasm(fmt::ostream &out) {
-  std::array<char, 128> buf{};
-  auto                 &pc  = cur_state.pc;
-  auto                  cpc = static_cast<uint32_t>(pc);
-  disasm_inst(buf.data(), buf.size(), rv32, cpc, mem.read32(cpc));
-  out.print("{:>#12x}\t{}\n", static_cast<uint32_t>(pc), buf.data());
-}
-
 void model::step() {
   fetch();
 
-  auto &pc = cur_state.pc;
-  pc.set(static_cast<uint32_t>(pc) + (cur_state.dec.is_compressed ? 2 : 4));
-  fmt::print("\n{:>#12x}\t{:>#12x}\t", static_cast<uint32_t>(pc),
-             cur_state.instr);
+  cur_state.pc.set(static_cast<uint32_t>(cur_state.pc) +
+                   (cur_state.dec.is_compressed ? 2 : 4));
 
-  if (!is_valid_pc(static_cast<uint32_t>(pc))) {
-    fmt::print("ERROR: Instruction address is not within PROGBITS\n");
-    exit(1);
+  if (!is_valid_pc(static_cast<uint32_t>(cur_state.pc))) {
+    trap(trap_cause::exp_inst_access_fault);
   }
 
   exec();
@@ -62,17 +46,10 @@ void model::interrupt_pending() {
 }
 
 void model::fetch() {
-  auto &pc            = cur_state.pc;
-  auto  x             = mem.read32(static_cast<uint32_t>(pc));
-  auto  is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
-
-  if (is_compressed(x)) {
-    cur_state.dec   = decode16(x);
-    cur_state.instr = x;
-  } else {
-    cur_state.dec   = decode(x);
-    cur_state.instr = x;
-  }
+  auto x             = mem.read32(static_cast<uint32_t>(cur_state.pc));
+  auto is_compressed = [](auto word) { return (word & 0b11) != 0b11; };
+  cur_state.dec      = is_compressed(x) ? decode16(x) : decode(x);
+  cur_state.instr    = x;
 }
 
 void model::exec() {
@@ -115,10 +92,7 @@ void model::handle_branch() {
   }
 }
 
-void model::handle_load() {
-  auto res = load();
-  write(regf, cur_state.dec.rd, res);
-}
+void model::handle_load() { write(regf, cur_state.dec.rd, load()); }
 
 void model::handle_alu() {
   auto    &pc    = cur_state.pc;
@@ -151,7 +125,7 @@ trap_cause model::ecall_cause() const {
   case privilege::machine:
     return trap_cause::exp_ecall_from_m_mode;
   }
-  throw std::runtime_error("");
+  throw unexpected_switch_case_value();
 }
 
 void model::trap(trap_cause cause) {
@@ -305,7 +279,7 @@ uint32_t model::load() {
     return mem.read16(addr);
   }
   default:
-    throw std::runtime_error(""); // illegal
+    throw unexpected_switch_case_value();
   }
 }
 
@@ -324,7 +298,7 @@ void model::store() {
     mem.write32(addr, regf.read(cur_state.dec.rs2));
     break;
   default:
-    throw std::runtime_error(""); // illegal
+    throw unexpected_switch_case_value();
   }
 
   is_done = (addr == tohost_addr);
@@ -391,7 +365,7 @@ bool should_branch(uint32_t opd_1, uint32_t opd_2, enum masks::branch b_type) {
   case bgeu:
     return opd_1 >= opd_2;
   default:
-    throw std::runtime_error(""); // illegal
+    throw model::unexpected_switch_case_value();
   }
 }
 
@@ -499,9 +473,18 @@ clang-format on
     return dividend % divisor;
   }
   default:
-    throw std::runtime_error("this is not meant to happen");
+    throw model::unexpected_switch_case_value();
   }
 }
 
 } // namespace
+  //
+bool model::is_address_initialized(
+    const std::vector<std::tuple<uint64_t, uint64_t>> &ranges,
+    uint64_t                                           address) {
+  return std::any_of(
+      ranges.begin(), ranges.end(), [address](const auto &range) {
+        return address >= std::get<0>(range) && address <= std::get<1>(range);
+      });
+}
 } // namespace iss

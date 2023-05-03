@@ -6,32 +6,24 @@
 #include "memory/sparse_memory.hpp"
 
 #include <elfio/elfio_dump.hpp>
-#include <fmt/ostream.h>
+
+#include "spdlog/fmt/bundled/core.h"
 
 loader::loader(const std::string &file_name) {
-  /*
-   * Irrecoverable
-   * Can resort to exceptions if necessary in the future.
-   */
-
   if (!reader.load(file_name)) {
-    fmt::print(stderr, "File is not an ELF file");
-    std::exit(EXIT_FAILURE);
+    throw loader_error("File is not an ELF file");
   }
 
   if (reader.get_class() != ELFIO::ELFCLASS32) {
-    fmt::print(stderr, "Only 32-bit binaries are supported");
-    std::exit(EXIT_FAILURE);
+    throw loader_error("Only 32-bit binaries are supported");
   }
 
   if (reader.get_machine() != ELFIO::EM_RISCV) {
-    fmt::print(stderr, "Loaded ELF does not target RISC-V");
-    std::exit(EXIT_FAILURE);
+    throw loader_error("Loaded ELF does not target RISC-V");
   }
 
   if (reader.segments.size() == 0) {
-    fmt::print(stderr, "Loaded ELF has no segments");
-    std::exit(EXIT_FAILURE);
+    throw loader_error("Loaded ELF has no segments");
   }
 }
 
