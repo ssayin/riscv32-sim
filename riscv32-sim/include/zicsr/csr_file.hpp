@@ -5,14 +5,14 @@
 #ifndef ZICSR_CSR_FILE_HPP
 #define ZICSR_CSR_FILE_HPP
 
-#include "common/hart_state.hpp"
-#include "common/offset.hpp"
-#include "zicsr/csr.hpp"
-
 #include <array>
 #include <bitset>
 #include <cstdint>
 #include <limits>
+
+#include "common/hart_state.hpp"
+#include "common/offset.hpp"
+#include "zicsr/csr.hpp"
 
 struct status {
   static constexpr uint8_t sie  = 1U;

@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "mti_source.hpp"
-
 #include <csignal>
 #include <future>
+
+#include "mti_source.hpp"
 
 namespace {
 std::mutex              mtx;

@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "iss/model.hpp"
+#include <bitset>
+
 #include "decoder/decoder.hpp"
 #include "iss/arith.hpp"
-
-#include <bitset>
+#include "iss/model.hpp"
 
 namespace iss {
 namespace {

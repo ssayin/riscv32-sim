@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "loader.hpp"
-#include "memory/sparse_memory.hpp"
-
 #include <elfio/elfio_dump.hpp>
 
 #include "spdlog/fmt/bundled/core.h"
+
+#include "loader.hpp"
+#include "memory/sparse_memory.hpp"
 
 loader::loader(const std::string &file_name) {
   if (!reader.load(file_name)) {

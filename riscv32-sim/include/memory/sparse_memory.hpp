@@ -5,13 +5,14 @@
 #ifndef MEMORY_SPARSE_MEMORY_HPP
 #define MEMORY_SPARSE_MEMORY_HPP
 
-#include "common/offset.hpp"
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <unordered_map>
+
+#include "common/offset.hpp"
 
 namespace mem {
 using sparse_memory = std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>>;

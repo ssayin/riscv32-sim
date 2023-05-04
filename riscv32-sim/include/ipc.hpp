@@ -5,13 +5,14 @@
 #ifndef IPC_HPP
 #define IPC_HPP
 
-#include <boost/asio.hpp>
 #include <csignal>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
+
+#include <boost/asio.hpp>
 
 namespace ipc {
 

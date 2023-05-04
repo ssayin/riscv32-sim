@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "reg_file.hpp"
-
 #include <cassert>
+
+#include "reg_file.hpp"
 
 uint32_t reg_file::read(uint8_t index) {
   assert(index < reg_count);
@@ -12,8 +12,8 @@ uint32_t reg_file::read(uint8_t index) {
 }
 
 void reg_file::write(uint8_t index, uint32_t data) {
-  assert(index < reg_count);
   if (index == 0) return;
+  assert(index < reg_count);
   x[index] = data;
 }
 

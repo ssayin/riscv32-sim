@@ -5,6 +5,9 @@
 #ifndef ISS_MODEL_HPP
 #define ISS_MODEL_HPP
 
+#include <array>
+#include <atomic>
+
 #include "common/hart_state.hpp"
 #include "common/program_counter.hpp"
 #include "common/types.hpp"
@@ -14,9 +17,6 @@
 #include "reg_file.hpp"
 #include "trap_cause.hpp"
 #include "zicsr/csr_file.hpp"
-
-#include <array>
-#include <atomic>
 
 namespace iss {
 class model {
@@ -37,8 +37,8 @@ public:
 
   const hart_state &state() const { return cur_state; }
 
-  uint32_t           tohost() { return mem.read32(tohost_addr); }
-  [[nodiscard]] bool done() const { return is_done; }
+  uint32_t tohost() { return mem.read32(tohost_addr); }
+  bool     done() const { return is_done; }
 
   void set_pending(trap_cause cause);
 
@@ -54,20 +54,19 @@ private:
     file.write(index, val, cur_state.gpr_staged);
   }
 
-  void trap(trap_cause cause);
-
-  uint32_t                 load();
-  void                     store();
-  void                     csr();
-  void                     exec();
-  void                     fetch();
-  void                     handle_alu();
-  void                     handle_load();
-  void                     handle_branch();
-  [[nodiscard]] trap_cause ecall_cause() const;
-  void                     handle_mret();
-  void                     handle_sys_exit();
-  void                     save_pc(const trap_cause &cause);
+  void       trap(trap_cause cause);
+  uint32_t   load();
+  void       store();
+  void       csr();
+  void       exec();
+  void       fetch();
+  void       handle_alu();
+  void       handle_load();
+  void       handle_branch();
+  trap_cause ecall_cause() const;
+  void       handle_mret();
+  void       handle_sys_exit();
+  void       save_pc(const trap_cause &cause);
 
   const uint32_t tohost_addr;
 
@@ -84,7 +83,7 @@ private:
       const std::vector<std::tuple<uint64_t, uint64_t>> &ranges,
       uint64_t                                           address);
 
-  inline bool is_valid_pc(uint64_t addr) {
+  bool is_valid_pc(uint64_t addr) {
     return is_address_initialized(this->allowed_pcs, addr);
   }
 };

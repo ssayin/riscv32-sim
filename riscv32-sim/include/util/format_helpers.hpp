@@ -14,12 +14,12 @@
 #include "spdlog/fmt/bundled/os.h"
 #include "spdlog/fmt/bundled/ostream.h"
 
-#include "../trap_cause.hpp"
-#include "common/hart_state.hpp"
-
 extern "C" {
 #include <riscv-disas.h>
 }
+
+#include "../trap_cause.hpp"
+#include "common/hart_state.hpp"
 
 constexpr std::string_view str_trap_cause(trap_cause cause) {
   switch (cause) {

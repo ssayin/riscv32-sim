@@ -2,27 +2,24 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "config.hpp"
-#include "iss/model.hpp"
-#include "mti_source.hpp"
+#include <csignal>
+#include <cstdlib>
+#include <fstream>
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
 #include <CLI/Validators.hpp>
 
-#include <csignal>
-#include <cstdlib>
+#include "spdlog/spdlog.h"
 
-#include <fstream>
-
+#include "config.hpp"
+#include "iss/model.hpp"
+#include "mti_source.hpp"
 #ifdef ENABLE_TCP
 #include "ipc.hpp"
 #endif
-
 #include "common/serialize.hpp"
-
-#include "spdlog/spdlog.h"
 #include "util/format_helpers.hpp"
 
 volatile std::sig_atomic_t pending_interrupt = 0;
