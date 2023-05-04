@@ -11,13 +11,12 @@ on:
     types: [ opened, synchronize, reopened ]
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+         os: [ubuntu-22.04, windows-latest]
+         build_type: [Debug, Release]
     env:
-      BUILD_TYPE: Debug 
       RISCV32_TOOLCHAIN_GZIP: riscv32-embecosm-gcc-ubuntu2204-20230430
       RISCV32_TOOLCHAIN_URL: https://buildbot.embecosm.com/job/riscv32-gcc-ubuntu2204/60/artifact/riscv32-embecosm-gcc-ubuntu2204-20230430.tar.gz 
     steps:
@@ -26,40 +25,40 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Update GCC and Install Boost
+      - name: Setup prerequisites
         run: |
-          sudo apt-get update
-          sudo apt install gcc-12 g++-12
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
-          sudo apt install libboost-dev
-
-      - name: Get GCC Version
-        shell: bash
-        run: |
-          gcc --version > gcc-ver.txt
-
-      - name: Upload GCC Version
-        uses: actions/upload-artifact@v3
-        with:
-          name: gcc-ver
-          path: gcc-ver.txt
-          retention-days: 1
-
-      - name: Install Ninja
-        run: |
+          if [ "${{ matrix.os }}" == "Linux" ]; then
           sudo apt-get update -y
-          sudo apt-get install -y ninja-build gcovr
+          sudo apt install -y gcc-12 g++-12
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
+          sudo apt-get install -y libboost-dev ninja-build gcovr
+          elif [ "${{ matrix.os }}" == "Windows" ]; then
+          fi
+
+      - uses: microsoft/setup-msbuild@v1.1
+        if: ${{ matrix.os }} == 'Windows'
+                   
+      - name: Build 
+        if: ${{ matrix.os }} == 'Windows'
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -S . -B ${{matrix.build_type}}
+          cd ${{matrix.build_type}}
+          MSBuild.exe riscv32-sim.sln
 
       - name: Cache RV32 GCC Toolchain
         id: cache-riscv-toolchain
+        if: ${{ matrix.os }} == 'Linux'
         uses: actions/cache@v3
         with:
           path: ~/.riscv-gcc
-          key: ${{ runner.os }}-riscv-gcc
-          restore-keys: ${{ runner.os }}-riscv-gcc
+          key: ${{ matrix.os }}-riscv-gcc
+          restore-keys: ${{ matrix.os }}-riscv-gcc
 
+  
       - name: Download & Extract RISCV32 GCC Toolchain
-        if: steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
+        if: |
+          ${{ matrix.os }} == 'Linux' &&
+          steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
         shell: bash
         run: |
           mkdir -p $HOME/.riscv-gcc
@@ -67,55 +66,37 @@ jobs:
           tar xf ${{env.RISCV32_TOOLCHAIN_GZIP}}.tar.gz -C $HOME/.riscv-gcc/
 
       - name: Set up ENV
+        if: ${{ matrix.os }} == 'Linux'
         run: echo "$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/bin" >> $GITHUB_PATH
 
 
       - name: Cache riscv-tests 
         id: cache-riscv-tests
+        if: ${{ matrix.os }} == 'Linux'
         uses: actions/cache@v3
         with:
           path: ~/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share
-          key: ${{ runner.os }}-riscv-tests
-          restore-keys: ${{ runner.os }}-riscv-tests
+          key: ${{ matrix.os }}-riscv-tests
+          restore-keys: ${{ matrix.os }}-riscv-tests
 
       - name: Set-up riscv-tests
-        if: steps.cache-riscv-tests.outputs.cache-hit != 'true'
+        if: |
+          ${{ matrix.os }} == 'Linux' && 
+          steps.cache-riscv-tests.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir tmp0
-          cd tmp0
-          git clone --recurse-submodules https://github.com/riscv-software-src/riscv-tests.git; cd riscv-tests
-          git submodule update --init --recursive
-
-          # Patch Makefile.in
-          git clone https://gist.github.com/b5c1b033143cbdce51afa0c1280970a8.git
-          patch < b5c1b033143cbdce51afa0c1280970a8/patch1.diff
-
-          # Configure and Make
-          autoupdate
-          autoconf
-          mkdir build; cd build
-          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} 
-          ../configure --prefix=$RISCV --with-xlen=32
-          make install
-          cd ..
-
-      - name: Build & Test 
+          RISCV=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}} bash ${{github.workspace}}/tools/build_riscv_tests.sh
+    
+      - name: Build and Test with build.sh
         shell: bash
+        if: ${{ matrix.os }} == 'Linux'
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_TESTS=ON -DCOVERAGE=ON -DBUILD_RUNTIME=ON -DENABLE_TCP=ON -DISA_TESTS_DIR=$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa -DTEST_EXPORT_TRACE_DISASSEMBLY=ON -DTEST_EXPORT_JSON_HART_STATE=ON -S . -B ${{env.BUILD_TYPE}} -GNinja
-          ninja -C ${{env.BUILD_TYPE}}
-          ctest --output-on-failure --test-dir ${{env.BUILD_TYPE}}
-          gcovr -e external -e build --sonarqube > coverage.xml
+          bash ${{github.workspace}}/tools/build.sh ${{matrix.build_type}} ${{matrix.build_type}} \
+          $HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa
 
       - name: Upload build logs
         uses: actions/upload-artifact@v3
+        if: ${{ matrix.os }} == 'Linux'
         with:
           name: build-logs-artifact
-          path: ${{env.BUILD_TYPE}}/log
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifact
-          path: ${{env.BUILD_TYPE}}
+          path: ${{matrix.build_type}}/log
