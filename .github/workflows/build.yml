@@ -26,21 +26,19 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Setup prerequisites
+        if: ${{ runner.os == 'Linux' }}
         run: |
-          if [ "${{ runner.os }}" == "Linux" ]; then
           sudo apt-get update -y
           sudo apt install -y gcc-12 g++-12
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
           sudo apt-get install -y libboost-dev ninja-build gcovr
-          # elif [ "${{ runner.os }}" == "Windows" ]; then
-          fi
       
       - name: Set up msbuild
         uses: microsoft/setup-msbuild@v1.1
-        if: ${{ runner.os }} == 'Windows'
+        if: ${{ runner.os == 'Windows' }}
                    
       - name: Build 
-        if: ${{ runner.os }} == 'Windows'
+        if: ${{ runner.os == 'Windows' }}
         run: |
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -S . -B ${{matrix.build_type}}
           cd ${{matrix.build_type}}
@@ -48,7 +46,7 @@ jobs:
 
       - name: Cache RV32 GCC Toolchain
         id: cache-riscv-toolchain
-        if: ${{ runner.os }} == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         uses: actions/cache@v3
         with:
           path: ~/.riscv-gcc
@@ -58,7 +56,7 @@ jobs:
   
       - name: Download & Extract RISCV32 GCC Toolchain
         if: |
-          ${{ runner.os }} == 'Linux' &&
+          ${{ runner.os == 'Linux' }} &&
           steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
         shell: bash
         run: |
@@ -67,13 +65,13 @@ jobs:
           tar xf ${{env.RISCV32_TOOLCHAIN_GZIP}}.tar.gz -C $HOME/.riscv-gcc/
 
       - name: Set up ENV
-        if: ${{ runner.os }} == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: echo "$HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/bin" >> $GITHUB_PATH
 
 
       - name: Cache riscv-tests 
         id: cache-riscv-tests
-        if: ${{ runner.os }} == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         uses: actions/cache@v3
         with:
           path: ~/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share
@@ -82,7 +80,7 @@ jobs:
 
       - name: Set-up riscv-tests
         if: |
-          ${{ runner.os }} == 'Linux' && 
+          ${{ runner.os == 'Linux' }} &&
           steps.cache-riscv-tests.outputs.cache-hit != 'true'
         shell: bash
         run: |
@@ -90,14 +88,14 @@ jobs:
     
       - name: Build and Test with build.sh
         shell: bash
-        if: ${{ runner.os }} == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: |
           bash ${{github.workspace}}/tools/build.sh ${{matrix.build_type}} ${{matrix.build_type}} \
           $HOME/.riscv-gcc/${{env.RISCV32_TOOLCHAIN_GZIP}}/share/riscv-tests/isa
 
       - name: Upload build logs
         uses: actions/upload-artifact@v3
-        if: ${{ runner.os }} == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         with:
           name: build-logs-artifact
           path: ${{matrix.build_type}}/log
