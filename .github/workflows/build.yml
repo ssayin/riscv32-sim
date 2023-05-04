@@ -34,8 +34,9 @@ jobs:
           sudo apt-get install -y libboost-dev ninja-build gcovr
           # elif [ "${{ runner.os }}" == "Windows" ]; then
           fi
-
-      - uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Set up msbuild
+        uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os }} == 'Windows'
                    
       - name: Build 
