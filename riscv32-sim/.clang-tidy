@@ -1,28 +1,54 @@
-Checks: '-*,clang-diagnostic-*,llvm-*,misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,readability-*,cppcoreguidelines-*,modernize-avoid-bind,modernize-use-noexcept,modernize-use-override,modernize-use-nullptr,modernize-use-bool-literals,performance-*, -readability-braces-around-statements, -readability-identifier-length,bugprone-*'
+#Checks: '-*,clang-diagnostic-*,llvm-*,misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,cppcoreguidelines-*,modernize-avoid-bind,modernize-use-noexcept,modernize-use-override,modernize-use-nullptr,modernize-use-bool-literals,performance-*, -readability-braces-around-statements, -readability-identifier-length,bugprone-*, readability-identifier-naming'
+Checks: '-*, readability-identifier-naming'
+WarningsAsErrors: '*'  
 CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '1'
+  - key: readability-function-size.LineThreshold
+    value: '800'
+  - key: readability-function-size.StatementThreshold
+    value: '1200'
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
   - key: readability-identifier-naming.ClassCase
     value: lower_case
-  - key: readability-identifier-naming.EnumCase
+  - key: readability-identifier-naming.StructCase
     value: lower_case
   - key: readability-identifier-naming.FunctionCase
     value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: lower_case
+  # - key: readability-identifier-naming.GlobalVariablePrefix
+  # value: 'g_'
+  - key: readability-identifier-naming.ConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PublicMemberCase
+    value: lower_case
+  # - key: readability-identifier-naming.MemberPrefix
+  # value: '_'
+  - key: readability-identifier-naming.StaticMemberCase
+    value: lower_case
+  # - key: readability-identifier-naming.StaticMemberPrefix
+  # value: 's_'
+  # - key: readability-identifier-naming.TemplateParameterCase
+  # value: CamelCase
   # Exclude from scanning as this is an exported symbol used for fuzzing
   # throughout the code base.
   - key: readability-identifier-naming.FunctionIgnoredRegexp
     value: "LLVMFuzzerTestOneInput"
-  - key: readability-identifier-naming.MemberCase
-    value: lower_case
-  - key: readability-identifier-naming.ParameterCase
-    value: lower_case
-  - key: readability-identifier-naming.UnionCase
-    value: lower_case
-  - key: readability-identifier-naming.VariableCase
-    value: lower_case
   - key: readability-identifier-naming.IgnoreMainLikeFunctions
     value: 1
   - key: readability-redundant-member-init.IgnoreBaseInCopyConstructors
     value: 1
   - key: modernize-use-default-member-init.UseAssignment
     value: 1
-  - key: readability-magic-numbers.IgnoredIntegerValues
-    value: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
