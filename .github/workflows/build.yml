@@ -32,7 +32,7 @@ jobs:
           sudo apt install -y gcc-12 g++-12
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
           sudo apt-get install -y libboost-dev ninja-build gcovr
-          elif [ "${{ matrix.os }}" == "Windows" ]; then
+          # elif [ "${{ matrix.os }}" == "Windows" ]; then
           fi
 
       - uses: microsoft/setup-msbuild@v1.1
