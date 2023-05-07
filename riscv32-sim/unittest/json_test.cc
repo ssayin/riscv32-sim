@@ -2,14 +2,15 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "common/hart_state.hpp"
-#include "common/op_type.hpp"
-#include "nlohmann/json.hpp"
-#include <common/serialize.hpp>
 #include <fstream>
-#include <gtest/gtest.h>
 #include <limits>
 #include <random>
+
+#include "nlohmann/json.hpp"
+#include "gtest/gtest.h"
+
+#include "../include/util/json_export_helpers.hpp"
+#include "common/common.hpp"
 
 class JsonTraceTest : public ::testing::Test {
 protected:

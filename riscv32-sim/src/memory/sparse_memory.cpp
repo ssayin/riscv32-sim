@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "memory/sparse_memory.hpp"
-#include "common/offset.hpp"
-
 #include <cstring>
+
+#include "common/common.hpp"
+#include "memory/sparse_memory.hpp"
 
 namespace mem {
 // address_router constructor implementation

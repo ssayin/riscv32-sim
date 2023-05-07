@@ -12,7 +12,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "common/offset.hpp"
+#include "common/common.hpp"
 
 namespace mem {
 using sparse_memory = std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>>;

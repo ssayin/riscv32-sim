@@ -10,18 +10,16 @@
 #include <ostream>
 
 #include "spdlog/fmt/bundled/core.h"
-#include "spdlog/fmt/bundled/format.h"
-#include "spdlog/fmt/bundled/os.h"
-#include "spdlog/fmt/bundled/ostream.h"
+#include "spdlog/spdlog.h"
 
 extern "C" {
-#include <riscv-disas.h>
+#include "riscv-disas.h"
 }
 
 #include "../trap_cause.hpp"
-#include "common/hart_state.hpp"
+#include "common/common.hpp"
 
-constexpr std::string_view str_trap_cause(trap_cause cause) {
+std::string_view str_trap_cause(trap_cause cause) {
   switch (cause) {
   case trap_cause::exp_inst_addr_misaligned:
     return "misaligned instruction address";
@@ -86,39 +84,7 @@ constexpr std::string_view str_trap_cause(trap_cause cause) {
   }
 }
 
-template <>
-struct fmt::formatter<trap_cause> : fmt::formatter<std::string_view> {
-  auto format(trap_cause tc, fmt::format_context &ctx) const {
-    return fmt::formatter<std::string_view>::format(str_trap_cause(tc), ctx);
-  }
-};
-
-template <> struct fmt::formatter<csr_change> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(const csr_change &change, FormatContext &ctx) {
-    return fmt::format_to(ctx.out(), "CSR[{:>#5x}]: {:>#10x} => {:>#10x}",
-                          change.index, change.prev, change.next);
-  }
-};
-
-template <> struct fmt::formatter<gpr_change> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(const gpr_change &change, FormatContext &ctx) {
-    // set #5x to align with CSR
-    return fmt::format_to(ctx.out(), "GPR[{:>#5x}]: {:>#10x} => {:>#10x}",
-                          change.index, change.prev, change.next);
-  }
-};
-
-constexpr std::string_view target_str(const target &tgt) {
+std::string_view target_str(const target &tgt) {
   switch (tgt) {
   case target::load:
     return "load";
@@ -143,7 +109,7 @@ constexpr std::string_view target_str(const target &tgt) {
   return "unknown";
 }
 
-constexpr std::string_view op_type_str(const op_type &type) {
+std::string_view op_type_str(const op_type &type) {
   if (std::holds_alternative<std::monostate>(type)) {
     return "empty";
   } else if (std::holds_alternative<alu>(type)) {
@@ -254,26 +220,32 @@ constexpr std::string_view op_type_str(const op_type &type) {
   return "unknown";
 }
 
-template <> struct fmt::formatter<op> {
-
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
-    return ctx.begin();
+template <>
+struct fmt::formatter<trap_cause> : fmt::formatter<std::string_view> {
+  auto format(trap_cause tc, fmt::format_context &ctx) const {
+    return fmt::formatter<std::string_view>::format(str_trap_cause(tc), ctx);
   }
+};
 
-  /*template <typename FormatContext>
-  auto format(const op &value, FormatContext &ctx) {
-    return fmt::format_to(
-        ctx.out(),
-        "imm={}\ntgt={}\nopt={}\nrd={}\nrs1={}\nrs2={}\nhas_imm={}\n"
-        "use_pc={}\nis_compressed={}",
-        value.imm, static_cast<uint8_t>(value.tgt), op_type_str(value.opt),
-        value.rd, value.rs1, value.rs2, value.has_imm, value.use_pc,
-        value.is_compressed);
+template <>
+struct fmt::formatter<csr_change> : fmt::formatter<std::string_view> {
+  auto format(const csr_change &change, fmt::format_context &ctx) {
+    return fmt::format_to(ctx.out(), "CSR[{:>#5x}]: {:>#10x} => {:>#10x}",
+                          change.index, change.prev, change.next);
   }
-  */
+};
 
-  template <typename FormatContext>
-  auto format(const op &value, FormatContext &ctx) {
+template <>
+struct fmt::formatter<gpr_change> : fmt::formatter<std::string_view> {
+  auto format(const gpr_change &change, fmt::format_context &ctx) {
+    // set #5x to align with CSR
+    return fmt::format_to(ctx.out(), "GPR[{:>#5x}]: {:>#10x} => {:>#10x}",
+                          change.index, change.prev, change.next);
+  }
+};
+
+template <> struct fmt::formatter<op> : fmt::formatter<std::string_view> {
+  auto format(const op &value, fmt::format_context &ctx) {
     return fmt::format_to(ctx.out(),
                           "+--------------+-----------------+\n"
                           "|{0:<14}|{1:<17}|\n"

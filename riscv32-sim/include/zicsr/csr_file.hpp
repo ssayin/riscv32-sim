@@ -10,8 +10,7 @@
 #include <cstdint>
 #include <limits>
 
-#include "common/hart_state.hpp"
-#include "common/offset.hpp"
+#include "common/common.hpp"
 #include "zicsr/csr.hpp"
 
 struct status {

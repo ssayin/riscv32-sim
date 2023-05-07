@@ -6,12 +6,10 @@
 #include <cstdlib>
 #include <fstream>
 
-#include <CLI/App.hpp>
-#include <CLI/Config.hpp>
-#include <CLI/Formatter.hpp>
-#include <CLI/Validators.hpp>
-
-#include "spdlog/spdlog.h"
+#include "CLI/App.hpp"
+#include "CLI/Config.hpp"
+#include "CLI/Formatter.hpp"
+#include "CLI/Validators.hpp"
 
 #include "config.hpp"
 #include "iss/model.hpp"
@@ -19,8 +17,8 @@
 #ifdef ENABLE_TCP
 #include "ipc.hpp"
 #endif
-#include "common/serialize.hpp"
 #include "util/format_helpers.hpp"
+#include "util/json_export_helpers.hpp"
 
 volatile std::sig_atomic_t pending_interrupt = 0;
 
@@ -28,7 +26,7 @@ namespace {
 void sighandler(int signal) { pending_interrupt = signal; }
 } // namespace
 
-void run(options &opt);
+int run(options &opt);
 
 void register_signals() {
   signal(SIGINT, sighandler);
@@ -96,18 +94,12 @@ int main(int argc, char **argv) {
       ->required()
       ->take_first();
 
-  try {
-    app.parse(argc, argv);
-  } catch (const CLI::ParseError &e) {
-    return app.exit(e);
-  }
+  CLI11_PARSE(app, argc, argv)
 
-  run(opt);
-
-  return 0;
+  return run(opt);
 }
 
-void run(options &opt) {
+int run(options &opt) {
   if (opt.dump_exit) {
     loader prog{opt.target};
     prog.dump(std::cout);
@@ -138,27 +130,28 @@ void run(options &opt) {
   nlohmann::json state_export;
   while ((opt.fstep && std::cin.get() == 'q') || !model.done()) {
     model.step();
-
-    const auto &state = model.state();
-    spdlog::info(state);
+    auto &state = model.cur_state;
     fmt::print("{}", state.dec);
     auto log_changes = [](const auto &changes) {
       std::for_each(changes.begin(), changes.end(),
                     [](const auto &change) { spdlog::info("{}", change); });
     };
-    log_changes(model.state().gpr_staged);
-    log_changes(model.state().csr_staged);
+    log_changes(state.gpr_staged);
+    log_changes(state.csr_staged);
     if (!opt.disas_output.empty()) {
       static std::ofstream out(opt.disas_output);
       out << state;
     }
-    if (!opt.json_output.empty()) state_export.emplace_back(state);
+
+    if (!opt.json_output.empty()) state_export.emplace_back(state.dec);
     model.commit();
   }
   if (!opt.json_output.empty()) {
     std::ofstream state_file(opt.json_output);
     state_file << state_export.dump();
   }
-  spdlog::info("{} Exited with 0x{:X} ({})\n", opt.target, model.tohost(),
+  spdlog::info("{} Exited with 0x{:X} ({})", opt.target, model.tohost(),
                static_cast<int32_t>(model.tohost()));
+
+  return 0;
 }

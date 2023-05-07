@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <elfio/elfio_dump.hpp>
-
-#include "spdlog/fmt/bundled/core.h"
+#include "elfio/elfio_dump.hpp"
+#include "spdlog/formatter.h"
 
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"

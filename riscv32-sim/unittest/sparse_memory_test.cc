@@ -4,7 +4,7 @@
 
 #include "memory/sparse_memory.hpp"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 TEST(SparseMemoryTest, UninitializedMemory) {
   mem::sparse_memory sm;

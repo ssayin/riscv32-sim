@@ -8,9 +8,6 @@
 #include <array>
 #include <atomic>
 
-#include "common/hart_state.hpp"
-#include "common/program_counter.hpp"
-#include "common/types.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 #include "options.hpp"
@@ -29,18 +26,18 @@ public:
   };
 
   model(options &opt, loader l, mem::address_router &mem)
-      : allowed_pcs{l.progbit_ranges()}, opts{opt},
-        tohost_addr{l.symbol(opt.tohost_sym)}, cur_state{l.entry()}, mem{mem} {}
+      : cur_state{l.entry()}, allowed_pcs{l.progbit_ranges()}, opts{opt},
+        tohost_addr{l.symbol(opt.tohost_sym)}, mem{mem} {}
 
   void step();
   void commit();
-
-  const hart_state &state() const { return cur_state; }
 
   uint32_t tohost() { return mem.read32(tohost_addr); }
   bool     done() const { return is_done; }
 
   void set_pending(trap_cause cause);
+
+  hart_state cur_state;
 
 private:
   std::vector<std::tuple<uint64_t, uint64_t>> allowed_pcs;
@@ -69,8 +66,6 @@ private:
   void       save_pc(const trap_cause &cause);
 
   const uint32_t tohost_addr;
-
-  hart_state cur_state;
 
   mem::address_router &mem;
   privileged_mode      mode{privilege::machine};

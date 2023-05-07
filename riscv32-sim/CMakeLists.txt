@@ -20,7 +20,8 @@ if(BUILD_TESTING)
 
   macro(add_unit_test TEST)
     add_executable(${TEST} ${ARGN})
-    target_link_libraries(${TEST} GTest::gtest_main riscv32-sim-common)
+    target_link_libraries(${TEST} GTest::gtest_main riscv32-sim-common
+                          nlohmann_json)
 
     target_include_directories(
       ${TEST} PRIVATE ${PROJECT_SOURCE_DIR}/riscv32-sim/include)
@@ -46,7 +47,8 @@ set(SRC_FILES
     include/zicsr/csr_file.hpp
     src/mti_source.cpp
     include/mti_source.hpp
-    include/util/format_helpers.hpp)
+    include/util/format_helpers.hpp
+    include/util/json_export_helpers.hpp)
 
 if(ENABLE_TCP)
   add_library(rv32_sim_ipc OBJECT src/ipc.cpp)
@@ -62,8 +64,8 @@ target_link_libraries(
   PRIVATE elfio::elfio
           CLI11
           riscv_disas
-          nlohmann_json::nlohmann_json
-          spdlog::spdlog
+          nlohmann_json
+          spdlog_header_only
           $<$<BOOL:${MINGW}>:ws2_32>
           ${TCP_LIB}
           riscv32-sim-common
@@ -72,7 +74,7 @@ target_link_libraries(
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic;-Werror")
+  target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic")
   target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:-O2>")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 

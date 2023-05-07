@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "common/hart_state.hpp"
+#include "common/common.hpp"
 
 class reg_file {
   static constexpr size_t reg_count = 32U;
