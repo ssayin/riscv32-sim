@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
          os: [ubuntu-22.04, windows-latest]
-         build_type: [Debug]
+         build_type: [Debug, Release]
     env:
       RISCV32_TOOLCHAIN_GZIP: riscv32-embecosm-gcc-ubuntu2204-20230430
       RISCV32_TOOLCHAIN_URL: https://buildbot.embecosm.com/job/riscv32-gcc-ubuntu2204/60/artifact/riscv32-embecosm-gcc-ubuntu2204-20230430.tar.gz 
