@@ -76,6 +76,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE include)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(${PROJECT_NAME} PRIVATE "-Wall;-Wpedantic")
   target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:-O2>")
+  target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:-O1>")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
 endif()
@@ -90,4 +91,8 @@ endif()
 
 if(BUILD_TESTING)
   add_subdirectory(unittest)
+endif()
+
+if(ENABLE_UBENCHMARKS)
+  add_subdirectory(benchmark)
 endif()

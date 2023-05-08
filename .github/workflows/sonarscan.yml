@@ -1,8 +1,10 @@
-name: SonarScan
+name: sonarscan 
 on:
+  schedule:
+    - cron: '00 23 * * *'
   workflow_dispatch:
 jobs:
-  sonarqube:
+  sonarscan:
     needs: build
     runs-on: ubuntu-22.04
     env:
@@ -27,11 +29,6 @@ jobs:
           curl -sSLo $HOME/.sonar/sonar-scanner.zip ${{ env.SONAR_SCANNER_DOWNLOAD_URL }} 
           unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
           echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
-
-      - name: Download build
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifact
 
       - name: Run sonar-scanner
         env:
