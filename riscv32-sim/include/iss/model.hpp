@@ -8,6 +8,7 @@
 #include <array>
 #include <atomic>
 
+#include "iss/arith.hpp"
 #include "loader.hpp"
 #include "memory/sparse_memory.hpp"
 #include "options.hpp"
@@ -15,7 +16,10 @@
 #include "trap_cause.hpp"
 #include "zicsr/csr_file.hpp"
 
+#include "common/common.hpp"
+
 namespace iss {
+
 class model {
 
 public:
