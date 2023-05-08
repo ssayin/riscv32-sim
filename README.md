@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build.yml/badge.svg)
 ![](https://github.com/ssayin/riscv32-sim/actions/workflows/build-windows.yml/badge.svg)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
+<!-- [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim) -->
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=ssayin_riscv32-sim&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=ssayin_riscv32-sim)
@@ -23,7 +23,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 # riscv32-sim 
 
 <p align="center" width="100%">
-  <img width="60%" src="misc/images/screenshot.svg">
+  <img width="60%" src="misc/images/animated.svg">
 </p>
 
 An easy-to-use, still-in-development RISC-V 32-bit instruction-accurate simulator.
@@ -176,17 +176,15 @@ The processor simulator is a lightweight alternative to existing IA (Instruction
 
 ### Build Flags
 
-`-DBUILD_TESTING=[ON/OFF]`: Enable/disable building tests (default: ON).
-
-`-DBUILD_RUNTIME=[ON/OFF]`: Cross-compile programs in the runtime directory and add them as test targets. Requires GCC RISC-V toolchain in your PATH and the RISCV variable set to the compiler root directory.
-
-`-DISA_TESTS_DIR=[PATH]`: Specify the path to riscv-tests binaries.
-
-`-DCOVERAGE=[ON/OFF]`: (GCC only) Compile with coverage flags and link gcov library.
-
-`-DTEST_EXPORT_JSON_HART_STATE=[ON/OFF]`: Enable/disable exporting hart state as JSON (default: OFF).
-
-`-DTEST_EXPORT_TRACE_DISASSEMBLY=[ON/OFF]`: Enable/disable exporting disassembly trace (default: OFF).
+| Option | Description |
+|--------|-------------|
+| `-DBUILD_TESTING=[ON/OFF]` | Enable/disable building tests (default: ON). |
+| `-DBUILD_RUNTIME=[ON/OFF]` | Cross-compile programs in the runtime directory and add them as test targets. Requires GCC RISC-V toolchain in your PATH and the RISCV variable set to the compiler root directory. |
+| `-DISA_TESTS_DIR=[PATH]` | Specify the path to riscv-tests binaries. |
+| `-DCOVERAGE=[ON/OFF]` | (GCC only) Compile with coverage flags and link gcov library. |
+| `-DENABLE_UBENCHMARKS=[ON/OFF]` | (*REQUIRES* Google Benchmarks) Compile benchmarks for ISS components. |
+| `-DTEST_EXPORT_JSON_HART_STATE=[ON/OFF]` | (CTest flag) Enable/disable exporting hart state as JSON (default: OFF). |
+| `-DTEST_EXPORT_TRACE_DISASSEMBLY=[ON/OFF]` | (CTest flag) Enable/disable exporting disassembly trace (default: OFF). |
 
 ### Building on Linux
 
